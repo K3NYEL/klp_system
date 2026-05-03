@@ -12,7 +12,7 @@ import os
 import sys
 import webbrowser
 
-CREATOR_URL = "https://github.com/kenyel231"
+CREATOR_URL = "https://github.com/K3NYEL"
 
 INPUT_STYLE = {
     "bg": "#ffffff",
