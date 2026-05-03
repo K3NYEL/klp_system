@@ -480,8 +480,8 @@ class SistemaFacturacion:
 
     def crear_pestaña_admin(self):
         """Crea la pestaña de configuración de la empresa"""
-        tab = tk.Frame(self.notebook, bg="white")
-        self.notebook.add(tab, text="  Mi Empresa  ")
+        tab = tk.Frame(self.root, bg="white")
+        self.empresa_tab = tab
         
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
         form_frame.pack(fill=tk.X, padx=10, pady=10)
@@ -577,17 +577,39 @@ class SistemaFacturacion:
 
         self.root.config(menu=menu_bar)
 
+        access_frame = tk.Frame(self.root, bg="#2d3436", relief=tk.FLAT)
+        access_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
+
+        tk.Label(access_frame, text="Accesos rápidos", font=("Arial", 9, "bold"),
+                 bg="#2d3436", fg="white").pack(side=tk.LEFT, padx=12, pady=6)
+
+        tk.Button(access_frame, text="Inicio de sesión", command=self.cerrar_sesion,
+                  bg="#0984e3", fg="white", activebackground="#0878cc",
+                  activeforeground="white", font=("Arial", 9, "bold"),
+                  cursor="hand2", relief=tk.FLAT, padx=12).pack(side=tk.RIGHT, padx=(4, 8), pady=4)
+
+        tk.Button(access_frame, text="Mi Empresa", command=self.ir_mi_empresa,
+                  bg="#00b894", fg="white", activebackground="#00a383",
+                  activeforeground="white", font=("Arial", 9, "bold"),
+                  cursor="hand2", relief=tk.FLAT, padx=12).pack(side=tk.RIGHT, padx=4, pady=4)
+
+        tk.Button(access_frame, text="Acerca de", command=self.mostrar_acerca_de,
+                  bg="#636e72", fg="white", activebackground="#4f5b60",
+                  activeforeground="white", font=("Arial", 9, "bold"),
+                  cursor="hand2", relief=tk.FLAT, padx=12).pack(side=tk.RIGHT, padx=4, pady=4)
+
         header_frame = tk.Frame(self.root, bg="#ffffff", relief=tk.RIDGE, bd=1)
-        header_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
+        header_frame.pack(fill=tk.X, padx=10, pady=(6, 0))
         title_frame = tk.Frame(header_frame, bg="#ffffff")
         title_frame.pack(side=tk.LEFT, padx=18, pady=12)
         tk.Label(title_frame, text="Sistema de Facturación", font=("Arial", 22, "bold"),
                  bg="#ffffff", fg="#2d3436").pack(anchor="w")
         tk.Label(title_frame, text="Nueva factura, productos, clientes e historial desde una sola pantalla",
                  font=("Arial", 10), bg="#ffffff", fg="#636e72").pack(anchor="w", pady=(2, 0))
-        tk.Button(header_frame, text="Cerrar Sesión", command=self.cerrar_sesion,
-                 bg="#e74c3c", fg="white", font=("Arial", 10, "bold"),
-                 width=16, cursor="hand2").pack(side=tk.RIGHT, padx=15, pady=10)
+        tk.Button(header_frame, text="Crear factura", command=lambda: self.notebook.select(0),
+                 bg="#3498db", fg="white", activebackground="#2980b9",
+                 activeforeground="white", font=("Arial", 10, "bold"),
+                 width=16, cursor="hand2", relief=tk.FLAT).pack(side=tk.RIGHT, padx=15, pady=10)
 
         main_frame = tk.Frame(self.root, bg="#f0f0f0")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
@@ -603,6 +625,51 @@ class SistemaFacturacion:
 
         tk.Label(self.root, text="Facturación App • K.A.R.M. • Versión 1.0", bg="#f0f0f0",
                  fg="#555", font=("Arial", 8)).pack(side=tk.BOTTOM, pady=6)
+
+    def ir_mi_empresa(self):
+        empresa_win = tk.Toplevel(self.root)
+        empresa_win.title("Mi Empresa")
+        set_app_icon(empresa_win, self.base_path)
+        empresa_win.geometry("640x420")
+        empresa_win.configure(bg="#f0f0f0")
+        empresa_win.transient(self.root)
+        empresa_win.grab_set()
+        self.center_window(640, 420, window=empresa_win)
+
+        container = tk.Frame(empresa_win, bg="white", relief=tk.RIDGE, bd=0,
+                             highlightbackground="#dfe6e9", highlightthickness=1)
+        container.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+        container.columnconfigure(1, weight=1)
+
+        tk.Label(container, text="Datos de mi empresa", font=("Arial", 16, "bold"),
+                 bg="white", fg="#2d3436").grid(row=0, column=0, columnspan=2, sticky="w", padx=20, pady=(18, 12))
+
+        fields = [
+            ("Nombre de la empresa", self.empresa_nombre_var),
+            ("RNC", self.empresa_rnc_var),
+            ("Dirección", self.empresa_direccion_var),
+            ("Teléfono", self.empresa_telefono_var),
+            ("Email", self.empresa_email_var),
+            ("Sitio web", self.empresa_website_var),
+        ]
+
+        for index, (label, variable) in enumerate(fields, start=1):
+            tk.Label(container, text=label, bg="white", font=("Arial", 10, "bold")).grid(
+                row=index, column=0, padx=20, pady=6, sticky="w"
+            )
+            tk.Entry(container, textvariable=variable, font=("Arial", 10), **INPUT_STYLE).grid(
+                row=index, column=1, padx=(0, 20), pady=6, sticky="ew"
+            )
+
+        btn_frame = tk.Frame(container, bg="white")
+        btn_frame.grid(row=7, column=0, columnspan=2, pady=(18, 16))
+
+        tk.Button(btn_frame, text="Guardar datos", command=self.guardar_empresa,
+                 bg="#3498db", fg="white", font=("Arial", 10, "bold"),
+                 width=18, cursor="hand2").pack(side=tk.LEFT, padx=6)
+        tk.Button(btn_frame, text="Cerrar", command=empresa_win.destroy,
+                 bg="#95a5a6", fg="white", font=("Arial", 10, "bold"),
+                 width=12, cursor="hand2").pack(side=tk.LEFT, padx=6)
         
     def cerrar_sesion(self):
         if messagebox.askyesno("Cerrar sesión", "¿Desea cerrar sesión y volver al login?"):
