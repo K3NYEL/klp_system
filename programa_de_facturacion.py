@@ -24,6 +24,21 @@ INPUT_STYLE = {
     "highlightcolor": "#3498db",
 }
 
+def resource_path(filename):
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, filename)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+
+def set_app_icon(window, base_path=None):
+    icon_path = resource_path("facturacion_ico.ico")
+    if not os.path.exists(icon_path) and base_path:
+        icon_path = os.path.join(base_path, "facturacion_ico.ico")
+    if os.path.exists(icon_path):
+        try:
+            window.iconbitmap(default=icon_path)
+        except tk.TclError:
+            pass
+
 def configure_app_style():
     style = ttk.Style()
     try:
@@ -95,7 +110,8 @@ class LoginWindow:
         self.root = root
         self.on_success = on_success
         self.root.title("Sistema de Facturacion")
-        self.root.iconbitmap("facturacion_ico.ico")
+        self.base_path = self.get_base_path()
+        set_app_icon(self.root, self.base_path)
         self.root.geometry("420x360")
         self.root.resizable(False, False)
         self.root.configure(bg="#f0f0f0")
@@ -262,6 +278,7 @@ class LoginWindow:
     def open_register_window(self):
         register_window = tk.Toplevel(self.root)
         register_window.title("Registro de Usuario")
+        set_app_icon(register_window, self.base_path)
         register_window.geometry("430x420")
         register_window.resizable(False, False)
         register_window.configure(bg="#f0f0f0")
@@ -314,8 +331,8 @@ class LoginWindow:
         if clave != clave_confirm:
             messagebox.showwarning("Advertencia", "Las contraseñas no coinciden")
             return
-        if len(clave) < 8:
-            messagebox.showwarning("Advertencia", "La contraseña debe tener al menos 8 caracteres")
+        if len(clave) < 5:
+            messagebox.showwarning("Advertencia", "La contraseña debe tener al menos 5 caracteres")
             return
         if not any(c.isdigit() for c in clave) or not any(c.isalpha() for c in clave):
             messagebox.showwarning("Advertencia", "La contraseña debe incluir letras y números")
@@ -342,10 +359,10 @@ class SistemaFacturacion:
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema de Facturacion")
-        self.root.iconbitmap("facturacion_ico.ico")
+        self.base_path = self.get_base_path()
+        set_app_icon(self.root, self.base_path)
         self.root.geometry("1200x700")
         self.root.configure(bg="#f0f0f0")
-        self.base_path = self.get_base_path()
         configure_app_style()
         
         # Inicializar base de datos
@@ -590,7 +607,7 @@ class SistemaFacturacion:
     def mostrar_acerca_de(self):
         about = tk.Toplevel(self.root)
         about.title("Acerca de")
-        about.iconbitmap("facturacion_ico.ico")
+        set_app_icon(about, self.base_path)
         about.resizable(False, False)
         about.configure(bg="#f0f0f0")
         about.geometry("400x240")
@@ -1615,6 +1632,7 @@ class SistemaFacturacion:
         # Crear ventana de detalles
         detalle_win = tk.Toplevel(self.root)
         detalle_win.title("Detalles de Factura")
+        set_app_icon(detalle_win, self.base_path)
         detalle_win.geometry("700x500")
         detalle_win.configure(bg="white")
         
