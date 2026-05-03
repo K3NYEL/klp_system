@@ -95,6 +95,7 @@ class LoginWindow:
         self.root = root
         self.on_success = on_success
         self.root.title("Sistema de Facturacion")
+        self.root.iconbitmap("facturacion_ico.ico")
         self.root.geometry("420x360")
         self.root.resizable(False, False)
         self.root.configure(bg="#f0f0f0")
@@ -341,6 +342,7 @@ class SistemaFacturacion:
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema de Facturacion")
+        self.root.iconbitmap("facturacion_ico.ico")
         self.root.geometry("1200x700")
         self.root.configure(bg="#f0f0f0")
         self.base_path = self.get_base_path()
@@ -588,6 +590,7 @@ class SistemaFacturacion:
     def mostrar_acerca_de(self):
         about = tk.Toplevel(self.root)
         about.title("Acerca de")
+        about.iconbitmap("facturacion_ico.ico")
         about.resizable(False, False)
         about.configure(bg="#f0f0f0")
         about.geometry("400x240")
