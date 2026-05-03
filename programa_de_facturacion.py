@@ -112,10 +112,10 @@ class LoginWindow:
         self.root.title("Sistema de Facturacion")
         self.base_path = self.get_base_path()
         set_app_icon(self.root, self.base_path)
-        self.root.geometry("420x360")
+        self.root.geometry("460x430")
         self.root.resizable(False, False)
         self.root.configure(bg="#f0f0f0")
-        self.center_window(420, 360)
+        self.center_window(460, 430)
 
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
@@ -208,42 +208,44 @@ class LoginWindow:
     def create_widgets(self):
         login_frame = tk.Frame(self.root, bg="white", relief=tk.RIDGE, bd=0,
                                highlightbackground="#dfe6e9", highlightthickness=1)
-        login_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=380, height=330)
+        login_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=400, height=360)
 
         header_frame = tk.Frame(login_frame, bg="#3498db")
         header_frame.pack(fill=tk.X)
-        tk.Label(header_frame, text="Bienvenido", bg="#3498db", fg="white",
-                 font=("Arial", 15, "bold")).pack(pady=12)
+        tk.Label(header_frame, text="Acceso al sistema", bg="#3498db", fg="white",
+                 font=("Arial", 17, "bold")).pack(pady=(14, 4))
+        tk.Label(header_frame, text="Facturas, clientes y productos en un solo lugar",
+                 bg="#3498db", fg="#eef7ff", font=("Arial", 9)).pack(pady=(0, 14))
 
-        tk.Label(login_frame, text="Accede a tu panel de facturación", bg="white",
-                 fg="#555", font=("Arial", 9)).pack(pady=(8, 14))
+        tk.Label(login_frame, text="Ingrese sus datos para continuar", bg="white",
+                 fg="#555", font=("Arial", 10)).pack(pady=(16, 14))
 
-        tk.Label(login_frame, text="Usuario:", font=("Arial", 10, "bold"), bg="white").pack(anchor="w", padx=24)
+        tk.Label(login_frame, text="Usuario", font=("Arial", 10, "bold"), bg="white").pack(anchor="w", padx=36)
         tk.Entry(login_frame, textvariable=self.username_var, font=("Arial", 10), width=32,
-                 **INPUT_STYLE).pack(padx=24, pady=(4, 10))
+                 **INPUT_STYLE).pack(fill=tk.X, padx=36, pady=(4, 12))
 
-        tk.Label(login_frame, text="Contraseña:", font=("Arial", 10, "bold"), bg="white").pack(anchor="w", padx=24)
+        tk.Label(login_frame, text="Contraseña", font=("Arial", 10, "bold"), bg="white").pack(anchor="w", padx=36)
         self.password_entry = tk.Entry(login_frame, textvariable=self.password_var, font=("Arial", 10),
                                        show="*", width=32, **INPUT_STYLE)
-        self.password_entry.pack(padx=24, pady=(4, 10))
+        self.password_entry.pack(fill=tk.X, padx=36, pady=(4, 12))
 
         options_frame = tk.Frame(login_frame, bg="white")
-        options_frame.pack(fill=tk.X, padx=24, pady=(0, 10))
+        options_frame.pack(fill=tk.X, padx=34, pady=(0, 12))
         tk.Checkbutton(options_frame, text="Mostrar contraseña", variable=self.show_password_var,
                        bg="white", command=self.toggle_password_visibility).pack(side=tk.LEFT)
         tk.Checkbutton(options_frame, text="Recordar usuario", variable=self.remember_var,
-                       bg="white").pack(side=tk.LEFT, padx=10)
+                       bg="white").pack(side=tk.RIGHT)
 
         btn_frame = tk.Frame(login_frame, bg="white")
-        btn_frame.pack(pady=8)
+        btn_frame.pack(fill=tk.X, padx=36, pady=(4, 0))
 
-        tk.Button(btn_frame, text="Ingresar", command=self.login,
+        tk.Button(btn_frame, text="Entrar al sistema", command=self.login,
                  bg="#3498db", fg="white", font=("Arial", 10, "bold"),
-                 width=14, cursor="hand2").pack(side=tk.LEFT, padx=6)
+                 cursor="hand2").pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
 
-        tk.Button(btn_frame, text="Registrarse", command=self.open_register_window,
+        tk.Button(btn_frame, text="Crear cuenta", command=self.open_register_window,
                  bg="#2ecc71", fg="white", font=("Arial", 10, "bold"),
-                 width=14, cursor="hand2").pack(side=tk.LEFT, padx=6)
+                 cursor="hand2").pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
 
         tk.Label(self.root, text="© 2026 K.A.R.M. • Facturación Fácil", font=("Arial", 8),
                  bg="#f0f0f0", fg="#555").pack(side=tk.BOTTOM, pady=10)
@@ -279,48 +281,55 @@ class LoginWindow:
         register_window = tk.Toplevel(self.root)
         register_window.title("Registro de Usuario")
         set_app_icon(register_window, self.base_path)
-        register_window.geometry("430x420")
+        register_window.geometry("500x470")
         register_window.resizable(False, False)
         register_window.configure(bg="#f0f0f0")
         register_window.transient(self.root)
         register_window.grab_set()
-        self.center_window(430, 420, window=register_window)
+        self.center_window(500, 470, window=register_window)
 
-        tk.Label(register_window, text="Crear nueva cuenta", font=("Arial", 16, "bold"),
-                 bg="#f0f0f0").pack(pady=(20, 6))
-        tk.Label(register_window, text="Llena los datos para crear tu cuenta", font=("Arial", 9),
+        tk.Label(register_window, text="Crear cuenta de acceso", font=("Arial", 17, "bold"),
+                 bg="#f0f0f0", fg="#2d3436").pack(pady=(20, 6))
+        tk.Label(register_window, text="Complete los datos. Luego podrá iniciar sesión con este usuario.", font=("Arial", 9),
                  bg="#f0f0f0", fg="#555").pack()
 
-        form_frame = tk.Frame(register_window, bg="white", relief=tk.RIDGE, bd=2)
+        form_frame = tk.Frame(register_window, bg="white", relief=tk.RIDGE, bd=0,
+                              highlightbackground="#dfe6e9", highlightthickness=1)
         form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         form_frame.columnconfigure(1, weight=1)
 
-        tk.Label(form_frame, text="Usuario:", font=("Arial", 10, "bold"), bg="white").grid(row=0, column=0, sticky="w", padx=20, pady=(20, 5))
+        tk.Label(form_frame, text="Datos de la cuenta", font=("Arial", 13, "bold"),
+                 bg="white", fg="#2d3436").grid(row=0, column=0, columnspan=2, sticky="w", padx=22, pady=(20, 14))
+
+        tk.Label(form_frame, text="Usuario", font=("Arial", 10, "bold"), bg="white").grid(row=1, column=0, sticky="w", padx=22, pady=6)
         new_user_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=new_user_var, font=("Arial", 10), **INPUT_STYLE).grid(row=0, column=1, sticky="ew", padx=(0, 20), pady=(20, 5))
+        tk.Entry(form_frame, textvariable=new_user_var, font=("Arial", 10), **INPUT_STYLE).grid(row=1, column=1, sticky="ew", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="Contraseña:", font=("Arial", 10, "bold"), bg="white").grid(row=1, column=0, sticky="w", padx=20, pady=5)
+        tk.Label(form_frame, text="Contraseña", font=("Arial", 10, "bold"), bg="white").grid(row=2, column=0, sticky="w", padx=22, pady=6)
         new_password_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=new_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=1, column=1, sticky="ew", padx=(0, 20), pady=5)
+        tk.Entry(form_frame, textvariable=new_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=2, column=1, sticky="ew", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="Confirmar contraseña:", font=("Arial", 10, "bold"), bg="white").grid(row=2, column=0, sticky="w", padx=20, pady=5)
+        tk.Label(form_frame, text="Confirmar contraseña", font=("Arial", 10, "bold"), bg="white").grid(row=3, column=0, sticky="w", padx=22, pady=6)
         confirm_password_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=confirm_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=2, column=1, sticky="ew", padx=(0, 20), pady=5)
+        tk.Entry(form_frame, textvariable=confirm_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=3, column=1, sticky="ew", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="Rol:", font=("Arial", 10, "bold"), bg="white").grid(row=3, column=0, sticky="w", padx=20, pady=5)
+        tk.Label(form_frame, text="Tipo de usuario", font=("Arial", 10, "bold"), bg="white").grid(row=4, column=0, sticky="w", padx=22, pady=6)
         role_var = tk.StringVar(value="Vendedor")
         role_frame = tk.Frame(form_frame, bg="white")
-        role_frame.grid(row=3, column=1, sticky="w", padx=(0, 20), pady=5)
+        role_frame.grid(row=4, column=1, sticky="w", padx=(0, 22), pady=6)
         tk.Radiobutton(role_frame, text="Vendedor", variable=role_var, value="Vendedor",
                        bg="white", font=("Arial", 10)).pack(side=tk.LEFT, padx=(0, 10))
         tk.Radiobutton(role_frame, text="Administrador", variable=role_var, value="Administrador",
                        bg="white", font=("Arial", 10)).pack(side=tk.LEFT)
 
-        register_button = tk.Button(form_frame, text="Registrar cuenta", command=lambda: self.register_user(
+        tk.Label(form_frame, text="La contraseña debe tener mínimo 5 caracteres e incluir letras y números.",
+                 font=("Arial", 9), bg="white", fg="#636e72").grid(row=5, column=0, columnspan=2, sticky="w", padx=22, pady=(8, 0))
+
+        register_button = tk.Button(form_frame, text="Guardar cuenta", command=lambda: self.register_user(
             new_user_var.get().strip(), new_password_var.get().strip(), confirm_password_var.get().strip(), role_var.get(), register_window),
                  bg="#2ecc71", fg="white", font=("Arial", 10, "bold"),
-                 width=22, cursor="hand2")
-        register_button.grid(row=4, column=0, columnspan=2, pady=(20, 15))
+                 width=24, cursor="hand2")
+        register_button.grid(row=6, column=0, columnspan=2, pady=(24, 16))
 
         register_window.bind("<Return>", lambda event: register_button.invoke())
 
@@ -472,12 +481,12 @@ class SistemaFacturacion:
     def crear_pestaña_admin(self):
         """Crea la pestaña de configuración de la empresa"""
         tab = tk.Frame(self.notebook, bg="white")
-        self.notebook.add(tab, text="  Administrador  ")
+        self.notebook.add(tab, text="  Mi Empresa  ")
         
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
         form_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Label(form_frame, text="Información de la Empresa", font=("Arial", 14, "bold"),
+        tk.Label(form_frame, text="Datos que aparecerán en la factura", font=("Arial", 14, "bold"),
                 bg="white").grid(row=0, column=0, columnspan=2, pady=10)
         
         tk.Label(form_frame, text="Nombre de la empresa:", bg="white", font=("Arial", 10)).grid(row=1, column=0, padx=10, pady=5, sticky="e")
@@ -509,7 +518,7 @@ class SistemaFacturacion:
         
         tk.Button(btn_frame, text="Guardar empresa", command=self.guardar_empresa,
                  bg="#3498db", fg="white", font=("Arial", 10, "bold"),
-                 width=20, cursor="hand2").pack()
+                 width=24, cursor="hand2").pack()
 
     def cargar_empresa(self):
         self.cursor.execute('SELECT nombre, rnc, direccion, telefono, email, website FROM empresa WHERE id = 1')
@@ -570,10 +579,12 @@ class SistemaFacturacion:
 
         header_frame = tk.Frame(self.root, bg="#ffffff", relief=tk.RIDGE, bd=1)
         header_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
-        tk.Label(header_frame, text="SISTEMA DE FACTURACIÓN", font=("Arial", 22, "bold"),
-                 bg="#ffffff", fg="#2d3436").pack(side=tk.LEFT, padx=15, pady=12)
-        tk.Label(header_frame, text="Gestión rápida y confiable", font=("Arial", 10),
-                 bg="#ffffff", fg="#666").pack(side=tk.LEFT, pady=14)
+        title_frame = tk.Frame(header_frame, bg="#ffffff")
+        title_frame.pack(side=tk.LEFT, padx=18, pady=12)
+        tk.Label(title_frame, text="Sistema de Facturación", font=("Arial", 22, "bold"),
+                 bg="#ffffff", fg="#2d3436").pack(anchor="w")
+        tk.Label(title_frame, text="Nueva factura, productos, clientes e historial desde una sola pantalla",
+                 font=("Arial", 10), bg="#ffffff", fg="#636e72").pack(anchor="w", pady=(2, 0))
         tk.Button(header_frame, text="Cerrar Sesión", command=self.cerrar_sesion,
                  bg="#e74c3c", fg="white", font=("Arial", 10, "bold"),
                  width=16, cursor="hand2").pack(side=tk.RIGHT, padx=15, pady=10)
@@ -636,28 +647,31 @@ class SistemaFacturacion:
     def crear_pestaña_facturacion(self):
         """Crea la pestaña de facturación"""
         tab = tk.Frame(self.notebook, bg="white")
-        self.notebook.add(tab, text="  Nueva Factura  ")
+        self.notebook.add(tab, text="  Crear Factura  ")
         
         # Frame superior para datos de factura
-        top_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
+        top_frame = tk.LabelFrame(tab, text="  1. Datos del comprobante  ", bg="white",
+                                  fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
         top_frame.pack(fill=tk.X, padx=10, pady=10)
+        top_frame.columnconfigure(1, weight=1)
+        top_frame.columnconfigure(3, weight=1)
         
         # Número de factura
-        tk.Label(top_frame, text="No. Factura:", font=("Arial", 10, "bold"), 
+        tk.Label(top_frame, text="Factura No.", font=("Arial", 10, "bold"), 
                 bg="white").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.num_factura = tk.StringVar(value=self.generar_numero_factura())
         tk.Entry(top_frame, textvariable=self.num_factura, state="readonly", 
-                width=20, font=("Arial", 10)).grid(row=0, column=1, padx=10, pady=5)
+                width=20, font=("Arial", 10)).grid(row=0, column=1, padx=10, pady=5, sticky="ew")
         
         # Fecha
-        tk.Label(top_frame, text="Fecha:", font=("Arial", 10, "bold"), 
+        tk.Label(top_frame, text="Fecha", font=("Arial", 10, "bold"), 
                 bg="white").grid(row=0, column=2, padx=10, pady=5, sticky="w")
         self.fecha_factura = tk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
         tk.Entry(top_frame, textvariable=self.fecha_factura, state="readonly", 
-                width=15, font=("Arial", 10)).grid(row=0, column=3, padx=10, pady=5)
+                width=15, font=("Arial", 10)).grid(row=0, column=3, padx=10, pady=5, sticky="ew")
         
         # Cliente
-        tk.Label(top_frame, text="Cliente:", font=("Arial", 10, "bold"), 
+        tk.Label(top_frame, text="Cliente", font=("Arial", 10, "bold"), 
                 bg="white").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.cliente_var = tk.StringVar()
         self.combo_cliente = ttk.Combobox(top_frame, textvariable=self.cliente_var, 
@@ -665,35 +679,38 @@ class SistemaFacturacion:
         self.combo_cliente.grid(row=1, column=1, columnspan=3, padx=10, pady=5, sticky="ew")
         
         # Frame para agregar productos
-        add_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
+        add_frame = tk.LabelFrame(tab, text="  2. Agregar producto a la factura  ", bg="white",
+                                  fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
         add_frame.pack(fill=tk.X, padx=10, pady=5)
+        add_frame.columnconfigure(1, weight=1)
         
-        tk.Label(add_frame, text="Producto:", bg="white", 
+        tk.Label(add_frame, text="Producto", bg="white", 
                 font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, pady=5)
         self.producto_var = tk.StringVar()
         self.combo_producto = ttk.Combobox(add_frame, textvariable=self.producto_var, 
                                           width=35, font=("Arial", 10))
-        self.combo_producto.grid(row=0, column=1, padx=5, pady=5)
+        self.combo_producto.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         self.combo_producto.bind('<<ComboboxSelected>>', self.seleccionar_producto)
         
-        tk.Label(add_frame, text="Precio:", bg="white", 
+        tk.Label(add_frame, text="Precio", bg="white", 
                 font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=5)
         self.precio_var = tk.StringVar()
         tk.Entry(add_frame, textvariable=self.precio_var, width=12, 
                 font=("Arial", 10)).grid(row=0, column=3, padx=5, pady=5)
         
-        tk.Label(add_frame, text="Cantidad:", bg="white", 
+        tk.Label(add_frame, text="Cantidad", bg="white", 
                 font=("Arial", 10, "bold")).grid(row=0, column=4, padx=5, pady=5)
         self.cantidad_var = tk.StringVar(value="1")
         tk.Entry(add_frame, textvariable=self.cantidad_var, width=10, 
                 font=("Arial", 10)).grid(row=0, column=5, padx=5, pady=5)
         
-        tk.Button(add_frame, text="Agregar", command=self.agregar_item, 
+        tk.Button(add_frame, text="Agregar producto", command=self.agregar_item, 
                  bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
                  cursor="hand2").grid(row=0, column=6, padx=10, pady=5)
         
         # Frame para la tabla de items
-        table_frame = tk.Frame(tab, bg="white")
+        table_frame = tk.LabelFrame(tab, text="  3. Productos incluidos  ", bg="white",
+                                    fg="#2d3436", font=("Arial", 11, "bold"), padx=8, pady=8)
         table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         # Scrollbar
@@ -720,12 +737,13 @@ class SistemaFacturacion:
         self.tree_items.pack(fill=tk.BOTH, expand=True)
         
         # Botón para eliminar item
-        tk.Button(table_frame, text="Eliminar Item Seleccionado", 
+        tk.Button(table_frame, text="Quitar producto seleccionado", 
                  command=self.eliminar_item, bg="#e74c3c", fg="white",
                  font=("Arial", 10, "bold")).pack(pady=5)
         
         # Frame para totales
-        total_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
+        total_frame = tk.LabelFrame(tab, text="  Resumen de cobro  ", bg="white",
+                                    fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
         total_frame.pack(fill=tk.X, padx=10, pady=10)
         
         # Labels de totales
@@ -751,24 +769,24 @@ class SistemaFacturacion:
         btn_frame = tk.Frame(tab, bg="white")
         btn_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Button(btn_frame, text="Generar Factura y PDF", command=self.generar_factura,
+        tk.Button(btn_frame, text="Guardar factura y crear PDF", command=self.generar_factura,
                  bg="#3498db", fg="white", font=("Arial", 12, "bold"),
                  width=25, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
         
-        tk.Button(btn_frame, text="Nueva Factura", command=self.nueva_factura,
+        tk.Button(btn_frame, text="Limpiar y hacer otra factura", command=self.nueva_factura,
                  bg="#95a5a6", fg="white", font=("Arial", 12, "bold"),
-                 width=20, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
+                 width=26, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
         
     def crear_pestaña_productos(self):
         """Crea la pestaña de gestión de productos"""
         tab = tk.Frame(self.notebook, bg="white")
-        self.notebook.add(tab, text="  Productos  ")
+        self.notebook.add(tab, text="  Inventario  ")
         
         # Frame para formulario
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
         form_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Label(form_frame, text="Gestión de Productos", font=("Arial", 14, "bold"),
+        tk.Label(form_frame, text="Inventario de productos", font=("Arial", 14, "bold"),
                 bg="white").grid(row=0, column=0, columnspan=4, pady=10)
         
         # Campos del formulario
@@ -812,7 +830,7 @@ class SistemaFacturacion:
         search_frame = tk.Frame(tab, bg="white")
         search_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        tk.Label(search_frame, text="Buscar:", bg="white", font=("Arial", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Buscar por código o nombre:", bg="white", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=5)
         self.prod_buscar = tk.Entry(search_frame, width=40, font=("Arial", 10))
         self.prod_buscar.pack(side=tk.LEFT, padx=5)
         self.prod_buscar.bind('<KeyRelease>', lambda e: self.cargar_productos())
@@ -852,7 +870,7 @@ class SistemaFacturacion:
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
         form_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Label(form_frame, text="Gestión de Clientes", font=("Arial", 14, "bold"),
+        tk.Label(form_frame, text="Registro de clientes", font=("Arial", 14, "bold"),
                 bg="white").grid(row=0, column=0, columnspan=4, pady=10)
         
         # Campos del formulario
@@ -896,7 +914,7 @@ class SistemaFacturacion:
         search_frame = tk.Frame(tab, bg="white")
         search_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        tk.Label(search_frame, text="Buscar:", bg="white", font=("Arial", 10)).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Buscar por nombre o cédula:", bg="white", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=5)
         self.cli_buscar = tk.Entry(search_frame, width=40, font=("Arial", 10))
         self.cli_buscar.pack(side=tk.LEFT, padx=5)
         self.cli_buscar.bind('<KeyRelease>', lambda e: self.cargar_clientes())
@@ -930,23 +948,23 @@ class SistemaFacturacion:
     def crear_pestaña_historial(self):
         """Crea la pestaña de historial de facturas"""
         tab = tk.Frame(self.notebook, bg="white")
-        self.notebook.add(tab, text="  Historial  ")
+        self.notebook.add(tab, text="  Facturas guardadas  ")
         
         # Frame para búsqueda
         search_frame = tk.Frame(tab, bg="white")
         search_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Label(search_frame, text="Buscar Factura:", bg="white", 
+        tk.Label(search_frame, text="Buscar factura o cliente:", bg="white", 
                 font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=5)
         self.hist_buscar = tk.Entry(search_frame, width=30, font=("Arial", 10))
         self.hist_buscar.pack(side=tk.LEFT, padx=5)
         self.hist_buscar.bind('<KeyRelease>', lambda e: self.cargar_historial())
         
-        tk.Button(search_frame, text="Ver Detalles", command=self.ver_detalles_factura,
+        tk.Button(search_frame, text="Ver detalles", command=self.ver_detalles_factura,
                  bg="#3498db", fg="white", font=("Arial", 10, "bold"),
                  cursor="hand2").pack(side=tk.LEFT, padx=10)
         
-        tk.Button(search_frame, text="Generar PDF", command=self.regenerar_pdf,
+        tk.Button(search_frame, text="Crear PDF de nuevo", command=self.regenerar_pdf,
                  bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
                  cursor="hand2").pack(side=tk.LEFT, padx=5)
         
