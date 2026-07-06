@@ -26,7 +26,7 @@ INPUT_STYLE = {
 
 def resource_path(filename):
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, filename)
+        return os.path.join(sys._MEIPASS, filename) # type: ignore
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
 
 def set_app_icon(window, base_path=None):
