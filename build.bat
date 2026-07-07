@@ -4,7 +4,7 @@ cd /d "%~dp0"
 :: --- 1. ACTIVAR ENTORNO VIRTUAL (SI USAS UNO) ---
 :: Si guardas tus librerías en una carpeta como 'venv' o '.venv', 
 :: quita los dos puntos (::) de la línea de abajo para activarlo:
-:: call venv\Scripts\activate
+call .venv\Scripts\activate
 
 echo [1/2] Limpiando residuos y compilando con PyInstaller...
 echo.
