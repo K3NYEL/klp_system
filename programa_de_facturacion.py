@@ -45,58 +45,105 @@ def configure_app_style():
         style.theme_use("clam")
     except tk.TclError:
         pass
+    
+    def __init__(self, root):
+        self.root = root
+        self.current_theme = 'dark'
+        self.load_theme()
+    
+    def load_theme(self):
+        self.apply_theme(self.current_theme)
+    
+    def apply_theme(self, theme_name):
+        theme = self.THEMES[theme_name]
+        self.current_theme = theme_name
+        
+        # Update root
+        self.root.configure(bg=theme['bg_primary'])
+        
+        # Update ttk styles
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("TFrame", background=theme['bg_primary'])
+        style.configure("TLabel", background=theme['bg_primary'], foreground=theme['text_primary'])
+        style.configure("TNotebook", background=theme['bg_secondary'])
+        style.configure("TNotebook.Tab", background=theme['bg_card'], foreground=theme['text_primary'])
+        style.map("TNotebook.Tab", background=[("selected", theme['accent'])])
+        style.configure("Treeview", background=theme['bg_card'], foreground=theme['text_primary'], fieldbackground=theme['bg_card'])
+        style.configure("Treeview.Heading", background=theme['accent'], foreground=theme['text_primary'])
+        style.map("Treeview", background=[("selected", theme['accent'])], foreground=[("selected", theme['bg_primary'])])
+        style.configure("TEntry", fieldbackground=theme['bg_card'], foreground=theme['text_primary'])
+        style.configure("TCombobox", fieldbackground=theme['bg_card'], foreground=theme['text_primary'])
+        style.configure("Accent.TButton", background=theme['accent'], font=("Arial", 10, "bold"), foreground="white", padding=6)
+        style.map("Accent.TButton", background=[("active", f"{theme['accent']}90")])
+        style.configure("Secondary.TButton", background=theme['success'], font=("Arial", 10, "bold"), foreground="white", padding=6)
+        style.configure("Danger.TButton", background=theme['danger'], font=("Arial", 10, "bold"), foreground="white", padding=6)
 
-    style.configure("Accent.TButton",
-                    font=("Arial", 10, "bold"),
-                    foreground="white",
-                    background="#3498db",
-                    padding=6)
-    style.map("Accent.TButton",
-              background=[("active", "#2980b9"), ("pressed", "#21618c")])
+    def toggle_theme(self):
+        new_theme = 'light' if self.current_theme == 'dark' else 'dark'
+        self.apply_theme(new_theme)
 
-    style.configure("Secondary.TButton",
+    def configure_app_style():
+        style = ttk.Style()
+    # Usamos el tema 'clam' para que permita personalizar mejor las pestañas
+        style.theme_use('clam') 
+
+    # Configuración de las pestañas (Tabs)
+        style.configure("TNotebook.Tab",
+                        font=("Arial", 12, "bold"), # Aumenta el tamaño de letra
+                        padding=[20, 10],            # [Ancho, Alto] internos de la pestaña
+                        background="#e1e1e1",        # Color de fondo cuando no está seleccionada
+                        foreground="#333333")        # Color de letra
+
+    # Estilo de la pestaña cuando está seleccionada (activa)
+        style.map("TNotebook.Tab",
+                background=[("selected", "#3b82f6")], # Fondo azul al hacer clic
+                foreground=[("selected", "white")])   # Letra blanca al hacer clic
+
+        style.configure("Secondary.TButton",
                     font=("Arial", 10, "bold"),
+                    # ... resto de tu configuración ...
                     foreground="white",
                     background="#2ecc71",
                     padding=6)
-    style.map("Secondary.TButton",
+        style.map("Secondary.TButton",
               background=[("active", "#27ae60"), ("pressed", "#1e8449")])
 
-    style.configure("Danger.TButton",
+        style.configure("Danger.TButton",
                     font=("Arial", 10, "bold"),
                     foreground="white",
                     background="#e74c3c",
                     padding=6)
 
-    style.configure("TNotebook",
+        style.configure("TNotebook",
                     background="#f0f0f0",
                     tabmargins=[2, 5, 2, 0])
-    style.configure("TNotebook.Tab",
+        style.configure("TNotebook.Tab",
                     font=("Arial", 11, "bold"),
                     padding=[12, 8],
                     background="#dfe6e9",
                     foreground="#2d3436")
-    style.map("TNotebook.Tab",
+        style.map("TNotebook.Tab",
               background=[("selected", "#74b9ff"), ("!disabled", "#dfe6e9")],
               foreground=[("selected", "#2d3436")])
 
-    style.configure("Treeview",
+        style.configure("Treeview",
                     font=("Arial", 10),
                     rowheight=26,
                     fieldbackground="#ffffff",
                     background="#ffffff",
                     foreground="#2d3436")
-    style.configure("Treeview.Heading",
+        style.configure("Treeview.Heading",
                     font=("Arial", 10, "bold"),
                     background="#0984e3",
                     foreground="white")
-    style.map("Treeview",
+        style.map("Treeview",
               background=[("selected", "#74b9ff")],
               foreground=[("selected", "black")])
 
-    style.configure("TLabel", background="#f0f0f0")
-    style.configure("TCombobox", fieldbackground="#ffffff", background="#ffffff")
-    style.configure("TEntry",
+        style.configure("TLabel", background="#f0f0f0")
+        style.configure("TCombobox", fieldbackground="#ffffff", background="#ffffff")
+        style.configure("TEntry",
                     fieldbackground="#ffffff",
                     foreground="#2d3436",
                     bordercolor="#8a8a8a",
@@ -371,7 +418,6 @@ class SistemaFacturacion:
         self.base_path = self.get_base_path()
         set_app_icon(self.root, self.base_path)
         self.root.geometry("1200x700")
-        self.root.configure(bg="#f0f0f0")
         configure_app_style()
         
         # Inicializar base de datos
@@ -577,11 +623,10 @@ class SistemaFacturacion:
 
         self.root.config(menu=menu_bar)
 
-        access_frame = tk.Frame(self.root, bg="#2d3436", relief=tk.FLAT)
+        access_frame = tk.Frame(self.root, relief=tk.FLAT)
         access_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
 
-        tk.Label(access_frame, text="Accesos rápidos", font=("Arial", 9, "bold"),
-                 bg="#2d3436", fg="white").pack(side=tk.LEFT, padx=12, pady=6)
+        tk.Label(access_frame, text="Accesos rápidos", font=("Arial", 9, "bold")).pack(side=tk.LEFT, padx=12, pady=6)
 
         tk.Button(access_frame, text="Inicio de sesión", command=self.cerrar_sesion,
                   bg="#0984e3", fg="white", activebackground="#0878cc",
@@ -715,133 +760,143 @@ class SistemaFacturacion:
         """Crea la pestaña de facturación"""
         tab = tk.Frame(self.notebook, bg="white")
         self.notebook.add(tab, text="  Crear Factura  ")
-        
-        # Frame superior para datos de factura
-        top_frame = tk.LabelFrame(tab, text="  1. Datos del comprobante  ", bg="white",
-                                  fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
-        top_frame.pack(fill=tk.X, padx=10, pady=10)
-        top_frame.columnconfigure(1, weight=1)
-        top_frame.columnconfigure(3, weight=1)
-        
-        # Número de factura
-        tk.Label(top_frame, text="Factura No.", font=("Arial", 10, "bold"), 
+
+        # Canvas con scrollbar que envuelve todo
+        main_canvas = tk.Canvas(tab, bg="white", highlightthickness=0)
+        main_scrollbar = ttk.Scrollbar(tab, orient="vertical", command=main_canvas.yview)
+        main_canvas.configure(yscrollcommand=main_scrollbar.set)
+
+        main_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        main_canvas.pack(fill=tk.BOTH, expand=True)
+
+        inner = tk.Frame(main_canvas, bg="white")
+        win = main_canvas.create_window((0, 0), window=inner, anchor="nw")
+
+        def on_frame_configure(event):
+            main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+        def on_canvas_configure(event):
+            main_canvas.itemconfig(win, width=event.width)
+
+        inner.bind("<Configure>", on_frame_configure)
+        main_canvas.bind("<Configure>", on_canvas_configure)
+
+        # Frame unificado
+        unified_frame = tk.LabelFrame(inner, text="  Factura  ", bg="white",
+                                      fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
+        unified_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        unified_frame.columnconfigure(1, weight=1)
+        unified_frame.columnconfigure(3, weight=1)
+
+        # --- Datos del comprobante ---
+        tk.Label(unified_frame, text="Factura No.", font=("Arial", 10, "bold"),
                 bg="white").grid(row=0, column=0, padx=10, pady=5, sticky="w")
         self.num_factura = tk.StringVar(value=self.generar_numero_factura())
-        tk.Entry(top_frame, textvariable=self.num_factura, state="readonly", 
+        tk.Entry(unified_frame, textvariable=self.num_factura, state="readonly",
                 width=20, font=("Arial", 10)).grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-        
-        # Fecha
-        tk.Label(top_frame, text="Fecha", font=("Arial", 10, "bold"), 
+
+        tk.Label(unified_frame, text="Fecha", font=("Arial", 10, "bold"),
                 bg="white").grid(row=0, column=2, padx=10, pady=5, sticky="w")
         self.fecha_factura = tk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
-        tk.Entry(top_frame, textvariable=self.fecha_factura, state="readonly", 
+        tk.Entry(unified_frame, textvariable=self.fecha_factura, state="readonly",
                 width=15, font=("Arial", 10)).grid(row=0, column=3, padx=10, pady=5, sticky="ew")
-        
-        # Cliente
-        tk.Label(top_frame, text="Cliente", font=("Arial", 10, "bold"), 
+
+        tk.Label(unified_frame, text="Cliente", font=("Arial", 10, "bold"),
                 bg="white").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.cliente_var = tk.StringVar()
-        self.combo_cliente = ttk.Combobox(top_frame, textvariable=self.cliente_var, 
+        self.combo_cliente = ttk.Combobox(unified_frame, textvariable=self.cliente_var,
                                          width=40, font=("Arial", 10))
         self.combo_cliente.grid(row=1, column=1, columnspan=3, padx=10, pady=5, sticky="ew")
-        
-        # Frame para agregar productos
-        add_frame = tk.LabelFrame(tab, text="  2. Agregar producto a la factura  ", bg="white",
-                                  fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
-        add_frame.pack(fill=tk.X, padx=10, pady=5)
-        add_frame.columnconfigure(1, weight=1)
-        
-        tk.Label(add_frame, text="Producto", bg="white", 
-                font=("Arial", 10, "bold")).grid(row=0, column=0, padx=5, pady=5)
+
+        # Separador
+        ttk.Separator(unified_frame, orient="horizontal").grid(row=2, column=0, columnspan=4,
+                                                                sticky="ew", padx=5, pady=6)
+
+        # --- Agregar producto ---
+        tk.Label(unified_frame, text="Producto", bg="white",
+                font=("Arial", 10, "bold")).grid(row=3, column=0, padx=5, pady=5)
         self.producto_var = tk.StringVar()
-        self.combo_producto = ttk.Combobox(add_frame, textvariable=self.producto_var, 
+        self.combo_producto = ttk.Combobox(unified_frame, textvariable=self.producto_var,
                                           width=35, font=("Arial", 10))
-        self.combo_producto.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.combo_producto.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
         self.combo_producto.bind('<<ComboboxSelected>>', self.seleccionar_producto)
-        
-        tk.Label(add_frame, text="Precio", bg="white", 
-                font=("Arial", 10, "bold")).grid(row=0, column=2, padx=5, pady=5)
+
+        tk.Label(unified_frame, text="Precio", bg="white",
+                font=("Arial", 10, "bold")).grid(row=3, column=2, padx=5, pady=5)
         self.precio_var = tk.StringVar()
-        tk.Entry(add_frame, textvariable=self.precio_var, width=12, 
-                font=("Arial", 10)).grid(row=0, column=3, padx=5, pady=5)
-        
-        tk.Label(add_frame, text="Cantidad", bg="white", 
-                font=("Arial", 10, "bold")).grid(row=0, column=4, padx=5, pady=5)
+        tk.Entry(unified_frame, textvariable=self.precio_var, width=12,
+                font=("Arial", 10)).grid(row=3, column=3, padx=5, pady=5, sticky="w")
+
+        tk.Label(unified_frame, text="Cantidad", bg="white",
+                font=("Arial", 10, "bold")).grid(row=4, column=0, padx=5, pady=5)
         self.cantidad_var = tk.StringVar(value="1")
-        tk.Entry(add_frame, textvariable=self.cantidad_var, width=10, 
-                font=("Arial", 10)).grid(row=0, column=5, padx=5, pady=5)
-        
-        tk.Button(add_frame, text="Agregar producto", command=self.agregar_item, 
+        tk.Entry(unified_frame, textvariable=self.cantidad_var, width=10,
+                font=("Arial", 10)).grid(row=4, column=1, padx=5, pady=5, sticky="w")
+
+        tk.Button(unified_frame, text="Agregar producto", command=self.agregar_item,
                  bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
-                 cursor="hand2").grid(row=0, column=6, padx=10, pady=5)
-        
-        # Frame para la tabla de items
-        table_frame = tk.LabelFrame(tab, text="  3. Productos incluidos  ", bg="white",
-                                    fg="#2d3436", font=("Arial", 11, "bold"), padx=8, pady=8)
-        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        
-        # Scrollbar
+                 cursor="hand2").grid(row=4, column=3, padx=10, pady=5, sticky="e")
+
+        # Separador
+        ttk.Separator(unified_frame, orient="horizontal").grid(row=5, column=0, columnspan=4,
+                                                                sticky="ew", padx=5, pady=6)
+
+        # --- Tabla de productos ---
+        table_frame = tk.Frame(unified_frame, bg="white")
+        table_frame.grid(row=6, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        table_frame.columnconfigure(0, weight=1)
+
         scrollbar = ttk.Scrollbar(table_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Treeview para items
-        self.tree_items = ttk.Treeview(table_frame, columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
-                                       show="headings", height=10, yscrollcommand=scrollbar.set)
+
+        self.tree_items = ttk.Treeview(table_frame,
+                                       columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
+                                       show="headings", height=6, yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.tree_items.yview)
-        
+
         self.tree_items.heading("Código", text="Código")
         self.tree_items.heading("Producto", text="Producto")
         self.tree_items.heading("Cantidad", text="Cantidad")
         self.tree_items.heading("Precio", text="Precio Unit.")
         self.tree_items.heading("Subtotal", text="Subtotal")
-        
+
         self.tree_items.column("Código", width=100)
         self.tree_items.column("Producto", width=300)
         self.tree_items.column("Cantidad", width=100)
         self.tree_items.column("Precio", width=100)
         self.tree_items.column("Subtotal", width=120)
-        
-        self.tree_items.pack(fill=tk.BOTH, expand=True)
-        
-        # Botón para eliminar item
-        tk.Button(table_frame, text="Quitar producto seleccionado", 
-                 command=self.eliminar_item, bg="#e74c3c", fg="white",
-                 font=("Arial", 10, "bold")).pack(pady=5)
-        
-        # Frame para totales
-        total_frame = tk.LabelFrame(tab, text="  Resumen de cobro  ", bg="white",
-                                    fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
-        total_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        # Labels de totales
-        tk.Label(total_frame, text="Subtotal:", font=("Arial", 12, "bold"), 
-                bg="white").grid(row=0, column=0, padx=20, pady=5, sticky="e")
+
+        self.tree_items.pack(fill=tk.X)
+
+        # Separador
+        ttk.Separator(unified_frame, orient="horizontal").grid(row=7, column=0, columnspan=4,
+                                                                sticky="ew", padx=5, pady=6)
+
+        # --- Totales en fila horizontal ---
+        totals_row = tk.Frame(unified_frame, bg="white")
+        totals_row.grid(row=8, column=0, columnspan=4, sticky="w", padx=10, pady=5)
+
+        tk.Label(totals_row, text="Subtotal:", font=("Arial", 11, "bold"), bg="white").pack(side=tk.LEFT, padx=(0, 4))
         self.subtotal_var = tk.StringVar(value="RD$ 0.00")
-        tk.Label(total_frame, textvariable=self.subtotal_var, font=("Arial", 12), 
-                bg="white").grid(row=0, column=1, padx=20, pady=5, sticky="w")
-        
-        tk.Label(total_frame, text="ITBIS (18%):", font=("Arial", 12, "bold"), 
-                bg="white").grid(row=1, column=0, padx=20, pady=5, sticky="e")
+        tk.Label(totals_row, textvariable=self.subtotal_var, font=("Arial", 11), bg="white").pack(side=tk.LEFT, padx=(0, 20))
+
+        tk.Label(totals_row, text="ITBIS (18%):", font=("Arial", 11, "bold"), bg="white").pack(side=tk.LEFT, padx=(0, 4))
         self.itbis_var = tk.StringVar(value="RD$ 0.00")
-        tk.Label(total_frame, textvariable=self.itbis_var, font=("Arial", 12), 
-                bg="white").grid(row=1, column=1, padx=20, pady=5, sticky="w")
-        
-        tk.Label(total_frame, text="TOTAL:", font=("Arial", 14, "bold"), 
-                bg="white", fg="#27ae60").grid(row=2, column=0, padx=20, pady=5, sticky="e")
+        tk.Label(totals_row, textvariable=self.itbis_var, font=("Arial", 11), bg="white").pack(side=tk.LEFT, padx=(0, 20))
+
+        tk.Label(totals_row, text="TOTAL:", font=("Arial", 13, "bold"), bg="white", fg="#27ae60").pack(side=tk.LEFT, padx=(0, 4))
         self.total_var = tk.StringVar(value="RD$ 0.00")
-        tk.Label(total_frame, textvariable=self.total_var, font=("Arial", 14, "bold"), 
-                bg="white", fg="#27ae60").grid(row=2, column=1, padx=20, pady=5, sticky="w")
-        
-        # Botones de acción
-        btn_frame = tk.Frame(tab, bg="white")
-        btn_frame.pack(fill=tk.X, padx=10, pady=10)
-        
+        tk.Label(totals_row, textvariable=self.total_var, font=("Arial", 13, "bold"), bg="white", fg="#27ae60").pack(side=tk.LEFT)
+
+        # --- Botones ---
+        btn_frame = tk.Frame(unified_frame, bg="white")
+        btn_frame.grid(row=9, column=0, columnspan=4, pady=10)
+
         tk.Button(btn_frame, text="Guardar factura y crear PDF", command=self.generar_factura,
-                 bg="#3498db", fg="white", font=("Arial", 12, "bold"),
+                 bg="#3498db", fg="white", font=("Arial", 11, "bold"),
                  width=25, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
-        
+
         tk.Button(btn_frame, text="Limpiar y hacer otra factura", command=self.nueva_factura,
-                 bg="#95a5a6", fg="white", font=("Arial", 12, "bold"),
+                 bg="#95a5a6", fg="white", font=("Arial", 11, "bold"),
                  width=26, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
         
     def crear_pestaña_productos(self):
@@ -1553,6 +1608,7 @@ class SistemaFacturacion:
             empresa_nombre = empresa_nombre or "TU EMPRESA S.A."
             empresa_rnc = empresa_rnc or "000-00000-0"
             empresa_direccion = empresa_direccion or "Tu dirección aquí"
+            empresa_email = empresa_email or "example@gmail.com"
             empresa_telefono = empresa_telefono or "(809) 000-0000"
 
             facturas_dir = os.path.join(self.base_path, 'facturas')
@@ -1571,7 +1627,6 @@ class SistemaFacturacion:
 
             titulo = Paragraph("FACTURA", styles['InvoiceTitle'])
             elements.append(titulo)
-            elements.append(Paragraph("Sistema de facturación profesional", styles['InvoiceHeader']))
             elements.append(Spacer(1, 0.2*inch))
 
             empresa_text = f"<b>{empresa_nombre}</b><br/>RNC: {empresa_rnc}<br/>Dirección: {empresa_direccion}<br/>Teléfono: {empresa_telefono}"
