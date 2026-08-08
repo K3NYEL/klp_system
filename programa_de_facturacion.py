@@ -11,6 +11,9 @@ from reportlab.lib.units import inch
 import os
 import sys
 import webbrowser
+from datetime import datetime
+import os
+import logging
 
 CREATOR_URL = "https://github.com/K3NYEL"
 
@@ -26,7 +29,7 @@ INPUT_STYLE = {
 
 def resource_path(filename):
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, filename)
+        return os.path.join(sys._MEIPASS, filename) # type: ignore
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
 
 def set_app_icon(window, base_path=None):
@@ -163,7 +166,7 @@ class LoginWindow:
         self.root.resizable(False, False)
         self.root.configure(bg="#f0f0f0")
         self.center_window(460, 430)
-
+        self.configure_logs()
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
         self.show_password_var = tk.BooleanVar(value=False)
@@ -175,6 +178,38 @@ class LoginWindow:
         self.load_remembered_user()
         self.create_widgets()
         self.root.bind("<Return>", lambda event: self.login())
+
+    def configure_logs(self):
+        # Sistema de los Logs
+
+        # Create a log File doesn´t exist
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
+
+        # Generate a log file with de currente date
+        date_now = datetime.now().strftime("%Y-%m-%d")
+        log_file = os.path.join("logs", f"{date_now}.log")
+        logging.basicConfig(
+            filename=log_file,
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            encoding='utf-8'
+        )
+
+        logging.info("=== FACTURING SISTEM STARTED ===")
+
+    def register_accion(self, mensaje,nivel="info"):
+        # Easy funtion for register events in the sistem
+        if nivel.lower() == "info":
+            logging.info(mensaje)
+        elif nivel.lower() == "warning":
+            logging.warning(mensaje)
+        elif nivel.lower() == "error":
+            logging.error(mensaje)
+        else:
+            logging.debug(mensaje) 
+
 
     def get_base_path(self):
         if getattr(sys, 'frozen', False):
@@ -417,9 +452,15 @@ class SistemaFacturacion:
         self.root.title("Sistema de Facturacion")
         self.base_path = self.get_base_path()
         set_app_icon(self.root, self.base_path)
+<<<<<<< HEAD
         self.root.geometry("1200x700")
+=======
+        self.root.geometry("1920x1080")
+        self.root.state('zoomed')
+        self.root.configure(bg="#f0f0f0")
+>>>>>>> feb203917fbf2e99939a3c2986675d09baaf0cdb
         configure_app_style()
-        
+
         # Inicializar base de datos
         self.init_db()
         
@@ -651,10 +692,6 @@ class SistemaFacturacion:
                  bg="#ffffff", fg="#2d3436").pack(anchor="w")
         tk.Label(title_frame, text="Nueva factura, productos, clientes e historial desde una sola pantalla",
                  font=("Arial", 10), bg="#ffffff", fg="#636e72").pack(anchor="w", pady=(2, 0))
-        tk.Button(header_frame, text="Crear factura", command=lambda: self.notebook.select(0),
-                 bg="#3498db", fg="white", activebackground="#2980b9",
-                 activeforeground="white", font=("Arial", 10, "bold"),
-                 width=16, cursor="hand2", relief=tk.FLAT).pack(side=tk.RIGHT, padx=15, pady=10)
 
         main_frame = tk.Frame(self.root, bg="#f0f0f0")
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
@@ -847,10 +884,17 @@ class SistemaFacturacion:
 
         scrollbar = ttk.Scrollbar(table_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+<<<<<<< HEAD
 
         self.tree_items = ttk.Treeview(table_frame,
                                        columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
                                        show="headings", height=6, yscrollcommand=scrollbar.set)
+=======
+        
+        # Treeview para items
+        self.tree_items = ttk.Treeview(table_frame, columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
+                                       show="headings", height=2, yscrollcommand=scrollbar.set)
+>>>>>>> feb203917fbf2e99939a3c2986675d09baaf0cdb
         scrollbar.config(command=self.tree_items.yview)
 
         self.tree_items.heading("Código", text="Código")
