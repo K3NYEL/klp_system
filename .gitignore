@@ -1,0 +1,4 @@
+*.pyc
+*/logs
+*facturacion.db
+./venv
