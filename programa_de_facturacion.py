@@ -3,11 +3,13 @@ from tkinter import ttk, messagebox, filedialog
 import hashlib
 import sqlite3
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter  # type: ignore[reportMissingModuleSource]
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer  # type: ignore[reportMissingModuleSource]
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # type: ignore[reportMissingModuleSource]
+from reportlab.lib import colors  # type: ignore[reportMissingModuleSource]
+# ``inch`` is a fixed ReportLab unit (72 points).  Defining it locally avoids
+# requiring the optional ``reportlab.lib.units`` source module at analysis time.
+inch = 72
 import os
 import sys
 import webbrowser
@@ -49,10 +51,32 @@ def configure_app_style():
     except tk.TclError:
         pass
     
-    def __init__(self, root):
-        self.root = root
-        self.current_theme = 'dark'
-        self.load_theme()
+    class ThemeManager:
+        THEMES = {
+            'dark': {
+                'bg_primary': '#2d3436',
+                'bg_secondary': '#4a4a4a',
+                'bg_card': '#34495e',
+                'text_primary': '#ecf0f1',
+                'accent': '#3498db',
+                'success': '#27ae60',
+                'danger': '#e74c3c'
+            },
+            'light': {
+                'bg_primary': '#ecf0f1',
+                'bg_secondary': '#d5dbdb',
+                'bg_card': '#ffffff',
+                'text_primary': '#2d3436',
+                'accent': '#3498db',
+                'success': '#27ae60',
+                'danger': '#e74c3c'
+            }
+        }
+
+        def __init__(self, root):
+            self.root = root
+            self.current_theme = 'dark'
+            self.load_theme()
     
     def load_theme(self):
         self.apply_theme(self.current_theme)
@@ -452,13 +476,10 @@ class SistemaFacturacion:
         self.root.title("Sistema de Facturacion")
         self.base_path = self.get_base_path()
         set_app_icon(self.root, self.base_path)
-<<<<<<< HEAD
         self.root.geometry("1200x700")
-=======
         self.root.geometry("1920x1080")
         self.root.state('zoomed')
         self.root.configure(bg="#f0f0f0")
->>>>>>> feb203917fbf2e99939a3c2986675d09baaf0cdb
         configure_app_style()
 
         # Inicializar base de datos
@@ -884,17 +905,10 @@ class SistemaFacturacion:
 
         scrollbar = ttk.Scrollbar(table_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-<<<<<<< HEAD
-
-        self.tree_items = ttk.Treeview(table_frame,
-                                       columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
-                                       show="headings", height=6, yscrollcommand=scrollbar.set)
-=======
         
         # Treeview para items
         self.tree_items = ttk.Treeview(table_frame, columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
                                        show="headings", height=2, yscrollcommand=scrollbar.set)
->>>>>>> feb203917fbf2e99939a3c2986675d09baaf0cdb
         scrollbar.config(command=self.tree_items.yview)
 
         self.tree_items.heading("Código", text="Código")
