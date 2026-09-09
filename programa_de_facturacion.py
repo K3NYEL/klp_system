@@ -8,7 +8,6 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # type: ignore[reportMissingModuleSource]
 from reportlab.lib import colors  # type: ignore[reportMissingModuleSource]
 # ``inch`` is a fixed ReportLab unit (72 points).  Defining it locally avoids
-# requiring the optional ``reportlab.lib.units`` source module at analysis time.
 inch = 72
 import os
 import sys

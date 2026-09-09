@@ -1,4 +1,17 @@
-*.pyc
-*/logs
-*facturacion.db
-./venv
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Application data and logs
+*.db
+logs/
+
+# PyInstaller build artifacts
+build/
+dist/
