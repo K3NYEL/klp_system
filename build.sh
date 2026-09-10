@@ -21,7 +21,7 @@ if [[ -z "$PYINSTALLER" ]]; then
 fi
 
 echo "[1/3] Limpiando la compilación anterior..."
-rm -rf build/facturacion dist/facturacion dist/facturacion.db dist/facturacion.db-wal dist/facturacion.db-shm
+rm -rf build/facturacion_completa dist/facturacion dist/facturacion.db dist/facturacion.db-wal dist/facturacion.db-shm
 
 # Nunca se incluye la base de datos de desarrollo en el ejecutable.
 echo "[2/3] Generando ejecutable Linux..."

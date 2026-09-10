@@ -11,8 +11,20 @@ env/
 
 # Application data and logs
 *.db
+*.db-wal
+*.db-shm
 logs/
 backups/
+
+# Local test and coverage output
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local launchers and editor metadata
+*.desktop
+.vscode/
 
 # PyInstaller build artifacts
 build/

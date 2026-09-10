@@ -4,7 +4,7 @@ import sys
 
 
 a = Analysis(
-    ['app/main.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[('facturacion_ico.ico', '.')],
