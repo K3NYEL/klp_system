@@ -130,26 +130,24 @@ class LoginWindow:
             self.password_entry.configure(show='*')
 
     def create_widgets(self):
-        login_frame = ctk.CTkFrame(self.root, fg_color="#ffffff", corner_radius=14,
+        login_frame = tk.Frame(self.root, bg="#ffffff",
                        width=400, height=360)
         login_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        header_frame = ctk.CTkFrame(login_frame, fg_color="#3498db", corner_radius=10)
+        header_frame = tk.Frame(login_frame, bg="#3498db")
         header_frame.pack(fill=tk.X)
-        ctk.CTkLabel(header_frame, text="Acceso al sistema", text_color="white",
+        tk.Label(header_frame, text="Acceso al sistema", bg="#3498db", fg="white",
                      font=("Arial", 17, "bold")).pack(pady=(14, 4))
-        ctk.CTkLabel(header_frame, text="Facturas, clientes y productos en un solo lugar",
-                     text_color="#eef7ff", font=("Arial", 9)).pack(pady=(0, 14))
 
         ctk.CTkLabel(login_frame, text="Ingrese sus datos para continuar",
-                     text_color="#555", font=("Arial", 10)).pack(pady=(16, 14))
+                     text_color="#555", font=("Arial", 15)).pack(pady=(16, 14))
 
-        ctk.CTkLabel(login_frame, text="Usuario", font=("Arial", 10, "bold"), text_color="#2d3436").pack(anchor="w", padx=36)
-        ctk.CTkEntry(login_frame, textvariable=self.username_var, font=("Arial", 10), height=34,
+        ctk.CTkLabel(login_frame, text="Usuario", font=("Roboto", 15, "bold"), text_color="#2d3436").pack(anchor="w", padx=36)
+        ctk.CTkEntry(login_frame, textvariable=self.username_var, font=("Arial", 15, "bold"), height=34,
                      border_width=1).pack(fill=tk.X, padx=36, pady=(4, 12))
 
-        ctk.CTkLabel(login_frame, text="Contraseña", font=("Arial", 10, "bold"), text_color="#2d3436").pack(anchor="w", padx=36)
-        self.password_entry = ctk.CTkEntry(login_frame, textvariable=self.password_var, font=("Arial", 10),
+        ctk.CTkLabel(login_frame, text="Contraseña", font=("Arial", 15, "bold"), text_color="#2d3436").pack(anchor="w", padx=36)
+        self.password_entry = ctk.CTkEntry(login_frame, textvariable=self.password_var, font=("Arial", 15, "bold"),
                                            show="*", height=34, border_width=1)
         self.password_entry.pack(fill=tk.X, padx=36, pady=(4, 12))
 
@@ -163,15 +161,12 @@ class LoginWindow:
         btn_frame = ctk.CTkFrame(login_frame, fg_color="transparent")
         btn_frame.pack(fill=tk.X, padx=36, pady=(4, 0))
 
-        ctk.CTkButton(btn_frame, text="Entrar al sistema", command=self.login,
-                      font=("Arial", 10, "bold"), height=36).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
+        ctk.CTkButton(btn_frame, text="Entrar", command=self.login,
+                      font=("Arial", 15, "bold"), height=36).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
 
         ctk.CTkButton(btn_frame, text="Crear cuenta", command=self.open_register_window,
                       fg_color="#2ecc71", hover_color="#27ae60",
-                      font=("Arial", 10, "bold"), height=36).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
-
-        ctk.CTkLabel(self.root, text="© 2026 K.A.R.M. • Facturación Fácil", font=("Arial", 8),
-                     text_color="#555").pack(side=tk.BOTTOM, pady=10)
+                      font=("Arial", 15, "bold"), height=36).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
 
     def login(self):
         usuario = self.username_var.get().strip()
