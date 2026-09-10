@@ -10,14 +10,14 @@ def start_login():
     LoginWindow(login_root, on_success=start_main_app)
     login_root.mainloop()
 
-def start_main_app():
+def start_main_app(user=None):
     app = None
     try:
         main_root = tk.Tk()
-        app = SistemaFacturacion(main_root, on_logout=start_login)
+        app = SistemaFacturacion(main_root, on_logout=start_login, current_user=user)
         main_root.mainloop()
     except Exception as e:
-        messagebox.showerror("Error Fatal", f"Error al iniciar la aplicación: {str(e)}\\n\\nLa aplicación se cerrará.")
+        messagebox.showerror("Error Fatal", f"Error al iniciar la aplicación: {str(e)}\n\nLa aplicación se cerrará.")
     finally:
         if app and hasattr(app, "conn"):
             try:

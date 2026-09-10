@@ -4,6 +4,18 @@ import tkinter as tk
 from tkinter import ttk
 
 CREATOR_URL = "https://github.com/K3NYEL"
+
+INPUT_STYLE = {
+    "bg": "#ffffff",
+    "fg": "#2d3436",
+    "insertbackground": "#2d3436",
+    "relief": tk.FLAT,
+    "highlightthickness": 2,
+    "highlightbackground": "#8a8a8a",
+    "highlightcolor": "#3498db",
+}
+
+
 def resource_path(filename):
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, filename) # type: ignore

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 import hashlib
 import sqlite3
 from datetime import datetime
@@ -15,24 +15,21 @@ import webbrowser
 from datetime import datetime
 import os
 import logging
+from xml.sax.saxutils import escape
 
-INPUT_STYLE = {
-    "bg": "#ffffff",
-    "fg": "#2d3436",
-    "insertbackground": "#2d3436",
-    "relief": tk.FLAT,
-    "highlightthickness": 2,
-    "highlightbackground": "#8a8a8a",
-    "highlightcolor": "#3498db",
-}
 from app.auth.login_window import LoginWindow
-from app.core.ui import CREATOR_URL, configure_app_style, set_app_icon
+from app.core.database import audit, connect_database
+from app.core.backup import create_backup
+from app.core.authorization import can
+from app.core.paths import application_path
+from app.core.ui import INPUT_STYLE, CREATOR_URL, configure_app_style, set_app_icon
 
 
 class SistemaFacturacion:
-    def __init__(self, root, on_logout=None):
+    def __init__(self, root, on_logout=None, current_user=None):
         self.root = root
         self.on_logout = on_logout
+        self.current_user = current_user or {}
         self.root.title("Sistema de Facturacion")
         self.base_path = self.get_base_path()
         set_app_icon(self.root, self.base_path)
@@ -40,6 +37,7 @@ class SistemaFacturacion:
         if sys.platform == "win32":
             self.root.state("zoomed")
         self.root.configure(bg="#f0f0f0")
+        self.root.protocol("WM_DELETE_WINDOW", self.salir)
         configure_app_style()
 
         # Inicializar base de datos
@@ -58,7 +56,7 @@ class SistemaFacturacion:
         try:
             # Conectar a la base de datos usando la ruta del ejecutable
             db_path = os.path.join(self.base_path, 'facturacion.db')
-            self.conn = sqlite3.connect(db_path)
+            self.conn = connect_database(db_path)
             self.cursor = self.conn.cursor()
             
             # Tabla de productos
@@ -134,9 +132,7 @@ class SistemaFacturacion:
             raise
 
     def get_base_path(self):
-        if getattr(sys, 'frozen', False):
-            return os.path.dirname(sys.executable)
-        return os.path.dirname(os.path.abspath(__file__))
+        return application_path()
 
     def center_window(self, width, height, window=None):
         if window is None:
@@ -207,6 +203,8 @@ class SistemaFacturacion:
             self.empresa_website_var.set("")
 
     def guardar_empresa(self):
+        if not self.require_permission("manage_company"):
+            return
         nombre = self.empresa_nombre_var.get().strip()
         rnc = self.empresa_rnc_var.get().strip()
         direccion = self.empresa_direccion_var.get().strip()
@@ -235,35 +233,32 @@ class SistemaFacturacion:
         menu_bar = tk.Menu(self.root)
         archivo_menu = tk.Menu(menu_bar, tearoff=0)
         archivo_menu.add_command(label="Cerrar sesión", command=self.cerrar_sesion)
+        archivo_menu.add_command(label="Crear copia de seguridad", command=self.crear_backup)
         archivo_menu.add_separator()
         archivo_menu.add_command(label="Salir", command=self.salir)
         menu_bar.add_cascade(label="Archivo", menu=archivo_menu)
+
+        caja_menu = tk.Menu(menu_bar, tearoff=0)
+        caja_menu.add_command(label="Abrir caja", command=self.abrir_caja)
+        caja_menu.add_command(label="Cerrar caja", command=self.cerrar_caja)
+        menu_bar.add_cascade(label="Caja", menu=caja_menu)
+
+        opciones_menu = tk.Menu(menu_bar, tearoff=0)
+        opciones_menu.add_command(label="Nueva factura", command=lambda: self.seleccionar_pestaña(0), accelerator="Ctrl+N")
+        opciones_menu.add_command(label="Inventario", command=lambda: self.seleccionar_pestaña(1), accelerator="Ctrl+I")
+        opciones_menu.add_command(label="Clientes", command=lambda: self.seleccionar_pestaña(2), accelerator="Ctrl+L")
+        opciones_menu.add_command(label="Mi empresa", command=self.ir_mi_empresa)
+        opciones_menu.add_command(label="Facturas guardadas", command=lambda: self.seleccionar_pestaña(4), accelerator="Ctrl+H")
+        opciones_menu.add_separator()
+        opciones_menu.add_command(label="Acerca de", command=self.mostrar_acerca_de)
+        menu_bar.add_cascade(label="Opciones", menu=opciones_menu)
 
         ayuda_menu = tk.Menu(menu_bar, tearoff=0)
         ayuda_menu.add_command(label="Acerca de", command=self.mostrar_acerca_de)
         menu_bar.add_cascade(label="Ayuda", menu=ayuda_menu)
 
         self.root.config(menu=menu_bar)
-
-        access_frame = tk.Frame(self.root, relief=tk.FLAT)
-        access_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
-
-        tk.Label(access_frame, text="Accesos rápidos", font=("Arial", 9, "bold")).pack(side=tk.LEFT, padx=12, pady=6)
-
-        tk.Button(access_frame, text="Inicio de sesión", command=self.cerrar_sesion,
-                  bg="#0984e3", fg="white", activebackground="#0878cc",
-                  activeforeground="white", font=("Arial", 9, "bold"),
-                  cursor="hand2", relief=tk.FLAT, padx=12).pack(side=tk.RIGHT, padx=(4, 8), pady=4)
-
-        tk.Button(access_frame, text="Mi Empresa", command=self.ir_mi_empresa,
-                  bg="#00b894", fg="white", activebackground="#00a383",
-                  activeforeground="white", font=("Arial", 9, "bold"),
-                  cursor="hand2", relief=tk.FLAT, padx=12).pack(side=tk.RIGHT, padx=4, pady=4)
-
-        tk.Button(access_frame, text="Acerca de", command=self.mostrar_acerca_de,
-                  bg="#636e72", fg="white", activebackground="#4f5b60",
-                  activeforeground="white", font=("Arial", 9, "bold"),
-                  cursor="hand2", relief=tk.FLAT, padx=12).pack(side=tk.RIGHT, padx=4, pady=4)
+        self._registrar_atajos()
 
         header_frame = tk.Frame(self.root, bg="#ffffff", relief=tk.RIDGE, bd=1)
         header_frame.pack(fill=tk.X, padx=10, pady=(6, 0))
@@ -288,6 +283,40 @@ class SistemaFacturacion:
 
         tk.Label(self.root, text="Facturación App • K.A.R.M. • Versión 1.0", bg="#f0f0f0",
                  fg="#555", font=("Arial", 8)).pack(side=tk.BOTTOM, pady=6)
+
+    def seleccionar_pestaña(self, index):
+        """Activa una sección desde el menú principal."""
+        self.notebook.select(index)
+
+    def _registrar_atajos(self):
+        """Registra atajos globales para que funcionen con cualquier control enfocado."""
+        shortcuts = {
+            "n": 0,
+            "i": 1,
+            "l": 2,
+            "h": 4,
+        }
+        for key, tab_index in shortcuts.items():
+            self.root.bind_all(
+                f"<Control-KeyPress-{key}>",
+                lambda event, index=tab_index: self._atajo_pestaña(event, index),
+                add="+",
+            )
+
+    def _atajo_pestaña(self, event, index):
+        """Cambia de sección y consume el evento para evitar interferencias del widget."""
+        self.seleccionar_pestaña(index)
+        self.root.focus_set()
+        return "break"
+
+    def require_permission(self, permission):
+        if can(self.current_user.get("role"), permission):
+            return True
+        messagebox.showwarning(
+            "Permiso insuficiente",
+            "Su usuario no tiene permisos para realizar esta operación.",
+        )
+        return False
 
     def ir_mi_empresa(self):
         empresa_win = tk.Toplevel(self.root)
@@ -343,6 +372,70 @@ class SistemaFacturacion:
     def salir(self):
         if messagebox.askyesno("Salir", "¿Desea salir del sistema?"):
             self.root.destroy()
+
+    def crear_backup(self):
+        if not self.require_permission("manage_company"):
+            return
+        try:
+            backup_dir = os.path.join(self.base_path, "backups")
+            backup_path = create_backup(os.path.join(self.base_path, "facturacion.db"), backup_dir)
+            self.cursor.execute("INSERT INTO backups (ruta) VALUES (?)", (str(backup_path),))
+            audit(self.conn, "CREAR_BACKUP", "backups", self.cursor.lastrowid, str(backup_path))
+            self.conn.commit()
+            messagebox.showinfo("Copia de seguridad", f"Backup creado correctamente:\n{backup_path}")
+        except Exception as exc:
+            messagebox.showerror("Error de backup", f"No se pudo crear la copia de seguridad:\n{exc}")
+
+    def abrir_caja(self):
+        if not self.require_permission("manage_cash"):
+            return
+        self.cursor.execute("SELECT id FROM cash_registers WHERE estado='ABIERTA'")
+        if self.cursor.fetchone():
+            messagebox.showwarning("Caja", "Ya existe una caja abierta.")
+            return
+        amount = simpledialog.askfloat("Abrir caja", "Monto inicial:", minvalue=0, parent=self.root)
+        if amount is None:
+            return
+        self.cursor.execute(
+            "INSERT INTO cash_registers (usuario_apertura, monto_inicial) VALUES (?, ?)",
+            (self.current_user.get("id"), amount),
+        )
+        caja_id = self.cursor.lastrowid
+        audit(self.conn, "ABRIR_CAJA", "cash_registers", caja_id, f"{amount:.2f}", self.current_user.get("id"))
+        self.conn.commit()
+        messagebox.showinfo("Caja", "Caja abierta correctamente.")
+
+    def cerrar_caja(self):
+        if not self.require_permission("manage_cash"):
+            return
+        self.cursor.execute(
+            "SELECT id, monto_inicial FROM cash_registers WHERE estado='ABIERTA' ORDER BY id DESC LIMIT 1"
+        )
+        cash = self.cursor.fetchone()
+        if not cash:
+            messagebox.showwarning("Caja", "No hay una caja abierta.")
+            return
+        self.cursor.execute(
+            "SELECT COALESCE(SUM(CASE WHEN tipo IN ('VENTA', 'INGRESO') THEN monto ELSE -monto END), 0) "
+            "FROM cash_movements WHERE caja_id=? AND (tipo <> 'VENTA' OR metodo_pago='EFECTIVO')",
+            (cash[0],),
+        )
+        expected = round(cash[1] + self.cursor.fetchone()[0], 2)
+        counted = simpledialog.askfloat(
+            "Cerrar caja", f"Efectivo esperado: RD$ {expected:.2f}\nMonto contado:",
+            minvalue=0, parent=self.root,
+        )
+        if counted is None:
+            return
+        difference = round(counted - expected, 2)
+        self.cursor.execute(
+            """UPDATE cash_registers SET fecha_cierre=CURRENT_TIMESTAMP,
+               monto_esperado=?, monto_contado=?, diferencia=?, estado='CERRADA' WHERE id=?""",
+            (expected, counted, difference, cash[0]),
+        )
+        audit(self.conn, "CERRAR_CAJA", "cash_registers", cash[0], f"Diferencia: {difference:.2f}", self.current_user.get("id"))
+        self.conn.commit()
+        messagebox.showinfo("Caja", f"Caja cerrada. Diferencia: RD$ {difference:.2f}")
 
     def mostrar_acerca_de(self):
         about = tk.Toplevel(self.root)
@@ -424,42 +517,52 @@ class SistemaFacturacion:
                                          width=40, font=("Arial", 10))
         self.combo_cliente.grid(row=1, column=1, columnspan=3, padx=10, pady=5, sticky="ew")
 
+        tk.Label(unified_frame, text="Método de pago", font=("Arial", 10, "bold"),
+            bg="white").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.metodo_pago_var = tk.StringVar(value="EFECTIVO")
+        self.combo_metodo_pago = ttk.Combobox(
+            unified_frame, textvariable=self.metodo_pago_var,
+            values=("EFECTIVO", "TARJETA", "TRANSFERENCIA", "CREDITO", "OTRO"),
+            state="readonly", width=20,
+        )
+        self.combo_metodo_pago.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
         # Separador
-        ttk.Separator(unified_frame, orient="horizontal").grid(row=2, column=0, columnspan=4,
+        ttk.Separator(unified_frame, orient="horizontal").grid(row=3, column=0, columnspan=4,
                                                                 sticky="ew", padx=5, pady=6)
 
         # --- Agregar producto ---
         tk.Label(unified_frame, text="Producto", bg="white",
-                font=("Arial", 10, "bold")).grid(row=3, column=0, padx=5, pady=5)
+                font=("Arial", 10, "bold")).grid(row=4, column=0, padx=5, pady=5)
         self.producto_var = tk.StringVar()
         self.combo_producto = ttk.Combobox(unified_frame, textvariable=self.producto_var,
                                           width=35, font=("Arial", 10))
-        self.combo_producto.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        self.combo_producto.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
         self.combo_producto.bind('<<ComboboxSelected>>', self.seleccionar_producto)
 
         tk.Label(unified_frame, text="Precio", bg="white",
-                font=("Arial", 10, "bold")).grid(row=3, column=2, padx=5, pady=5)
+                font=("Arial", 10, "bold")).grid(row=4, column=2, padx=5, pady=5)
         self.precio_var = tk.StringVar()
         tk.Entry(unified_frame, textvariable=self.precio_var, width=12,
-                font=("Arial", 10)).grid(row=3, column=3, padx=5, pady=5, sticky="w")
+                font=("Arial", 10)).grid(row=4, column=3, padx=5, pady=5, sticky="w")
 
         tk.Label(unified_frame, text="Cantidad", bg="white",
-                font=("Arial", 10, "bold")).grid(row=4, column=0, padx=5, pady=5)
+                font=("Arial", 10, "bold")).grid(row=5, column=0, padx=5, pady=5)
         self.cantidad_var = tk.StringVar(value="1")
         tk.Entry(unified_frame, textvariable=self.cantidad_var, width=10,
-                font=("Arial", 10)).grid(row=4, column=1, padx=5, pady=5, sticky="w")
+                font=("Arial", 10)).grid(row=5, column=1, padx=5, pady=5, sticky="w")
 
         tk.Button(unified_frame, text="Agregar producto", command=self.agregar_item,
                  bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
-                 cursor="hand2").grid(row=4, column=3, padx=10, pady=5, sticky="e")
+                 cursor="hand2").grid(row=5, column=3, padx=10, pady=5, sticky="e")
 
         # Separador
-        ttk.Separator(unified_frame, orient="horizontal").grid(row=5, column=0, columnspan=4,
+        ttk.Separator(unified_frame, orient="horizontal").grid(row=6, column=0, columnspan=4,
                                                                 sticky="ew", padx=5, pady=6)
 
         # --- Tabla de productos ---
         table_frame = tk.Frame(unified_frame, bg="white")
-        table_frame.grid(row=6, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
+        table_frame.grid(row=7, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
         table_frame.columnconfigure(0, weight=1)
 
         scrollbar = ttk.Scrollbar(table_frame)
@@ -485,12 +588,12 @@ class SistemaFacturacion:
         self.tree_items.pack(fill=tk.X)
 
         # Separador
-        ttk.Separator(unified_frame, orient="horizontal").grid(row=7, column=0, columnspan=4,
+        ttk.Separator(unified_frame, orient="horizontal").grid(row=8, column=0, columnspan=4,
                                                                 sticky="ew", padx=5, pady=6)
 
         # --- Totales en fila horizontal ---
         totals_row = tk.Frame(unified_frame, bg="white")
-        totals_row.grid(row=8, column=0, columnspan=4, sticky="w", padx=10, pady=5)
+        totals_row.grid(row=9, column=0, columnspan=4, sticky="w", padx=10, pady=5)
 
         tk.Label(totals_row, text="Subtotal:", font=("Arial", 11, "bold"), bg="white").pack(side=tk.LEFT, padx=(0, 4))
         self.subtotal_var = tk.StringVar(value="RD$ 0.00")
@@ -506,7 +609,7 @@ class SistemaFacturacion:
 
         # --- Botones ---
         btn_frame = tk.Frame(unified_frame, bg="white")
-        btn_frame.grid(row=9, column=0, columnspan=4, pady=10)
+        btn_frame.grid(row=10, column=0, columnspan=4, pady=10)
 
         tk.Button(btn_frame, text="Guardar factura y crear PDF", command=self.generar_factura,
                  bg="#3498db", fg="white", font=("Arial", 11, "bold"),
@@ -515,6 +618,10 @@ class SistemaFacturacion:
         tk.Button(btn_frame, text="Limpiar y hacer otra factura", command=self.nueva_factura,
                  bg="#95a5a6", fg="white", font=("Arial", 11, "bold"),
                  width=26, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
+
+        tk.Button(btn_frame, text="Eliminar producto seleccionado", command=self.eliminar_item,
+             bg="#e74c3c", fg="white", font=("Arial", 10, "bold"),
+             width=27, height=2, cursor="hand2").pack(side=tk.LEFT, padx=10)
         
     def crear_pestaña_productos(self):
         """Crea la pestaña de gestión de productos"""
@@ -706,6 +813,14 @@ class SistemaFacturacion:
         tk.Button(search_frame, text="Crear PDF de nuevo", command=self.regenerar_pdf,
                  bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
                  cursor="hand2").pack(side=tk.LEFT, padx=5)
+
+        tk.Button(search_frame, text="Registrar abono", command=self.registrar_abono,
+             bg="#f39c12", fg="white", font=("Arial", 10, "bold"),
+             cursor="hand2").pack(side=tk.LEFT, padx=5)
+
+        tk.Button(search_frame, text="Anular factura", command=self.anular_factura,
+             bg="#e74c3c", fg="white", font=("Arial", 10, "bold"),
+             cursor="hand2").pack(side=tk.LEFT, padx=5)
         
         # Frame para tabla
         table_frame = tk.Frame(tab, bg="white")
@@ -715,7 +830,7 @@ class SistemaFacturacion:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         self.tree_historial = ttk.Treeview(table_frame, 
-                                          columns=("ID", "Número", "Fecha", "Cliente", "Subtotal", "ITBIS", "Total"),
+                                          columns=("ID", "Número", "Fecha", "Cliente", "Subtotal", "ITBIS", "Total", "Estado"),
                                           show="headings", yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.tree_historial.yview)
         
@@ -726,6 +841,7 @@ class SistemaFacturacion:
         self.tree_historial.heading("Subtotal", text="Subtotal")
         self.tree_historial.heading("ITBIS", text="ITBIS")
         self.tree_historial.heading("Total", text="Total")
+        self.tree_historial.heading("Estado", text="Estado")
         
         self.tree_historial.column("ID", width=50)
         self.tree_historial.column("Número", width=120)
@@ -734,11 +850,14 @@ class SistemaFacturacion:
         self.tree_historial.column("Subtotal", width=100)
         self.tree_historial.column("ITBIS", width=100)
         self.tree_historial.column("Total", width=100)
+        self.tree_historial.column("Estado", width=100)
         
         self.tree_historial.pack(fill=tk.BOTH, expand=True)
         
     # Métodos de Productos
     def agregar_producto(self):
+        if not self.require_permission("manage_products"):
+            return
         codigo = self.prod_codigo.get().strip()
         nombre = self.prod_nombre.get().strip()
         precio = self.prod_precio.get().strip()
@@ -751,6 +870,10 @@ class SistemaFacturacion:
         try:
             precio = float(precio)
             stock = int(stock)
+            if precio <= 0:
+                raise ValueError("El precio debe ser mayor a 0")
+            if stock < 0:
+                raise ValueError("El stock no puede ser negativo")
             
             self.cursor.execute('''
                 INSERT INTO productos (codigo, nombre, precio, stock)
@@ -771,6 +894,8 @@ class SistemaFacturacion:
             messagebox.showerror("Error", f"Error al actualizar producto: {str(e)}")
             
     def eliminar_producto(self):
+        if not self.require_permission("manage_products"):
+            return
         selected = self.tree_productos.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Seleccione un producto de la tabla")
@@ -834,6 +959,8 @@ class SistemaFacturacion:
             
     # Métodos de Clientes
     def agregar_cliente(self):
+        if not self.require_permission("manage_customers"):
+            return
         nombre = self.cli_nombre.get().strip()
         cedula = self.cli_cedula.get().strip()
         telefono = self.cli_telefono.get().strip()
@@ -847,7 +974,7 @@ class SistemaFacturacion:
             self.cursor.execute('''
                 INSERT INTO clientes (nombre, cedula, telefono, direccion)
                 VALUES (?, ?, ?, ?)
-            ''', (nombre, cedula, telefono, direccion))
+            ''', (nombre, cedula or None, telefono, direccion))
             
             self.conn.commit()
             messagebox.showinfo("Éxito", "Cliente agregado correctamente")
@@ -861,6 +988,8 @@ class SistemaFacturacion:
             messagebox.showerror("Error", f"Error al agregar cliente: {str(e)}")
             
     def actualizar_cliente(self):
+        if not self.require_permission("manage_customers"):
+            return
         selected = self.tree_clientes.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Seleccione un cliente de la tabla")
@@ -883,7 +1012,7 @@ class SistemaFacturacion:
                 UPDATE clientes 
                 SET nombre=?, cedula=?, telefono=?, direccion=?
                 WHERE id=?
-            ''', (nombre, cedula, telefono, direccion, cliente_id))
+            ''', (nombre, cedula or None, telefono, direccion, cliente_id))
             
             self.conn.commit()
             messagebox.showinfo("Éxito", "Cliente actualizado correctamente")
@@ -895,6 +1024,8 @@ class SistemaFacturacion:
             messagebox.showerror("Error", f"Error al actualizar cliente: {str(e)}")
             
     def eliminar_cliente(self):
+        if not self.require_permission("manage_customers"):
+            return
         selected = self.tree_clientes.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Seleccione un cliente de la tabla")
@@ -921,6 +1052,8 @@ class SistemaFacturacion:
         self.cli_direccion.delete(0, tk.END)
         
     def actualizar_producto(self):
+        if not self.require_permission("manage_products"):
+            return
         selected = self.tree_productos.selection()
         if not selected:
             messagebox.showwarning("Advertencia", "Seleccione un producto de la tabla")
@@ -1054,6 +1187,20 @@ class SistemaFacturacion:
                 raise ValueError("Producto no encontrado")
             if stock_actual[0] < cantidad:
                 raise ValueError(f"Stock insuficiente. Disponible: {stock_actual[0]}")
+
+            for item in self.items_factura:
+                if item["codigo"] == codigo:
+                    nueva_cantidad = item["cantidad"] + cantidad
+                    if nueva_cantidad > stock_actual[0]:
+                        raise ValueError(f"Stock insuficiente. Disponible: {stock_actual[0]}")
+                    item["cantidad"] = nueva_cantidad
+                    item["subtotal"] = item["precio"] * nueva_cantidad
+                    self._refrescar_items_factura()
+                    self.actualizar_totales()
+                    self.producto_var.set("")
+                    self.precio_var.set("")
+                    self.cantidad_var.set("1")
+                    return
             
             subtotal = precio * cantidad
             
@@ -1100,6 +1247,16 @@ class SistemaFacturacion:
         
         # Actualizar totales
         self.actualizar_totales()
+
+    def _refrescar_items_factura(self):
+        for item_id in self.tree_items.get_children():
+            self.tree_items.delete(item_id)
+        for item in self.items_factura:
+            self.tree_items.insert(
+                "", tk.END,
+                values=(item["codigo"], item["nombre"], item["cantidad"],
+                        f"RD$ {item['precio']:.2f}", f"RD$ {item['subtotal']:.2f}")
+            )
         
     def actualizar_totales(self):
         subtotal = sum(item['subtotal'] for item in self.items_factura)
@@ -1111,6 +1268,8 @@ class SistemaFacturacion:
         self.total_var.set(f"RD$ {total:.2f}")
         
     def generar_factura(self):
+        if not self.require_permission("create_invoices"):
+            return
         if not self.items_factura:
             messagebox.showwarning("Advertencia", "Agregue al menos un producto a la factura")
             return
@@ -1120,6 +1279,7 @@ class SistemaFacturacion:
             messagebox.showwarning("Advertencia", "Seleccione un cliente")
             return
         
+        pdf_path = None
         try:
             # Obtener ID del cliente
             cliente_cedula = cliente_str.split(' - ')[1] if ' - ' in cliente_str else None
@@ -1144,11 +1304,16 @@ class SistemaFacturacion:
             # Insertar factura
             numero = self.num_factura.get()
             fecha = datetime.now().strftime("%Y-%m-%d")
+            metodo_pago = self.metodo_pago_var.get() or "EFECTIVO"
+            estado = "PENDIENTE" if metodo_pago == "CREDITO" else "PAGADA"
+            usuario_id = self.current_user.get("id")
             
             self.cursor.execute('''
-                INSERT INTO facturas (numero, fecha, cliente_id, subtotal, itbis, total)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (numero, fecha, cliente_id, subtotal, itbis, total))
+                INSERT INTO facturas (numero, fecha, cliente_id, subtotal, itbis, total,
+                                      estado, metodo_pago, usuario_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (numero, fecha, cliente_id, subtotal, itbis, total,
+                  estado, metodo_pago, usuario_id))
             
             factura_id = self.cursor.lastrowid
             
@@ -1165,15 +1330,43 @@ class SistemaFacturacion:
                 
                 # Actualizar stock
                 self.cursor.execute('''
-                    UPDATE productos 
+                    UPDATE productos
                     SET stock = stock - ?
-                    WHERE id = ?
-                ''', (item['cantidad'], producto_id))
-            
-            self.conn.commit()
+                    WHERE id = ? AND stock >= ?
+                ''', (item['cantidad'], producto_id, item['cantidad']))
+                if self.cursor.rowcount != 1:
+                    raise ValueError(f"Stock insuficiente para el producto {item['codigo']}")
+                self.cursor.execute(
+                    """INSERT INTO inventory_movements
+                       (producto_id, tipo, cantidad, motivo, referencia, usuario_id)
+                       VALUES (?, 'SALIDA', ?, ?, ?, ?)""",
+                    (producto_id, -item['cantidad'], "Venta", numero, usuario_id),
+                )
+
+            if metodo_pago != "CREDITO":
+                self.cursor.execute("SELECT id FROM payment_methods WHERE nombre=?", (metodo_pago,))
+                payment_method = self.cursor.fetchone()
+                if not payment_method:
+                    raise ValueError("Método de pago no válido")
+                self.cursor.execute(
+                    "INSERT INTO payments (factura_id, metodo_id, monto, usuario_id) VALUES (?, ?, ?, ?)",
+                    (factura_id, payment_method[0], total, usuario_id),
+                )
+                self.cursor.execute("SELECT id FROM cash_registers WHERE estado='ABIERTA' ORDER BY id DESC LIMIT 1")
+                cash_register = self.cursor.fetchone()
+                if not cash_register:
+                    raise ValueError("Debe abrir una caja antes de registrar una venta pagada")
+                self.cursor.execute(
+                    """INSERT INTO cash_movements
+                       (caja_id, tipo, monto, metodo_pago, referencia, usuario_id)
+                       VALUES (?, 'VENTA', ?, ?, ?, ?)""",
+                    (cash_register[0], total, metodo_pago, numero, usuario_id),
+                )
+            audit(self.conn, "CREAR_FACTURA", "facturas", factura_id, numero, usuario_id)
             
             # Generar PDF
-            self.generar_pdf(factura_id)
+            pdf_path = self.generar_pdf(factura_id)
+            self.conn.commit()
             
             messagebox.showinfo("Éxito", f"Factura {numero} generada correctamente\nPDF guardado exitosamente")
             
@@ -1184,6 +1377,11 @@ class SistemaFacturacion:
             
         except Exception as e:
             self.conn.rollback()
+            if pdf_path and os.path.exists(pdf_path):
+                try:
+                    os.remove(pdf_path)
+                except OSError:
+                    logging.exception("No se pudo limpiar el PDF de una factura revertida")
             messagebox.showerror("Error", f"Error al generar factura: {str(e)}")
             
     def generar_pdf(self, factura_id):
@@ -1246,11 +1444,11 @@ class SistemaFacturacion:
             elements.append(titulo)
             elements.append(Spacer(1, 0.2*inch))
 
-            empresa_text = f"<b>{empresa_nombre}</b><br/>RNC: {empresa_rnc}<br/>Dirección: {empresa_direccion}<br/>Teléfono: {empresa_telefono}"
+            empresa_text = f"<b>{escape(str(empresa_nombre))}</b><br/>RNC: {escape(str(empresa_rnc))}<br/>Dirección: {escape(str(empresa_direccion))}<br/>Teléfono: {escape(str(empresa_telefono))}"
             if empresa_email:
-                empresa_text += f"<br/>Email: {empresa_email}"
+                empresa_text += f"<br/>Email: {escape(str(empresa_email))}"
             if empresa_website:
-                empresa_text += f"<br/>Web: {empresa_website}"
+                empresa_text += f"<br/>Web: {escape(str(empresa_website))}"
 
             empresa_info = Paragraph(empresa_text, styles['Normal'])
             elements.append(empresa_info)
@@ -1275,7 +1473,7 @@ class SistemaFacturacion:
             for item in items_data:
                 productos_data.append([
                     item[0],
-                    item[1],
+                    escape(str(item[1])),
                     str(item[2]),
                     f"RD$ {item[3]:.2f}",
                     f"RD$ {item[4]:.2f}"
@@ -1315,9 +1513,9 @@ class SistemaFacturacion:
             footer = Paragraph("Gracias por su preferencia. Documento generado automáticamente.", styles['Footer'])
             elements.append(footer)
             doc.build(elements)
-            messagebox.showinfo("Éxito", f"PDF generado correctamente en {filename}")
+            return filename
         except Exception as e:
-            messagebox.showerror("Error", f"Error al generar el PDF: {str(e)}")
+            raise RuntimeError(f"Error al generar el PDF: {str(e)}") from e
 
     def nueva_factura(self):
         # Limpiar tabla de items
@@ -1340,6 +1538,7 @@ class SistemaFacturacion:
         
         # Limpiar selección de cliente
         self.cliente_var.set('')
+        self.metodo_pago_var.set("EFECTIVO")
         
         # Limpiar campos de producto
         self.producto_var.set('')
@@ -1354,7 +1553,7 @@ class SistemaFacturacion:
         
         if buscar:
             self.cursor.execute('''
-                SELECT f.id, f.numero, f.fecha, c.nombre, f.subtotal, f.itbis, f.total
+                SELECT f.id, f.numero, f.fecha, c.nombre, f.subtotal, f.itbis, f.total, f.estado
                 FROM facturas f
                 JOIN clientes c ON f.cliente_id = c.id
                 WHERE f.numero LIKE ? OR c.nombre LIKE ?
@@ -1362,7 +1561,7 @@ class SistemaFacturacion:
             ''', (f'%{buscar}%', f'%{buscar}%'))
         else:
             self.cursor.execute('''
-                SELECT f.id, f.numero, f.fecha, c.nombre, f.subtotal, f.itbis, f.total
+                SELECT f.id, f.numero, f.fecha, c.nombre, f.subtotal, f.itbis, f.total, f.estado
                 FROM facturas f
                 JOIN clientes c ON f.cliente_id = c.id
                 ORDER BY f.id DESC
@@ -1373,7 +1572,8 @@ class SistemaFacturacion:
                 row[0], row[1], row[2], row[3],
                 f"RD$ {row[4]:.2f}",
                 f"RD$ {row[5]:.2f}",
-                f"RD$ {row[6]:.2f}"
+                f"RD$ {row[6]:.2f}",
+                row[7]
             )
             self.tree_historial.insert('', tk.END, values=formatted_row)
             
@@ -1478,6 +1678,98 @@ class SistemaFacturacion:
             messagebox.showinfo("Éxito", "PDF generado correctamente")
         except Exception as e:
             messagebox.showerror("Error", f"Error al generar PDF: {str(e)}")
+
+    def _factura_seleccionada(self):
+        selected = self.tree_historial.selection()
+        if not selected:
+            messagebox.showwarning("Advertencia", "Seleccione una factura")
+            return None
+        return self.tree_historial.item(selected[0])["values"][0]
+
+    def registrar_abono(self):
+        if not self.require_permission("create_invoices"):
+            return
+        factura_id = self._factura_seleccionada()
+        if factura_id is None:
+            return
+        try:
+            self.cursor.execute("SELECT total, estado FROM facturas WHERE id=?", (factura_id,))
+            invoice = self.cursor.fetchone()
+            if not invoice or invoice[1] == "ANULADA":
+                messagebox.showwarning("Abono", "La factura no admite abonos.")
+                return
+            self.cursor.execute("SELECT COALESCE(SUM(monto), 0) FROM payments WHERE factura_id=?", (factura_id,))
+            paid = self.cursor.fetchone()[0]
+            balance = round(invoice[0] - paid, 2)
+            if balance <= 0:
+                messagebox.showinfo("Abono", "La factura ya está pagada.")
+                return
+            amount = simpledialog.askfloat(
+                "Registrar abono", f"Saldo pendiente: RD$ {balance:.2f}\nMonto del abono:",
+                minvalue=0.01, maxvalue=balance, parent=self.root,
+            )
+            if amount is None:
+                return
+            method = simpledialog.askstring(
+                "Método de pago", "Efectivo, tarjeta, transferencia u otro:",
+                initialvalue="EFECTIVO", parent=self.root,
+            )
+            method = (method or "EFECTIVO").strip().upper()
+            self.cursor.execute("SELECT id FROM payment_methods WHERE nombre=?", (method,))
+            payment_method = self.cursor.fetchone()
+            if not payment_method:
+                messagebox.showerror("Abono", "Método de pago no válido.")
+                return
+            new_paid = round(paid + amount, 2)
+            state = "PAGADA" if new_paid >= invoice[0] else "PARCIAL"
+            self.cursor.execute(
+                "INSERT INTO payments (factura_id, metodo_id, monto, usuario_id) VALUES (?, ?, ?, ?)",
+                (factura_id, payment_method[0], amount, self.current_user.get("id")),
+            )
+            self.cursor.execute("UPDATE facturas SET estado=? WHERE id=?", (state, factura_id))
+            audit(self.conn, "REGISTRAR_ABONO", "facturas", factura_id, f"{amount:.2f}", self.current_user.get("id"))
+            self.conn.commit()
+            self.cargar_historial()
+            messagebox.showinfo("Abono", f"Abono registrado. Saldo restante: RD$ {max(0, invoice[0] - new_paid):.2f}")
+        except (sqlite3.Error, ValueError) as exc:
+            self.conn.rollback()
+            messagebox.showerror("Error de abono", str(exc))
+
+    def anular_factura(self):
+        if not self.require_permission("create_invoices"):
+            return
+        factura_id = self._factura_seleccionada()
+        if factura_id is None:
+            return
+        if not messagebox.askyesno("Anular factura", "La factura quedará bloqueada y el stock será reintegrado. ¿Continuar?"):
+            return
+        try:
+            self.cursor.execute("SELECT numero, estado FROM facturas WHERE id=?", (factura_id,))
+            invoice = self.cursor.fetchone()
+            if not invoice or invoice[1] == "ANULADA":
+                messagebox.showwarning("Anular factura", "La factura ya está anulada o no existe.")
+                return
+            self.cursor.execute(
+                "SELECT producto_id, cantidad FROM factura_items WHERE factura_id=?", (factura_id,)
+            )
+            items = self.cursor.fetchall()
+            for product_id, quantity in items:
+                self.cursor.execute("UPDATE productos SET stock=stock+? WHERE id=?", (quantity, product_id))
+                self.cursor.execute(
+                    """INSERT INTO inventory_movements
+                       (producto_id, tipo, cantidad, motivo, referencia, usuario_id)
+                       VALUES (?, 'DEVOLUCION', ?, ?, ?, ?)""",
+                    (product_id, quantity, "Anulación de factura", invoice[0], self.current_user.get("id")),
+                )
+            self.cursor.execute("UPDATE facturas SET estado='ANULADA' WHERE id=?", (factura_id,))
+            audit(self.conn, "ANULAR_FACTURA", "facturas", factura_id, invoice[0], self.current_user.get("id"))
+            self.conn.commit()
+            self.cargar_historial()
+            self.cargar_productos()
+            messagebox.showinfo("Anular factura", "Factura anulada y stock reintegrado correctamente.")
+        except sqlite3.Error as exc:
+            self.conn.rollback()
+            messagebox.showerror("Error de anulación", str(exc))
         
     def cargar_datos(self):
         """Carga los datos en los combobox"""

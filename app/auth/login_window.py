@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 import sqlite3
@@ -7,7 +6,10 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import messagebox, ttk
 
-from app.core.ui import CREATOR_URL, configure_app_style, set_app_icon
+from app.core.ui import INPUT_STYLE, CREATOR_URL, configure_app_style, set_app_icon
+from app.core.paths import application_path
+from app.core.database import connect_database, audit
+from app.core.security import hash_password, verify_password
 
 class LoginWindow:
     creator = CREATOR_URL
@@ -38,12 +40,12 @@ class LoginWindow:
         # Sistema de los Logs
 
         # Create a log File doesn´t exist
-        if not os.path.exists("logs"):
-            os.makedirs("logs")
+        logs_path = os.path.join(self.base_path, "logs")
+        os.makedirs(logs_path, exist_ok=True)
 
         # Generate a log file with de currente date
         date_now = datetime.now().strftime("%Y-%m-%d")
-        log_file = os.path.join("logs", f"{date_now}.log")
+        log_file = os.path.join(logs_path, f"{date_now}.log")
         logging.basicConfig(
             filename=log_file,
             level=logging.INFO,
@@ -67,35 +69,18 @@ class LoginWindow:
 
 
     def get_base_path(self):
-        if getattr(sys, 'frozen', False):
-            return os.path.dirname(sys.executable)
-        return os.path.dirname(os.path.abspath(__file__))
+        return application_path()
 
     def ensure_user_table(self):
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_database(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS usuarios (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        usuario TEXT UNIQUE NOT NULL,
-                        clave TEXT NOT NULL,
-                        role TEXT NOT NULL DEFAULT 'Vendedor'
-                    )
-                ''')
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS config (
-                        clave TEXT PRIMARY KEY,
-                        valor TEXT
-                    )
-                ''')
-                conn.commit()
         except sqlite3.Error as e:
             messagebox.showerror("Error de Base de Datos",
                                  f"No se pudo inicializar la tabla de usuarios: {str(e)}")
 
     def hash_password(self, password):
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+        return hash_password(password)
 
     def center_window(self, width, height, window=None):
         if window is None:
@@ -107,7 +92,7 @@ class LoginWindow:
 
     def load_remembered_user(self):
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_database(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('SELECT valor FROM config WHERE clave = ?', ('remembered_user',))
                 row = cursor.fetchone()
@@ -194,20 +179,37 @@ class LoginWindow:
             messagebox.showwarning("Advertencia", "Ingrese usuario y contraseña")
             return
 
-        hashed_clave = self.hash_password(clave)
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_database(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT clave FROM usuarios WHERE usuario = ?', (usuario,))
+                cursor.execute('SELECT id, clave, activo FROM usuarios WHERE usuario = ?', (usuario,))
                 row = cursor.fetchone()
-                if row and row[0] == hashed_clave:
+                valid, needs_upgrade = verify_password(clave, row[1]) if row else (False, False)
+                if row and row[2] and valid:
+                    if needs_upgrade:
+                        cursor.execute('UPDATE usuarios SET clave=? WHERE id=?', (hash_password(clave), row[0]))
+                    cursor.execute(
+                        'UPDATE usuarios SET ultimo_acceso=CURRENT_TIMESTAMP, intentos_fallidos=0 WHERE id=?',
+                        (row[0],),
+                    )
+                    audit(conn, "INICIO_SESION", "usuarios", row[0], usuario, row[0])
                     if self.remember_var.get():
-                        self.save_remembered_user()
+                        cursor.execute(
+                            'REPLACE INTO config (clave, valor) VALUES (?, ?)',
+                            ('remembered_user', usuario),
+                        )
                     else:
-                        self.clear_remembered_user()
+                        cursor.execute('DELETE FROM config WHERE clave = ?', ('remembered_user',))
+                    conn.commit()
                     self.root.destroy()
-                    self.on_success()
+                    cursor.execute('SELECT role FROM usuarios WHERE id=?', (row[0],))
+                    role = cursor.fetchone()[0]
+                    self.on_success({"id": row[0], "usuario": usuario, "role": role})
                 else:
+                    if row:
+                        cursor.execute('UPDATE usuarios SET intentos_fallidos=intentos_fallidos+1 WHERE id=?', (row[0],))
+                        audit(conn, "FALLO_INICIO_SESION", "usuarios", row[0], usuario)
+                        conn.commit()
                     messagebox.showwarning("Acceso denegado",
                                            "Usuario o contraseña incorrectos. Si no tiene cuenta, regístrese.")
         except sqlite3.Error as e:
@@ -251,19 +253,14 @@ class LoginWindow:
         tk.Entry(form_frame, textvariable=confirm_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=3, column=1, sticky="ew", padx=(0, 22), pady=6)
 
         tk.Label(form_frame, text="Tipo de usuario", font=("Arial", 10, "bold"), bg="white").grid(row=4, column=0, sticky="w", padx=22, pady=6)
-        role_var = tk.StringVar(value="Vendedor")
-        role_frame = tk.Frame(form_frame, bg="white")
-        role_frame.grid(row=4, column=1, sticky="w", padx=(0, 22), pady=6)
-        tk.Radiobutton(role_frame, text="Vendedor", variable=role_var, value="Vendedor",
-                       bg="white", font=("Arial", 10)).pack(side=tk.LEFT, padx=(0, 10))
-        tk.Radiobutton(role_frame, text="Administrador", variable=role_var, value="Administrador",
-                       bg="white", font=("Arial", 10)).pack(side=tk.LEFT)
+        tk.Label(form_frame, text="Vendedor (asignado por seguridad)", bg="white", fg="#636e72",
+             font=("Arial", 10)).grid(row=4, column=1, sticky="w", padx=(0, 22), pady=6)
 
         tk.Label(form_frame, text="La contraseña debe tener mínimo 5 caracteres e incluir letras y números.",
                  font=("Arial", 9), bg="white", fg="#636e72").grid(row=5, column=0, columnspan=2, sticky="w", padx=22, pady=(8, 0))
 
         register_button = tk.Button(form_frame, text="Guardar cuenta", command=lambda: self.register_user(
-            new_user_var.get().strip(), new_password_var.get().strip(), confirm_password_var.get().strip(), role_var.get(), register_window),
+            new_user_var.get().strip(), new_password_var.get().strip(), confirm_password_var.get().strip(), "Vendedor", register_window),
                  bg="#2ecc71", fg="white", font=("Arial", 10, "bold"),
                  width=24, cursor="hand2")
         register_button.grid(row=6, column=0, columnspan=2, pady=(24, 16))
@@ -292,8 +289,13 @@ class LoginWindow:
                 if cursor.fetchone():
                     messagebox.showwarning("Advertencia", "El usuario ya existe")
                     return
+                cursor.execute('SELECT COUNT(*) FROM usuarios')
+                first_user = cursor.fetchone()[0] == 0
+                assigned_role = "Administrador" if first_user else "Vendedor"
                 cursor.execute('INSERT INTO usuarios (usuario, clave, role) VALUES (?, ?, ?)',
-                               (usuario, hashed_clave, role))
+                               (usuario, hash_password(clave), assigned_role))
+                user_id = cursor.lastrowid
+                audit(conn, "CREAR_USUARIO", "usuarios", user_id, usuario, user_id)
                 conn.commit()
                 messagebox.showinfo("Registro exitoso", "Usuario registrado correctamente. Ahora puede iniciar sesión.")
                 window.destroy()
