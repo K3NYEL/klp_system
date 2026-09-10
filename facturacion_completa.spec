@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['programa_de_facturacion.py'],
+    ['app/main.py'],
     pathex=[],
     binaries=[],
     datas=[('facturacion_ico.ico', '.')],
