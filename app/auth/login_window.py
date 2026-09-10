@@ -1,13 +1,12 @@
 import logging
 import os
 import sqlite3
-import sys
 import tkinter as tk
 import customtkinter as ctk
 from datetime import datetime
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
-from app.core.ui import INPUT_STYLE, CREATOR_URL, configure_app_style, set_app_icon
+from app.core.ui import CREATOR_URL, configure_app_style, set_app_icon
 from app.core.paths import application_path
 from app.core.database import connect_database, audit
 from app.auth.security import hash_password, verify_password
@@ -77,7 +76,7 @@ class LoginWindow:
     def ensure_user_table(self):
         try:
             with connect_database(self.db_path) as conn:
-                cursor = conn.cursor()
+                conn.cursor()
         except sqlite3.Error as e:
             messagebox.showerror("Error de Base de Datos",
                                  f"No se pudo inicializar la tabla de usuarios: {str(e)}")
@@ -107,7 +106,7 @@ class LoginWindow:
 
     def save_remembered_user(self):
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_database(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('REPLACE INTO config (clave, valor) VALUES (?, ?)',
                                ('remembered_user', self.username_var.get().strip()))
@@ -117,7 +116,7 @@ class LoginWindow:
 
     def clear_remembered_user(self):
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_database(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('DELETE FROM config WHERE clave = ?', ('remembered_user',))
                 conn.commit()
@@ -282,9 +281,8 @@ class LoginWindow:
             messagebox.showwarning("Advertencia", "La contraseña debe incluir letras y números")
             return
 
-        hashed_clave = self.hash_password(clave)
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with connect_database(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute('SELECT id FROM usuarios WHERE usuario = ?', (usuario,))
                 if cursor.fetchone():
