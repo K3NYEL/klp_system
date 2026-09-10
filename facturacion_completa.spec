@@ -1,19 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+
 
 a = Analysis(
     ['app/main.py'],
     pathex=[],
     binaries=[],
     datas=[('facturacion_ico.ico', '.')],
-    hiddenimports=[
-        'reportlab',
-        'reportlab.lib',
-        'reportlab.platypus',
-        'reportlab_mods',
-        'reportlab.platypus.cleanBlockQuotedText',
-        'reportlab.platypus.XPreformatted',
-    ],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -21,7 +16,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
-app_icon = 'facturacion_ico.ico'
+app_icon = 'facturacion_ico.ico' if sys.platform in ('win32', 'darwin') else None
 
 pyz = PYZ(a.pure)
 
@@ -44,5 +39,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=[app_icon],
+    icon=app_icon,
 )

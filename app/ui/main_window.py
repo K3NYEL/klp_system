@@ -19,10 +19,15 @@ from xml.sax.saxutils import escape
 
 from app.auth.login_window import LoginWindow
 from app.core.database import audit, connect_database
-from app.core.backup import create_backup
-from app.core.authorization import can
+from app.core.backup import create_backup, restore_backup
+from app.auth.authorization import can
 from app.core.paths import application_path
 from app.core.ui import INPUT_STYLE, CREATOR_URL, configure_app_style, set_app_icon
+from app.ui.dashboard_view import DashboardView
+from app.ui.cash_view import CashMovementView
+from app.ui.inventory_view import InventoryMovementView
+from app.ui.user_management_view import UserManagementView
+from app.services import customers_service, invoice_service, products_service
 
 
 class SistemaFacturacion:
@@ -30,6 +35,7 @@ class SistemaFacturacion:
         self.root = root
         self.on_logout = on_logout
         self.current_user = current_user or {}
+        self.tabs = {}
         self.root.title("Sistema de Facturacion")
         self.base_path = self.get_base_path()
         set_app_icon(self.root, self.base_path)
@@ -52,78 +58,11 @@ class SistemaFacturacion:
         self.cargar_datos()
         
     def init_db(self):
-        """Inicializa la base de datos SQLite"""
+        """Abre la base y aplica las migraciones centralizadas."""
         try:
-            # Conectar a la base de datos usando la ruta del ejecutable
             db_path = os.path.join(self.base_path, 'facturacion.db')
             self.conn = connect_database(db_path)
             self.cursor = self.conn.cursor()
-            
-            # Tabla de productos
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS productos (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    codigo TEXT UNIQUE,
-                    nombre TEXT NOT NULL,
-                    precio REAL NOT NULL,
-                    stock INTEGER DEFAULT 0
-                )
-            ''')
-            
-            # Tabla de clientes
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS clientes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
-                    cedula TEXT UNIQUE,
-                    telefono TEXT,
-                    direccion TEXT
-                )
-            ''')
-            
-            # Tabla de facturas
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS facturas (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    numero TEXT UNIQUE,
-                    fecha TEXT,
-                    cliente_id INTEGER,
-                    subtotal REAL,
-                    itbis REAL,
-                    total REAL,
-                    FOREIGN KEY (cliente_id) REFERENCES clientes (id)
-                )
-            ''')
-            
-            # Tabla de items de factura
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS factura_items (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    factura_id INTEGER,
-                    producto_id INTEGER,
-                    cantidad INTEGER,
-                    precio_unitario REAL,
-                    subtotal REAL,
-                    FOREIGN KEY (factura_id) REFERENCES facturas (id),
-                    FOREIGN KEY (producto_id) REFERENCES productos (id)
-                )
-            ''')
-
-            # Tabla de configuración de la empresa
-            self.cursor.execute('''
-                CREATE TABLE IF NOT EXISTS empresa (
-                    id INTEGER PRIMARY KEY,
-                    nombre TEXT,
-                    rnc TEXT,
-                    direccion TEXT,
-                    telefono TEXT,
-                    email TEXT,
-                    website TEXT
-                )
-            ''')
-            
-            self.conn.commit()
-            
         except sqlite3.Error as e:
             messagebox.showerror("Error de Base de Datos", 
                                f"Error al inicializar la base de datos: {str(e)}")
@@ -144,8 +83,10 @@ class SistemaFacturacion:
 
     def crear_pestaña_admin(self):
         """Crea la pestaña de configuración de la empresa"""
-        tab = tk.Frame(self.root, bg="white")
+        tab = tk.Frame(self.notebook, bg="white")
         self.empresa_tab = tab
+        self.tabs["company"] = tab
+        self.notebook.add(tab, text="  Empresa  ")
         
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
         form_frame.pack(fill=tk.X, padx=10, pady=10)
@@ -234,6 +175,7 @@ class SistemaFacturacion:
         archivo_menu = tk.Menu(menu_bar, tearoff=0)
         archivo_menu.add_command(label="Cerrar sesión", command=self.cerrar_sesion)
         archivo_menu.add_command(label="Crear copia de seguridad", command=self.crear_backup)
+        archivo_menu.add_command(label="Restaurar copia de seguridad", command=self.restaurar_backup)
         archivo_menu.add_separator()
         archivo_menu.add_command(label="Salir", command=self.salir)
         menu_bar.add_cascade(label="Archivo", menu=archivo_menu)
@@ -241,14 +183,19 @@ class SistemaFacturacion:
         caja_menu = tk.Menu(menu_bar, tearoff=0)
         caja_menu.add_command(label="Abrir caja", command=self.abrir_caja)
         caja_menu.add_command(label="Cerrar caja", command=self.cerrar_caja)
+        caja_menu.add_command(label="Movimiento manual", command=self.abrir_movimiento_caja)
         menu_bar.add_cascade(label="Caja", menu=caja_menu)
 
         opciones_menu = tk.Menu(menu_bar, tearoff=0)
-        opciones_menu.add_command(label="Nueva factura", command=lambda: self.seleccionar_pestaña(0), accelerator="Ctrl+N")
-        opciones_menu.add_command(label="Inventario", command=lambda: self.seleccionar_pestaña(1), accelerator="Ctrl+I")
-        opciones_menu.add_command(label="Clientes", command=lambda: self.seleccionar_pestaña(2), accelerator="Ctrl+L")
+        opciones_menu.add_command(label="Nueva factura", command=lambda: self.seleccionar_seccion("invoice"), accelerator="Ctrl+N")
+        opciones_menu.add_command(label="Facturación rápida", command=self.abrir_facturacion_rapida, accelerator="F2")
+        opciones_menu.add_command(label="Dashboard", command=lambda: self.seleccionar_seccion("dashboard"))
+        opciones_menu.add_command(label="Movimientos de inventario", command=self.abrir_movimientos_inventario)
+        opciones_menu.add_command(label="Usuarios", command=self.abrir_usuarios)
+        opciones_menu.add_command(label="Inventario", command=lambda: self.seleccionar_seccion("products"), accelerator="Ctrl+I")
+        opciones_menu.add_command(label="Clientes", command=lambda: self.seleccionar_seccion("customers"), accelerator="Ctrl+L")
         opciones_menu.add_command(label="Mi empresa", command=self.ir_mi_empresa)
-        opciones_menu.add_command(label="Facturas guardadas", command=lambda: self.seleccionar_pestaña(4), accelerator="Ctrl+H")
+        opciones_menu.add_command(label="Facturas guardadas", command=lambda: self.seleccionar_seccion("history"), accelerator="Ctrl+H")
         opciones_menu.add_separator()
         opciones_menu.add_command(label="Acerca de", command=self.mostrar_acerca_de)
         menu_bar.add_cascade(label="Opciones", menu=opciones_menu)
@@ -260,17 +207,8 @@ class SistemaFacturacion:
         self.root.config(menu=menu_bar)
         self._registrar_atajos()
 
-        header_frame = tk.Frame(self.root, bg="#ffffff", relief=tk.RIDGE, bd=1)
-        header_frame.pack(fill=tk.X, padx=10, pady=(6, 0))
-        title_frame = tk.Frame(header_frame, bg="#ffffff")
-        title_frame.pack(side=tk.LEFT, padx=18, pady=12)
-        tk.Label(title_frame, text="Sistema de Facturación", font=("Arial", 22, "bold"),
-                 bg="#ffffff", fg="#2d3436").pack(anchor="w")
-        tk.Label(title_frame, text="Nueva factura, productos, clientes e historial desde una sola pantalla",
-                 font=("Arial", 10), bg="#ffffff", fg="#636e72").pack(anchor="w", pady=(2, 0))
-
         main_frame = tk.Frame(self.root, bg="#f0f0f0")
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, pady=10)
@@ -280,34 +218,234 @@ class SistemaFacturacion:
         self.crear_pestaña_clientes()
         self.crear_pestaña_admin()
         self.crear_pestaña_historial()
-
-        tk.Label(self.root, text="Facturación App • K.A.R.M. • Versión 1.0", bg="#f0f0f0",
-                 fg="#555", font=("Arial", 8)).pack(side=tk.BOTTOM, pady=6)
+        dashboard = DashboardView(self.notebook, self.conn)
+        self.dashboard = dashboard
+        self.tabs["dashboard"] = dashboard.frame
+        self.notebook.add(dashboard.frame, text="  Dashboard  ")
 
     def seleccionar_pestaña(self, index):
         """Activa una sección desde el menú principal."""
         self.notebook.select(index)
 
+    def seleccionar_seccion(self, name):
+        tab = self.tabs.get(name)
+        if tab is not None:
+            self.notebook.select(tab)
+            if name == "dashboard" and hasattr(self, "dashboard"):
+                self.dashboard.refresh()
+
     def _registrar_atajos(self):
         """Registra atajos globales para que funcionen con cualquier control enfocado."""
         shortcuts = {
-            "n": 0,
-            "i": 1,
-            "l": 2,
-            "h": 4,
+            "n": "invoice",
+            "i": "products",
+            "l": "customers",
+            "h": "history",
         }
         for key, tab_index in shortcuts.items():
             self.root.bind_all(
                 f"<Control-KeyPress-{key}>",
-                lambda event, index=tab_index: self._atajo_pestaña(event, index),
+                lambda event, section=tab_index: self._atajo_pestaña(event, section),
                 add="+",
             )
+            self.root.bind_all("<F2>", self._atajo_facturacion_rapida, add="+")
 
-    def _atajo_pestaña(self, event, index):
+    def _atajo_pestaña(self, event, section):
         """Cambia de sección y consume el evento para evitar interferencias del widget."""
-        self.seleccionar_pestaña(index)
+        self.seleccionar_seccion(section)
         self.root.focus_set()
         return "break"
+
+    def _atajo_facturacion_rapida(self, event):
+        self.abrir_facturacion_rapida()
+        return "break"
+
+    def abrir_facturacion_rapida(self):
+        """Abre una venta de mostrador para escanear y cobrar sin registrar cliente."""
+        if not self.require_permission("create_invoices"):
+            return
+        if getattr(self, "quick_window", None) and self.quick_window.winfo_exists():
+            self.quick_window.deiconify()
+            self.quick_code_entry.focus_set()
+            return
+
+        window = tk.Toplevel(self.root)
+        self.quick_window = window
+        window.title("Facturación rápida")
+        set_app_icon(window, self.base_path)
+        window.geometry("720x520")
+        window.configure(bg="#f0f0f0")
+        window.transient(self.root)
+
+        header = tk.Frame(window, bg="#0984e3")
+        header.pack(fill=tk.X)
+        tk.Label(header, text="FACTURACIÓN RÁPIDA", bg="#0984e3", fg="white",
+                 font=("Arial", 18, "bold")).pack(pady=(14, 2))
+        tk.Label(header, text="Escanea el código, confirma el pago y entrega el ticket",
+                 bg="#0984e3", fg="white", font=("Arial", 10)).pack(pady=(0, 14))
+
+        scan_frame = tk.Frame(window, bg="white", padx=14, pady=12)
+        scan_frame.pack(fill=tk.X, padx=12, pady=12)
+        tk.Label(scan_frame, text="Código de barras / SKU", bg="white",
+                 font=("Arial", 10, "bold")).pack(side=tk.LEFT)
+        self.quick_code_var = tk.StringVar()
+        self.quick_code_entry = tk.Entry(scan_frame, textvariable=self.quick_code_var,
+                                         font=("Arial", 13), width=28, **INPUT_STYLE)
+        self.quick_code_entry.pack(side=tk.LEFT, padx=10)
+        self.quick_quantity_var = tk.StringVar(value="1")
+        tk.Label(scan_frame, text="Cantidad", bg="white", font=("Arial", 10, "bold")).pack(side=tk.LEFT)
+        tk.Entry(scan_frame, textvariable=self.quick_quantity_var, width=6,
+                 font=("Arial", 12), **INPUT_STYLE).pack(side=tk.LEFT, padx=8)
+        tk.Button(scan_frame, text="Agregar", command=self.agregar_item_rapido,
+                  bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
+                  cursor="hand2").pack(side=tk.LEFT)
+        self.quick_code_entry.bind("<Return>", lambda event: self.agregar_item_rapido())
+
+        table_frame = tk.Frame(window, bg="white")
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=12)
+        self.quick_tree = ttk.Treeview(table_frame, columns=("Código", "Producto", "Cantidad", "Precio", "Total"),
+                                       show="headings", height=12)
+        for column in ("Código", "Producto", "Cantidad", "Precio", "Total"):
+            self.quick_tree.heading(column, text=column)
+        self.quick_tree.column("Código", width=120)
+        self.quick_tree.column("Producto", width=260)
+        self.quick_tree.column("Cantidad", width=80)
+        self.quick_tree.column("Precio", width=100)
+        self.quick_tree.column("Total", width=100)
+        self.quick_tree.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+
+        footer = tk.Frame(window, bg="#f0f0f0", padx=12, pady=10)
+        footer.pack(fill=tk.X)
+        self.quick_total_var = tk.StringVar(value="Total: RD$ 0.00")
+        tk.Label(footer, textvariable=self.quick_total_var, bg="#f0f0f0",
+                 fg="#27ae60", font=("Arial", 15, "bold")).pack(side=tk.LEFT)
+        self.quick_payment_var = tk.StringVar(value="EFECTIVO")
+        ttk.Combobox(footer, textvariable=self.quick_payment_var,
+                     values=("EFECTIVO", "TARJETA", "TRANSFERENCIA", "OTRO"),
+                     state="readonly", width=16).pack(side=tk.LEFT, padx=18)
+        tk.Button(footer, text="Quitar seleccionado", command=self.eliminar_item_rapido,
+                  bg="#e74c3c", fg="white", font=("Arial", 10, "bold"),
+                  cursor="hand2").pack(side=tk.RIGHT, padx=5)
+        tk.Button(footer, text="Cobrar e imprimir ticket", command=self.confirmar_factura_rapida,
+                  bg="#0984e3", fg="white", font=("Arial", 10, "bold"),
+                  cursor="hand2").pack(side=tk.RIGHT, padx=5)
+        self.quick_items = []
+        window.protocol("WM_DELETE_WINDOW", window.destroy)
+        window.after(100, self.quick_code_entry.focus_set)
+
+    def agregar_item_rapido(self):
+        code = self.quick_code_var.get().strip()
+        if not code:
+            return
+        try:
+            quantity = int(self.quick_quantity_var.get())
+            if quantity <= 0:
+                raise ValueError("La cantidad debe ser mayor que cero")
+            self.cursor.execute(
+                "SELECT codigo, nombre, precio, stock FROM productos "
+                "WHERE activo=1 AND (codigo=? OR codigo_barras=?) LIMIT 1",
+                (code, code),
+            )
+            product = self.cursor.fetchone()
+            if not product:
+                messagebox.showwarning("Producto no encontrado", f"No existe un producto con código: {code}", parent=self.quick_window)
+                return
+            existing = next((item for item in self.quick_items if item["codigo"] == product[0]), None)
+            current_quantity = existing["cantidad"] if existing else 0
+            if current_quantity + quantity > product[3]:
+                raise ValueError(f"Stock insuficiente. Disponible: {product[3]}")
+            if existing:
+                existing["cantidad"] += quantity
+                existing["subtotal"] = existing["cantidad"] * existing["precio"]
+            else:
+                self.quick_items.append({"codigo": product[0], "nombre": product[1],
+                                         "precio": product[2], "cantidad": quantity,
+                                         "subtotal": product[2] * quantity})
+            self._refrescar_factura_rapida()
+            self.quick_code_var.set("")
+            self.quick_quantity_var.set("1")
+            self.quick_code_entry.focus_set()
+        except ValueError as exc:
+            messagebox.showwarning("Validación", str(exc), parent=self.quick_window)
+
+    def _refrescar_factura_rapida(self):
+        for row in self.quick_tree.get_children():
+            self.quick_tree.delete(row)
+        total = 0
+        for item in self.quick_items:
+            total += item["subtotal"]
+            self.quick_tree.insert("", tk.END, values=(item["codigo"], item["nombre"], item["cantidad"],
+                                                        f"RD$ {item['precio']:.2f}", f"RD$ {item['subtotal']:.2f}"))
+        self.quick_total_var.set(f"Total: RD$ {total:.2f}")
+
+    def eliminar_item_rapido(self):
+        selected = self.quick_tree.selection()
+        if selected:
+            del self.quick_items[self.quick_tree.index(selected[0])]
+            self._refrescar_factura_rapida()
+
+    def confirmar_factura_rapida(self):
+        if not self.quick_items:
+            messagebox.showwarning("Venta vacía", "Escanea al menos un producto.", parent=self.quick_window)
+            return
+        payment = self.quick_payment_var.get()
+        invoice_number = self.generar_numero_factura()
+        pdf_path = None
+        try:
+            self.cursor.execute("SELECT id FROM clientes WHERE nombre=? LIMIT 1", ("CONSUMIDOR FINAL",))
+            customer = self.cursor.fetchone()
+            if not customer:
+                self.cursor.execute("INSERT INTO clientes (nombre, cedula) VALUES (?, NULL)", ("CONSUMIDOR FINAL",))
+                customer_id = self.cursor.lastrowid
+            else:
+                customer_id = customer[0]
+            subtotal = sum(item["subtotal"] for item in self.quick_items)
+            tax = round(subtotal * 0.18, 2)
+            total = round(subtotal + tax, 2)
+            user_id = self.current_user.get("id")
+            self.cursor.execute(
+                """INSERT INTO facturas (numero, fecha, cliente_id, subtotal, itbis, total, estado, metodo_pago, usuario_id)
+                   VALUES (?, DATE('now'), ?, ?, ?, ?, 'PAGADA', ?, ?)""",
+                (invoice_number, customer_id, subtotal, tax, total, payment, user_id),
+            )
+            invoice_id = self.cursor.lastrowid
+            self.cursor.execute("SELECT id FROM payment_methods WHERE nombre=?", (payment,))
+            payment_method = self.cursor.fetchone()
+            if not payment_method:
+                raise ValueError("Método de pago no válido")
+            for item in self.quick_items:
+                self.cursor.execute("SELECT id, stock FROM productos WHERE codigo=?", (item["codigo"],))
+                product_id, stock = self.cursor.fetchone()
+                self.cursor.execute("UPDATE productos SET stock=stock-? WHERE id=? AND stock>=?",
+                                    (item["cantidad"], product_id, item["cantidad"]))
+                if self.cursor.rowcount != 1:
+                    raise ValueError(f"Stock insuficiente para {item['nombre']}")
+                self.cursor.execute("INSERT INTO factura_items (factura_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)",
+                                    (invoice_id, product_id, item["cantidad"], item["precio"], item["subtotal"]))
+                self.cursor.execute("INSERT INTO inventory_movements (producto_id, tipo, cantidad, motivo, referencia, usuario_id) VALUES (?, 'SALIDA', ?, 'Venta rápida', ?, ?)",
+                                    (product_id, -item["cantidad"], invoice_number, user_id))
+            self.cursor.execute("INSERT INTO payments (factura_id, metodo_id, monto, usuario_id) VALUES (?, ?, ?, ?)",
+                                (invoice_id, payment_method[0], total, user_id))
+            self.cursor.execute("SELECT id FROM cash_registers WHERE estado='ABIERTA' ORDER BY id DESC LIMIT 1")
+            cash = self.cursor.fetchone()
+            if not cash:
+                raise ValueError("Debe abrir una caja antes de vender")
+            self.cursor.execute("INSERT INTO cash_movements (caja_id, tipo, monto, metodo_pago, referencia, usuario_id) VALUES (?, 'VENTA', ?, ?, ?, ?)",
+                                (cash[0], total, payment, invoice_number, user_id))
+            audit(self.conn, "CREAR_FACTURA_RAPIDA", "facturas", invoice_id, invoice_number, user_id)
+            pdf_path = self.generar_pdf(invoice_id)
+            self.conn.commit()
+            self.quick_items.clear()
+            self._refrescar_factura_rapida()
+            self.cargar_productos()
+            self.cargar_historial()
+            messagebox.showinfo("Venta completada", f"Ticket generado correctamente:\n{pdf_path}", parent=self.quick_window)
+            self.quick_code_entry.focus_set()
+        except Exception as exc:
+            self.conn.rollback()
+            if pdf_path and os.path.exists(pdf_path):
+                os.remove(pdf_path)
+            messagebox.showerror("Error en venta rápida", str(exc), parent=self.quick_window)
 
     def require_permission(self, permission):
         if can(self.current_user.get("role"), permission):
@@ -385,6 +523,50 @@ class SistemaFacturacion:
             messagebox.showinfo("Copia de seguridad", f"Backup creado correctamente:\n{backup_path}")
         except Exception as exc:
             messagebox.showerror("Error de backup", f"No se pudo crear la copia de seguridad:\n{exc}")
+
+    def abrir_usuarios(self):
+        if self.require_permission("manage_users"):
+            UserManagementView(self.root, self.conn, self.current_user.get("id"))
+
+    def abrir_movimientos_inventario(self):
+        if self.require_permission("manage_products"):
+            InventoryMovementView(self.root, self.conn, self.current_user.get("id"))
+
+    def abrir_movimiento_caja(self):
+        if self.require_permission("manage_cash"):
+            CashMovementView(self.root, self.conn, self.current_user.get("id"))
+
+    def restaurar_backup(self):
+        if not self.require_permission("manage_company"):
+            return
+        backup_path = filedialog.askopenfilename(
+            title="Seleccionar copia de seguridad",
+            initialdir=os.path.join(self.base_path, "backups"),
+            filetypes=(("Bases SQLite", "*.db"), ("Todos los archivos", "*.*")),
+        )
+        if not backup_path:
+            return
+        if not messagebox.askyesno(
+            "Restaurar copia",
+            "Se guardará una copia de la base actual antes de restaurar. ¿Continuar?",
+        ):
+            return
+        database_path = os.path.join(self.base_path, "facturacion.db")
+        try:
+            self.conn.close()
+            restore_backup(backup_path, database_path, os.path.join(self.base_path, "backups"))
+            self.conn = connect_database(database_path)
+            self.cursor = self.conn.cursor()
+            self.cargar_datos()
+            self.dashboard.refresh()
+            messagebox.showinfo("Restauración", "La copia de seguridad fue restaurada correctamente.")
+        except Exception as exc:
+            try:
+                self.conn = connect_database(database_path)
+                self.cursor = self.conn.cursor()
+            except sqlite3.Error:
+                pass
+            messagebox.showerror("Error de restauración", str(exc))
 
     def abrir_caja(self):
         if not self.require_permission("manage_cash"):
@@ -470,6 +652,7 @@ class SistemaFacturacion:
         """Crea la pestaña de facturación"""
         tab = tk.Frame(self.notebook, bg="white")
         self.notebook.add(tab, text="  Crear Factura  ")
+        self.tabs["invoice"] = tab
 
         # Canvas con scrollbar que envuelve todo
         main_canvas = tk.Canvas(tab, bg="white", highlightthickness=0)
@@ -492,8 +675,8 @@ class SistemaFacturacion:
 
         # Frame unificado
         unified_frame = tk.LabelFrame(inner, text="  Factura  ", bg="white",
-                                      fg="#2d3436", font=("Arial", 11, "bold"), padx=10, pady=8)
-        unified_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+                          fg="#2d3436", font=("Arial", 11, "bold"), padx=16, pady=12)
+        unified_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         unified_frame.columnconfigure(1, weight=1)
         unified_frame.columnconfigure(3, weight=1)
 
@@ -570,7 +753,7 @@ class SistemaFacturacion:
         
         # Treeview para items
         self.tree_items = ttk.Treeview(table_frame, columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
-                                       show="headings", height=2, yscrollcommand=scrollbar.set)
+                           show="headings", height=12, yscrollcommand=scrollbar.set)
         scrollbar.config(command=self.tree_items.yview)
 
         self.tree_items.heading("Código", text="Código")
@@ -579,13 +762,13 @@ class SistemaFacturacion:
         self.tree_items.heading("Precio", text="Precio Unit.")
         self.tree_items.heading("Subtotal", text="Subtotal")
 
-        self.tree_items.column("Código", width=100)
-        self.tree_items.column("Producto", width=300)
-        self.tree_items.column("Cantidad", width=100)
-        self.tree_items.column("Precio", width=100)
-        self.tree_items.column("Subtotal", width=120)
+        self.tree_items.column("Código", width=140, minwidth=100, stretch=False)
+        self.tree_items.column("Producto", width=420, minwidth=220, stretch=True)
+        self.tree_items.column("Cantidad", width=110, minwidth=80, stretch=False)
+        self.tree_items.column("Precio", width=140, minwidth=100, stretch=False)
+        self.tree_items.column("Subtotal", width=150, minwidth=110, stretch=False)
 
-        self.tree_items.pack(fill=tk.X)
+        self.tree_items.pack(fill=tk.BOTH, expand=True)
 
         # Separador
         ttk.Separator(unified_frame, orient="horizontal").grid(row=8, column=0, columnspan=4,
@@ -627,6 +810,7 @@ class SistemaFacturacion:
         """Crea la pestaña de gestión de productos"""
         tab = tk.Frame(self.notebook, bg="white")
         self.notebook.add(tab, text="  Inventario  ")
+        self.tabs["products"] = tab
         
         # Frame para formulario
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
@@ -711,6 +895,7 @@ class SistemaFacturacion:
         """Crea la pestaña de gestión de clientes"""
         tab = tk.Frame(self.notebook, bg="white")
         self.notebook.add(tab, text="  Clientes  ")
+        self.tabs["customers"] = tab
         
         # Frame para formulario
         form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
@@ -748,7 +933,7 @@ class SistemaFacturacion:
                  bg="#f39c12", fg="white", font=("Arial", 10, "bold"),
                  width=15, cursor="hand2").pack(side=tk.LEFT, padx=5)
         
-        tk.Button(btn_frame, text="Eliminar", command=self.eliminar_cliente,
+        tk.Button(btn_frame, text="Desactivar", command=self.eliminar_cliente,
                  bg="#e74c3c", fg="white", font=("Arial", 10, "bold"),
                  width=15, cursor="hand2").pack(side=tk.LEFT, padx=5)
         
@@ -795,6 +980,7 @@ class SistemaFacturacion:
         """Crea la pestaña de historial de facturas"""
         tab = tk.Frame(self.notebook, bg="white")
         self.notebook.add(tab, text="  Facturas guardadas  ")
+        self.tabs["history"] = tab
         
         # Frame para búsqueda
         search_frame = tk.Frame(tab, bg="white")
@@ -875,12 +1061,7 @@ class SistemaFacturacion:
             if stock < 0:
                 raise ValueError("El stock no puede ser negativo")
             
-            self.cursor.execute('''
-                INSERT INTO productos (codigo, nombre, precio, stock)
-                VALUES (?, ?, ?, ?)
-            ''', (codigo, nombre, precio, stock))
-            
-            self.conn.commit()
+            products_service.create_product(self.conn, codigo, nombre, precio, stock, self.current_user.get("id"))
             messagebox.showinfo("Éxito", "Producto agregado correctamente")
             self.limpiar_form_producto()
             self.cargar_productos()
@@ -906,8 +1087,7 @@ class SistemaFacturacion:
             producto_id = item['values'][0]
             
             try:
-                self.cursor.execute('DELETE FROM productos WHERE id=?', (producto_id,))
-                self.conn.commit()
+                products_service.deactivate_product(self.conn, producto_id, self.current_user.get("id"))
                 messagebox.showinfo("Éxito", "Producto eliminado correctamente")
                 self.limpiar_form_producto()
                 self.cargar_productos()
@@ -943,18 +1123,7 @@ class SistemaFacturacion:
         for item in self.tree_productos.get_children():
             self.tree_productos.delete(item)
         
-        buscar = self.prod_buscar.get().strip()
-        
-        if buscar:
-            self.cursor.execute('''
-                SELECT * FROM productos 
-                WHERE codigo LIKE ? OR nombre LIKE ?
-                ORDER BY nombre
-            ''', (f'%{buscar}%', f'%{buscar}%'))
-        else:
-            self.cursor.execute('SELECT * FROM productos ORDER BY nombre')
-        
-        for row in self.cursor.fetchall():
+        for row in products_service.list_products(self.conn, self.prod_buscar.get()):
             self.tree_productos.insert('', tk.END, values=row)
             
     # Métodos de Clientes
@@ -971,12 +1140,7 @@ class SistemaFacturacion:
             return
         
         try:
-            self.cursor.execute('''
-                INSERT INTO clientes (nombre, cedula, telefono, direccion)
-                VALUES (?, ?, ?, ?)
-            ''', (nombre, cedula or None, telefono, direccion))
-            
-            self.conn.commit()
+            customers_service.create_customer(self.conn, nombre, cedula, telefono, direccion, self.current_user.get("id"))
             messagebox.showinfo("Éxito", "Cliente agregado correctamente")
             self.limpiar_form_cliente()
             self.cargar_clientes()
@@ -1008,13 +1172,7 @@ class SistemaFacturacion:
             return
         
         try:
-            self.cursor.execute('''
-                UPDATE clientes 
-                SET nombre=?, cedula=?, telefono=?, direccion=?
-                WHERE id=?
-            ''', (nombre, cedula or None, telefono, direccion, cliente_id))
-            
-            self.conn.commit()
+            customers_service.update_customer(self.conn, cliente_id, nombre, cedula, telefono, direccion, self.current_user.get("id"))
             messagebox.showinfo("Éxito", "Cliente actualizado correctamente")
             self.limpiar_form_cliente()
             self.cargar_clientes()
@@ -1031,14 +1189,14 @@ class SistemaFacturacion:
             messagebox.showwarning("Advertencia", "Seleccione un cliente de la tabla")
             return
         
-        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este cliente?"):
+        if messagebox.askyesno("Confirmar", "¿Está seguro de desactivar este cliente?\n\n"
+                                "Se conservará su historial de facturas."):
             item = self.tree_clientes.item(selected[0])
             cliente_id = item['values'][0]
             
             try:
-                self.cursor.execute('DELETE FROM clientes WHERE id=?', (cliente_id,))
-                self.conn.commit()
-                messagebox.showinfo("Éxito", "Cliente eliminado correctamente")
+                customers_service.deactivate_customer(self.conn, cliente_id, self.current_user.get("id"))
+                messagebox.showinfo("Éxito", "Cliente desactivado correctamente. Su historial se conserva.")
                 self.limpiar_form_cliente()
                 self.cargar_clientes()
                 self.cargar_datos()
@@ -1080,13 +1238,7 @@ class SistemaFacturacion:
             if stock < 0:
                 raise ValueError("El stock no puede ser negativo")
             
-            self.cursor.execute('''
-                UPDATE productos 
-                SET codigo=?, nombre=?, precio=?, stock=?
-                WHERE id=?
-            ''', (codigo, nombre, precio, stock, producto_id))
-            
-            self.conn.commit()
+            products_service.update_product(self.conn, producto_id, codigo, nombre, precio, stock, self.current_user.get("id"))
             messagebox.showinfo("Éxito", "Producto actualizado correctamente")
             self.limpiar_form_producto()
             self.cargar_productos()
@@ -1121,26 +1273,12 @@ class SistemaFacturacion:
         for item in self.tree_clientes.get_children():
             self.tree_clientes.delete(item)
         
-        buscar = self.cli_buscar.get().strip()
-        
-        if buscar:
-            self.cursor.execute('''
-                SELECT * FROM clientes 
-                WHERE nombre LIKE ? OR cedula LIKE ?
-                ORDER BY nombre
-            ''', (f'%{buscar}%', f'%{buscar}%'))
-        else:
-            self.cursor.execute('SELECT * FROM clientes ORDER BY nombre')
-        
-        for row in self.cursor.fetchall():
+        for row in customers_service.list_customers(self.conn, self.cli_buscar.get()):
             self.tree_clientes.insert('', tk.END, values=row)
             
     # Métodos de Facturación
     def generar_numero_factura(self):
-        self.cursor.execute('SELECT MAX(id) FROM facturas')
-        result = self.cursor.fetchone()[0]
-        numero = 1 if result is None else result + 1
-        return f"FAC-{numero:05d}"
+        return invoice_service.next_invoice_number(self.conn)
         
     def seleccionar_producto(self, event):
         producto_str = self.producto_var.get()
@@ -1282,28 +1420,17 @@ class SistemaFacturacion:
         pdf_path = None
         try:
             # Obtener ID del cliente
-            cliente_cedula = cliente_str.split(' - ')[1] if ' - ' in cliente_str else None
-            
-            if cliente_cedula:
-                self.cursor.execute('SELECT id FROM clientes WHERE cedula=?', (cliente_cedula,))
-            else:
-                self.cursor.execute('SELECT id FROM clientes WHERE nombre=?', (cliente_str,))
-            
-            result = self.cursor.fetchone()
-            if not result:
+            cliente_id = invoice_service.find_customer(self.conn, cliente_str)
+            if cliente_id is None:
                 messagebox.showerror("Error", "Cliente no encontrado")
                 return
             
-            cliente_id = result[0]
-            
             # Calcular totales
-            subtotal = sum(item['subtotal'] for item in self.items_factura)
-            itbis = subtotal * 0.18
-            total = subtotal + itbis
+            subtotal, itbis, total = invoice_service.calculate_totals(self.items_factura)
             
             # Insertar factura
             numero = self.num_factura.get()
-            fecha = datetime.now().strftime("%Y-%m-%d")
+            fecha = invoice_service.invoice_date()
             metodo_pago = self.metodo_pago_var.get() or "EFECTIVO"
             estado = "PENDIENTE" if metodo_pago == "CREDITO" else "PAGADA"
             usuario_id = self.current_user.get("id")
@@ -1779,7 +1906,7 @@ class SistemaFacturacion:
         self.combo_producto['values'] = productos
         
         # Cargar clientes en combobox
-        self.cursor.execute('SELECT nombre, cedula FROM clientes ORDER BY nombre')
+        self.cursor.execute('SELECT nombre, cedula FROM clientes WHERE activo=1 ORDER BY nombre')
         clientes = [f"{row[0]} - {row[1]}" if row[1] else row[0] for row in self.cursor.fetchall()]
         self.combo_cliente['values'] = clientes
         

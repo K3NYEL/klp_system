@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Facturación
+Comment=Sistema de facturación
+Exec=/home/kany/Escritorio/Facturacion-App/dist/facturacion
+Path=/home/kany/Escritorio/Facturacion-App
+Terminal=false
+Categories=Office;Finance;

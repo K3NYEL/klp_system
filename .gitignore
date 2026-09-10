@@ -12,6 +12,7 @@ env/
 # Application data and logs
 *.db
 logs/
+backups/
 
 # PyInstaller build artifacts
 build/

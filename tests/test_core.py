@@ -7,7 +7,7 @@ from pathlib import Path
 
 from app.core.backup import create_backup
 from app.core.database import connect_database
-from app.core.security import hash_password, verify_password
+from app.auth.security import hash_password, verify_password
 
 
 class CoreInfrastructureTests(unittest.TestCase):

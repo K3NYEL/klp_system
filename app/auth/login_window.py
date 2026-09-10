@@ -3,17 +3,20 @@ import os
 import sqlite3
 import sys
 import tkinter as tk
+import customtkinter as ctk
 from datetime import datetime
 from tkinter import messagebox, ttk
 
 from app.core.ui import INPUT_STYLE, CREATOR_URL, configure_app_style, set_app_icon
 from app.core.paths import application_path
 from app.core.database import connect_database, audit
-from app.core.security import hash_password, verify_password
+from app.auth.security import hash_password, verify_password
 
 class LoginWindow:
     creator = CREATOR_URL
     def __init__(self, root, on_success):
+        ctk.set_appearance_mode("system")
+        ctk.set_default_color_theme("blue")
         self.root = root
         self.on_success = on_success
         self.root.title("Sistema de Facturacion")
@@ -123,54 +126,53 @@ class LoginWindow:
 
     def toggle_password_visibility(self):
         if self.show_password_var.get():
-            self.password_entry.config(show='')
+            self.password_entry.configure(show='')
         else:
-            self.password_entry.config(show='*')
+            self.password_entry.configure(show='*')
 
     def create_widgets(self):
-        login_frame = tk.Frame(self.root, bg="white", relief=tk.RIDGE, bd=0,
-                               highlightbackground="#dfe6e9", highlightthickness=1)
-        login_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, width=400, height=360)
+        login_frame = ctk.CTkFrame(self.root, fg_color="#ffffff", corner_radius=14,
+                       width=400, height=360)
+        login_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        header_frame = tk.Frame(login_frame, bg="#3498db")
+        header_frame = ctk.CTkFrame(login_frame, fg_color="#3498db", corner_radius=10)
         header_frame.pack(fill=tk.X)
-        tk.Label(header_frame, text="Acceso al sistema", bg="#3498db", fg="white",
-                 font=("Arial", 17, "bold")).pack(pady=(14, 4))
-        tk.Label(header_frame, text="Facturas, clientes y productos en un solo lugar",
-                 bg="#3498db", fg="#eef7ff", font=("Arial", 9)).pack(pady=(0, 14))
+        ctk.CTkLabel(header_frame, text="Acceso al sistema", text_color="white",
+                     font=("Arial", 17, "bold")).pack(pady=(14, 4))
+        ctk.CTkLabel(header_frame, text="Facturas, clientes y productos en un solo lugar",
+                     text_color="#eef7ff", font=("Arial", 9)).pack(pady=(0, 14))
 
-        tk.Label(login_frame, text="Ingrese sus datos para continuar", bg="white",
-                 fg="#555", font=("Arial", 10)).pack(pady=(16, 14))
+        ctk.CTkLabel(login_frame, text="Ingrese sus datos para continuar",
+                     text_color="#555", font=("Arial", 10)).pack(pady=(16, 14))
 
-        tk.Label(login_frame, text="Usuario", font=("Arial", 10, "bold"), bg="white").pack(anchor="w", padx=36)
-        tk.Entry(login_frame, textvariable=self.username_var, font=("Arial", 10), width=32,
-                 **INPUT_STYLE).pack(fill=tk.X, padx=36, pady=(4, 12))
+        ctk.CTkLabel(login_frame, text="Usuario", font=("Arial", 10, "bold"), text_color="#2d3436").pack(anchor="w", padx=36)
+        ctk.CTkEntry(login_frame, textvariable=self.username_var, font=("Arial", 10), height=34,
+                     border_width=1).pack(fill=tk.X, padx=36, pady=(4, 12))
 
-        tk.Label(login_frame, text="Contraseña", font=("Arial", 10, "bold"), bg="white").pack(anchor="w", padx=36)
-        self.password_entry = tk.Entry(login_frame, textvariable=self.password_var, font=("Arial", 10),
-                                       show="*", width=32, **INPUT_STYLE)
+        ctk.CTkLabel(login_frame, text="Contraseña", font=("Arial", 10, "bold"), text_color="#2d3436").pack(anchor="w", padx=36)
+        self.password_entry = ctk.CTkEntry(login_frame, textvariable=self.password_var, font=("Arial", 10),
+                                           show="*", height=34, border_width=1)
         self.password_entry.pack(fill=tk.X, padx=36, pady=(4, 12))
 
-        options_frame = tk.Frame(login_frame, bg="white")
+        options_frame = ctk.CTkFrame(login_frame, fg_color="transparent")
         options_frame.pack(fill=tk.X, padx=34, pady=(0, 12))
-        tk.Checkbutton(options_frame, text="Mostrar contraseña", variable=self.show_password_var,
-                       bg="white", command=self.toggle_password_visibility).pack(side=tk.LEFT)
-        tk.Checkbutton(options_frame, text="Recordar usuario", variable=self.remember_var,
-                       bg="white").pack(side=tk.RIGHT)
+        ctk.CTkCheckBox(options_frame, text="Mostrar contraseña", variable=self.show_password_var,
+                        command=self.toggle_password_visibility, text_color="#2d3436", font=("Arial", 10)).pack(side=tk.LEFT)
+        ctk.CTkCheckBox(options_frame, text="Recordar usuario", variable=self.remember_var,
+                        text_color="#2d3436", font=("Arial", 10)).pack(side=tk.RIGHT)
 
-        btn_frame = tk.Frame(login_frame, bg="white")
+        btn_frame = ctk.CTkFrame(login_frame, fg_color="transparent")
         btn_frame.pack(fill=tk.X, padx=36, pady=(4, 0))
 
-        tk.Button(btn_frame, text="Entrar al sistema", command=self.login,
-                 bg="#3498db", fg="white", font=("Arial", 10, "bold"),
-                 cursor="hand2").pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
+        ctk.CTkButton(btn_frame, text="Entrar al sistema", command=self.login,
+                      font=("Arial", 10, "bold"), height=36).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
 
-        tk.Button(btn_frame, text="Crear cuenta", command=self.open_register_window,
-                 bg="#2ecc71", fg="white", font=("Arial", 10, "bold"),
-                 cursor="hand2").pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
+        ctk.CTkButton(btn_frame, text="Crear cuenta", command=self.open_register_window,
+                      fg_color="#2ecc71", hover_color="#27ae60",
+                      font=("Arial", 10, "bold"), height=36).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
 
-        tk.Label(self.root, text="© 2026 K.A.R.M. • Facturación Fácil", font=("Arial", 8),
-                 bg="#f0f0f0", fg="#555").pack(side=tk.BOTTOM, pady=10)
+        ctk.CTkLabel(self.root, text="© 2026 K.A.R.M. • Facturación Fácil", font=("Arial", 8),
+                     text_color="#555").pack(side=tk.BOTTOM, pady=10)
 
     def login(self):
         usuario = self.username_var.get().strip()
@@ -227,42 +229,41 @@ class LoginWindow:
         register_window.grab_set()
         self.center_window(500, 470, window=register_window)
 
-        tk.Label(register_window, text="Crear cuenta de acceso", font=("Arial", 17, "bold"),
-                 bg="#f0f0f0", fg="#2d3436").pack(pady=(20, 6))
-        tk.Label(register_window, text="Complete los datos. Luego podrá iniciar sesión con este usuario.", font=("Arial", 9),
-                 bg="#f0f0f0", fg="#555").pack()
+        ctk.CTkLabel(register_window, text="Crear cuenta de acceso", font=("Arial", 17, "bold"),
+                 text_color="#2d3436").pack(pady=(20, 6))
+        ctk.CTkLabel(register_window, text="Complete los datos. Luego podrá iniciar sesión con este usuario.", font=("Arial", 9),
+                 text_color="#555").pack()
 
-        form_frame = tk.Frame(register_window, bg="white", relief=tk.RIDGE, bd=0,
-                              highlightbackground="#dfe6e9", highlightthickness=1)
+        form_frame = ctk.CTkFrame(register_window, fg_color="#ffffff", corner_radius=12)
         form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         form_frame.columnconfigure(1, weight=1)
 
-        tk.Label(form_frame, text="Datos de la cuenta", font=("Arial", 13, "bold"),
-                 bg="white", fg="#2d3436").grid(row=0, column=0, columnspan=2, sticky="w", padx=22, pady=(20, 14))
+        ctk.CTkLabel(form_frame, text="Datos de la cuenta", font=("Arial", 13, "bold"),
+                     text_color="#2d3436").grid(row=0, column=0, columnspan=2, sticky="w", padx=22, pady=(20, 14))
 
-        tk.Label(form_frame, text="Usuario", font=("Arial", 10, "bold"), bg="white").grid(row=1, column=0, sticky="w", padx=22, pady=6)
+        ctk.CTkLabel(form_frame, text="Usuario", font=("Arial", 10, "bold"), text_color="#2d3436").grid(row=1, column=0, sticky="w", padx=22, pady=6)
         new_user_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=new_user_var, font=("Arial", 10), **INPUT_STYLE).grid(row=1, column=1, sticky="ew", padx=(0, 22), pady=6)
+        ctk.CTkEntry(form_frame, textvariable=new_user_var, font=("Arial", 10), height=32).grid(row=1, column=1, sticky="ew", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="Contraseña", font=("Arial", 10, "bold"), bg="white").grid(row=2, column=0, sticky="w", padx=22, pady=6)
+        ctk.CTkLabel(form_frame, text="Contraseña", font=("Arial", 10, "bold"), text_color="#2d3436").grid(row=2, column=0, sticky="w", padx=22, pady=6)
         new_password_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=new_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=2, column=1, sticky="ew", padx=(0, 22), pady=6)
+        ctk.CTkEntry(form_frame, textvariable=new_password_var, font=("Arial", 10), show="*", height=32).grid(row=2, column=1, sticky="ew", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="Confirmar contraseña", font=("Arial", 10, "bold"), bg="white").grid(row=3, column=0, sticky="w", padx=22, pady=6)
+        ctk.CTkLabel(form_frame, text="Confirmar contraseña", font=("Arial", 10, "bold"), text_color="#2d3436").grid(row=3, column=0, sticky="w", padx=22, pady=6)
         confirm_password_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=confirm_password_var, font=("Arial", 10), show="*", **INPUT_STYLE).grid(row=3, column=1, sticky="ew", padx=(0, 22), pady=6)
+        ctk.CTkEntry(form_frame, textvariable=confirm_password_var, font=("Arial", 10), show="*", height=32).grid(row=3, column=1, sticky="ew", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="Tipo de usuario", font=("Arial", 10, "bold"), bg="white").grid(row=4, column=0, sticky="w", padx=22, pady=6)
-        tk.Label(form_frame, text="Vendedor (asignado por seguridad)", bg="white", fg="#636e72",
-             font=("Arial", 10)).grid(row=4, column=1, sticky="w", padx=(0, 22), pady=6)
+        ctk.CTkLabel(form_frame, text="Tipo de usuario", font=("Arial", 10, "bold"), text_color="#2d3436").grid(row=4, column=0, sticky="w", padx=22, pady=6)
+        ctk.CTkLabel(form_frame, text="Vendedor (asignado por seguridad)", text_color="#636e72",
+                     font=("Arial", 10)).grid(row=4, column=1, sticky="w", padx=(0, 22), pady=6)
 
-        tk.Label(form_frame, text="La contraseña debe tener mínimo 5 caracteres e incluir letras y números.",
-                 font=("Arial", 9), bg="white", fg="#636e72").grid(row=5, column=0, columnspan=2, sticky="w", padx=22, pady=(8, 0))
+        ctk.CTkLabel(form_frame, text="La contraseña debe tener mínimo 5 caracteres e incluir letras y números.",
+                 font=("Arial", 9), text_color="#636e72").grid(row=5, column=0, columnspan=2, sticky="w", padx=22, pady=(8, 0))
 
-        register_button = tk.Button(form_frame, text="Guardar cuenta", command=lambda: self.register_user(
+        register_button = ctk.CTkButton(form_frame, text="Guardar cuenta", command=lambda: self.register_user(
             new_user_var.get().strip(), new_password_var.get().strip(), confirm_password_var.get().strip(), "Vendedor", register_window),
-                 bg="#2ecc71", fg="white", font=("Arial", 10, "bold"),
-                 width=24, cursor="hand2")
+                  fg_color="#2ecc71", hover_color="#27ae60", font=("Arial", 10, "bold"),
+                  width=220)
         register_button.grid(row=6, column=0, columnspan=2, pady=(24, 16))
 
         register_window.bind("<Return>", lambda event: register_button.invoke())
