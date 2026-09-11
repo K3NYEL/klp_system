@@ -1,5 +1,3 @@
-"""Backward-compatible import path for the root application entry point."""
-
 from main import start_login, start_main_app
 
 if __name__ == "__main__":

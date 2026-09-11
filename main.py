@@ -16,7 +16,7 @@ def start_main_app(user=None) -> None:
     try:
         main_root = tk.Tk()
         application = SistemaFacturacion(
-            main_root,
+            main_root,  
             on_logout=start_login,
             current_user=user,
         )
