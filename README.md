@@ -2,15 +2,6 @@
 
 ## Estructura del proyecto
 
-```text
-app/
-main.py                   # Punto de entrada y ciclo de vida de la aplicación
-	auth/login_window.py    # Inicio de sesión y registro de usuarios
-	core/paths.py           # Rutas de datos para ejecución local y ejecutable
-	core/ui.py              # Rutas de recursos, iconos y estilos Tkinter
-	ui/main_window.py       # Ventana principal y módulos de facturación
-```
-
 Para ejecutar la aplicación localmente usa el entorno virtual del proyecto:
 
 ```bash
