@@ -1,7 +1,5 @@
 **SISTEMA DE FACTURACION**
 
-## Estructura del proyecto
-
 Para ejecutar la aplicación localmente usa el entorno virtual del proyecto:
 
 ```bash
