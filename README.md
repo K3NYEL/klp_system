@@ -18,18 +18,6 @@ Las pruebas de infraestructura se ejecutan con:
 .venv/bin/python -m unittest discover -s tests
 ```
 
-Las copias de seguridad manuales se crean desde `Archivo > Crear copia de
-seguridad` y se guardan en la carpeta `backups/` sin sobrescribir copias
-anteriores.
-
-La base `facturacion.db` de la raíz contiene los datos de desarrollo actuales y
-no se incluye en PyInstaller. En una versión empaquetada, los datos se guardan
-en una carpeta separada del ejecutable: `%LOCALAPPDATA%/FacturacionApp` en
-Windows o `~/.local/share/FacturacionApp` en Linux. Por eso una compilación
-nueva empieza con una base limpia. Para conservar datos de otra instalación,
-usa un backup y restáuralo explícitamente; no copies la base de desarrollo al
-ejecutable.
-
 En Windows, el ejecutable se genera mediante `build.bat` y la configuración
 de PyInstaller en `facturacion_completa.spec`.
 
