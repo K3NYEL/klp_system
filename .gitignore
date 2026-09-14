@@ -25,9 +25,6 @@ htmlcov/
 # Local launchers and editor metadata
 *.desktop
 .vscode/
-build.bat
-build.sh
-run.sh
 
 # PyInstaller build artifacts
 build/
