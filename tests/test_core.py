@@ -8,7 +8,7 @@ from pathlib import Path
 from app.core.backup import create_backup
 from app.core.database import connect_database
 from app.auth.security import hash_password, verify_password
-
+from app.auth.register_window import RegisterWindow
 
 class CoreInfrastructureTests(unittest.TestCase):
     def test_migration_preserves_existing_data(self):
@@ -45,7 +45,6 @@ class CoreInfrastructureTests(unittest.TestCase):
                 self.assertEqual(
                     connection.execute("PRAGMA integrity_check").fetchone()[0], "ok"
                 )
-
 
 if __name__ == "__main__":
     unittest.main()
