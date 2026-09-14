@@ -221,10 +221,10 @@ class LoginWindow:
         header_frame.pack(fill=tk.X)
         tk.Label(
             header_frame,
-            text="Acceso al sistema",
+            text="KLP System",
             bg="#3498db",
             fg="white",
-            font=("Arial", 17, "bold"),
+            font=("Arial", 17, "bold italic"),
         ).pack(pady=(14, 4))
 
         ctk.CTkLabel(

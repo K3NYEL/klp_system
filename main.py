@@ -33,6 +33,5 @@ def start_main_app(user=None) -> None:
             except Exception:
                 pass
 
-
 if __name__ == "__main__":
     start_login()
