@@ -1,5 +1,4 @@
 **KLP SYSTEM**
-*SISTEMA DE FACTURACION*
 
 Para ejecutar la aplicación localmente usa el entorno virtual del proyecto:
 
