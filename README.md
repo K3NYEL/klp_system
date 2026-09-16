@@ -1,4 +1,4 @@
-# KLP SYSTEM
+# KLP SYSTEM (Aun en desarrollo)
 
 Sistema de gestión y facturación desarrollado para administrar operaciones comerciales desde una aplicación de escritorio.
 
