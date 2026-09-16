@@ -18,7 +18,7 @@ KLP SYSTEM está diseñado para ejecutarse de forma local en Linux y Windows, co
 
 ---
 
-## 🛠️ Tecnologías
+## Tecnologías
 
 - **Python**
 - **SQLite**
