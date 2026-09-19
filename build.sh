@@ -21,17 +21,18 @@ if [[ -z "$PYINSTALLER" ]]; then
 fi
 
 echo "[1/3] Limpiando la compilación anterior..."
-rm -rf build/facturacion_completa dist/facturacion dist/facturacion.db dist/facturacion.db-wal dist/facturacion.db-shm
+rm -rf build/klp_system dist/klp_system dist/facturacion.db dist/facturacion.db-wal dist/facturacion.db-shm
 
 # Nunca se incluye la base de datos de desarrollo en el ejecutable.
 echo "[2/3] Generando ejecutable Linux..."
 "$PYINSTALLER" --clean --noconfirm facturacion_completa.spec
 
-if [[ ! -x dist/facturacion ]]; then
-    echo "Error: no se generó dist/facturacion"
+
+if [[ ! -x dist/klp_system ]]; then
+    echo "Error: no se generó dist/klp_system"
     exit 1
 fi
 
 echo "[3/3] Compilación terminada correctamente."
-echo "Ejecutable: $(pwd)/dist/facturacion"
-echo "Ejecuta con: ./dist/facturacion"
+echo "Ejecutable: $(pwd)/dist/klp_system"
+echo "Ejecuta con: ./dist/klp_system"

@@ -7,7 +7,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('app/ui/assets/facturacion_ico.ico', '.')],
+    datas=[('app/ui/assets/favicon.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -16,7 +16,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
-app_icon = 'app/ui/assets/facturacion_ico.ico' if sys.platform in ('win32', 'darwin') else None
+app_icon = 'app/ui/assets/favicon.ico' if sys.platform in ('win32', 'darwin') else None
 
 pyz = PYZ(a.pure)
 
@@ -26,7 +26,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='facturacion',
+    name='klp_system',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
