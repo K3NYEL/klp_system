@@ -1,51 +1,50 @@
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
-import hashlib
-import sqlite3
-from datetime import datetime
-from reportlab.lib.pagesizes import letter  # type: ignore[reportMissingModuleSource]
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer  # type: ignore[reportMissingModuleSource]
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # type: ignore[reportMissingModuleSource]
-from reportlab.lib import colors  # type: ignore[reportMissingModuleSource]
-
-# ``inch`` is a fixed ReportLab unit (72 points).  Defining it locally avoids
-inch = 72
+import logging
 import os
+import sqlite3
 import sys
+import tkinter as tk
 import webbrowser
 from datetime import datetime
-import os
-import logging
+from tkinter import filedialog, messagebox, simpledialog, ttk
 from xml.sax.saxutils import escape
 
-from app.auth.login_window import LoginWindow
-from app.core.database import audit, connect_database
-from app.core.backup import create_backup, restore_backup
+from reportlab.lib import colors  # type: ignore[reportMissingModuleSource]
+from reportlab.lib.pagesizes import letter  # type: ignore[reportMissingModuleSource]
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet  # type: ignore[reportMissingModuleSource]
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle  # type: ignore[reportMissingModuleSource]
+
 from app.auth.authorization import can
+from app.core.backup import create_backup, restore_backup
+from app.core.database import audit, connect_database
 from app.core.paths import application_path
-from app.core.ui import INPUT_STYLE, CREATOR_URL, configure_app_style, set_app_icon
-from app.ui.dashboard_view import DashboardView
-from app.ui.cash_view import CashMovementView
+from app.services import customers_service, invoice_service, products_service
+from app.ui import theme
+from app.ui.components import cards, iputs, tables
+from app.ui.components.buttons import AppButton
+from app.ui.dashboard_cash_view import DashboardCajaView
 from app.ui.inventory_view import InventoryMovementView
 from app.ui.user_management_view import UserManagementView
-from app.services import customers_service, invoice_service, products_service
 
-
+# ``inch`` es la unidad fija de ReportLab (72 puntos).
+inch = 72
 class SistemaFacturacion:
     def __init__(self, root, on_logout=None, current_user=None):
         self.root = root
         self.on_logout = on_logout
         self.current_user = current_user or {}
         self.tabs = {}
-        self.root.title("Sistema de Facturacion")
         self.base_path = self.get_base_path()
-        set_app_icon(self.root, self.base_path)
-        self.root.geometry("1200x700")
+        self.root.title(f"{theme.APP_NAME} · Sistema de Facturación")
+        self.root.geometry("1240x740")
+        self.root.minsize(1020, 640)
         if sys.platform == "win32":
             self.root.state("zoomed")
-        self.root.configure(bg="#f0f0f0")
         self.root.protocol("WM_DELETE_WINDOW", self.salir)
-        configure_app_style()
+
+        # Aspecto global: icono, colores y estilos ttk compartidos.
+        theme.set_app_icon(self.root, self.base_path)
+        theme.remember(self.root, "plain", bg="window", fg="text")
+        self.theme_manager = theme.ThemeManager(self.root, theme=theme.DEFAULT_THEME)
 
         # Inicializar base de datos
         self.init_db()
@@ -85,98 +84,73 @@ class SistemaFacturacion:
         window.geometry(f"{width}x{height}+{x}+{y}")
 
     def crear_pestaña_admin(self):
-        """Crea la pestaña de configuración de la empresa"""
-        tab = tk.Frame(self.notebook, bg="white")
+        """Crea la pestaña de configuración de la empresa."""
+        tab = tk.Frame(self.notebook)
+        theme.remember(tab, "plain", bg="window", fg="text")
         self.empresa_tab = tab
         self.tabs["company"] = tab
         self.notebook.add(tab, text="  Empresa  ")
 
-        form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
-        form_frame.pack(fill=tk.X, padx=10, pady=10)
+        wrapper = tk.Frame(tab)
+        theme.remember(wrapper, "plain", bg="window", fg="text")
+        wrapper.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
 
-        tk.Label(
-            form_frame,
-            text="Datos que aparecerán en la factura",
-            font=("Arial", 14, "bold"),
-            bg="white",
-        ).grid(row=0, column=0, columnspan=2, pady=10)
+        card = cards.Card(
+            wrapper,
+            title="Datos de la empresa",
+            subtitle="Esta información aparece en el encabezado de las facturas PDF",
+            padding=18,
+        )
+        card.pack(fill=tk.X)
 
-        tk.Label(
-            form_frame, text="Nombre de la empresa:", bg="white", font=("Arial", 10)
-        ).grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        form = card.body
+        form.columnconfigure(1, weight=1)
+        form.columnconfigure(3, weight=1)
+
         self.empresa_nombre_var = tk.StringVar()
-        tk.Entry(
-            form_frame,
-            textvariable=self.empresa_nombre_var,
-            width=50,
-            font=("Arial", 10),
-        ).grid(row=1, column=1, padx=10, pady=5)
-
-        tk.Label(form_frame, text="RNC:", bg="white", font=("Arial", 10)).grid(
-            row=2, column=0, padx=10, pady=5, sticky="e"
-        )
         self.empresa_rnc_var = tk.StringVar()
-        tk.Entry(
-            form_frame, textvariable=self.empresa_rnc_var, width=30, font=("Arial", 10)
-        ).grid(row=2, column=1, padx=10, pady=5, sticky="w")
-
-        tk.Label(form_frame, text="Dirección:", bg="white", font=("Arial", 10)).grid(
-            row=3, column=0, padx=10, pady=5, sticky="e"
-        )
         self.empresa_direccion_var = tk.StringVar()
-        tk.Entry(
-            form_frame,
-            textvariable=self.empresa_direccion_var,
-            width=50,
-            font=("Arial", 10),
-        ).grid(row=3, column=1, padx=10, pady=5)
-
-        tk.Label(form_frame, text="Teléfono:", bg="white", font=("Arial", 10)).grid(
-            row=4, column=0, padx=10, pady=5, sticky="e"
-        )
         self.empresa_telefono_var = tk.StringVar()
-        tk.Entry(
-            form_frame,
-            textvariable=self.empresa_telefono_var,
-            width=30,
-            font=("Arial", 10),
-        ).grid(row=4, column=1, padx=10, pady=5, sticky="w")
-
-        tk.Label(form_frame, text="Email:", bg="white", font=("Arial", 10)).grid(
-            row=5, column=0, padx=10, pady=5, sticky="e"
-        )
         self.empresa_email_var = tk.StringVar()
-        tk.Entry(
-            form_frame,
-            textvariable=self.empresa_email_var,
-            width=50,
-            font=("Arial", 10),
-        ).grid(row=5, column=1, padx=10, pady=5)
-
-        tk.Label(form_frame, text="Sitio web:", bg="white", font=("Arial", 10)).grid(
-            row=6, column=0, padx=10, pady=5, sticky="e"
-        )
         self.empresa_website_var = tk.StringVar()
-        tk.Entry(
-            form_frame,
-            textvariable=self.empresa_website_var,
-            width=50,
-            font=("Arial", 10),
-        ).grid(row=6, column=1, padx=10, pady=5)
 
-        btn_frame = tk.Frame(form_frame, bg="white")
-        btn_frame.grid(row=7, column=0, columnspan=2, pady=15)
+        fields = (
+            ("Nombre de la empresa", self.empresa_nombre_var, 0, 0),
+            ("RNC", self.empresa_rnc_var, 0, 2),
+            ("Dirección", self.empresa_direccion_var, 1, 0),
+            ("Teléfono", self.empresa_telefono_var, 1, 2),
+            ("Email", self.empresa_email_var, 2, 0),
+            ("Sitio web", self.empresa_website_var, 2, 2),
+        )
+        for text, variable, row, column in fields:
+            iputs.labeled_entry(
+                form,
+                text,
+                textvariable=variable,
+                row=row,
+                column=column,
+                label_column=column,
+                entry_column=column + 1,
+                background="surface",
+            )
 
-        tk.Button(
-            btn_frame,
-            text="Guardar empresa",
+        actions = tk.Frame(form)
+        theme.remember(actions, "plain", bg="surface", fg="text")
+        actions.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(18, 0))
+        AppButton(
+            actions,
+            text="Guardar cambios",
             command=self.guardar_empresa,
-            bg="#3498db",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=24,
-            cursor="hand2",
-        ).pack()
+            variant="primary",
+            tooltip="Guarda los datos que se imprimen en las facturas",
+        ).pack(side=tk.LEFT)
+        AppButton(
+            actions,
+            text="Abrir en ventana",
+            command=self.ir_mi_empresa,
+            variant="ghost",
+            tooltip="Edita los datos de la empresa en una ventana aparte",
+        ).pack(side=tk.LEFT, padx=6)
 
     def cargar_empresa(self):
         self.cursor.execute(
@@ -228,118 +202,311 @@ class SistemaFacturacion:
             )
 
         self.conn.commit()
+        self.set_status("Datos de la empresa guardados.")
         messagebox.showinfo("Éxito", "Información de la empresa guardada correctamente")
 
     def crear_interfaz(self):
-        """Crea la interfaz principal con pestañas"""
-        menu_bar = tk.Menu(self.root)
-        archivo_menu = tk.Menu(menu_bar, tearoff=0)
-        archivo_menu.add_command(label="Cerrar sesión", command=self.cerrar_sesion)
-        archivo_menu.add_command(
-            label="Crear copia de seguridad", command=self.crear_backup
-        )
-        archivo_menu.add_command(
-            label="Restaurar copia de seguridad", command=self.restaurar_backup
-        )
-        archivo_menu.add_separator()
-        archivo_menu.add_command(label="Salir", command=self.salir)
-        menu_bar.add_cascade(label="Archivo", menu=archivo_menu)
-
-        caja_menu = tk.Menu(menu_bar, tearoff=0)
-        caja_menu.add_command(label="Abrir caja", command=self.abrir_caja)
-        caja_menu.add_command(label="Cerrar caja", command=self.cerrar_caja)
-        caja_menu.add_command(
-            label="Movimiento manual", command=self.abrir_movimiento_caja
-        )
-        menu_bar.add_cascade(label="Caja", menu=caja_menu)
-
-        opciones_menu = tk.Menu(menu_bar, tearoff=0)
-        opciones_menu.add_command(
-            label="Nueva factura",
-            command=lambda: self.seleccionar_seccion("invoice"),
-            accelerator="Ctrl+N",
-        )
-        opciones_menu.add_command(
-            label="Facturación rápida",
-            command=self.abrir_facturacion_rapida,
-            accelerator="F2",
-        )
-        opciones_menu.add_command(
-            label="Dashboard", command=lambda: self.seleccionar_seccion("dashboard")
-        )
-        opciones_menu.add_command(
-            label="Movimientos de inventario", command=self.abrir_movimientos_inventario
-        )
-        opciones_menu.add_command(label="Usuarios", command=self.abrir_usuarios)
-        opciones_menu.add_command(
-            label="Inventario",
-            command=lambda: self.seleccionar_seccion("products"),
-            accelerator="Ctrl+I",
-        )
-        opciones_menu.add_command(
-            label="Clientes",
-            command=lambda: self.seleccionar_seccion("customers"),
-            accelerator="Ctrl+L",
-        )
-        opciones_menu.add_command(label="Mi empresa", command=self.ir_mi_empresa)
-        opciones_menu.add_command(
-            label="Facturas guardadas",
-            command=lambda: self.seleccionar_seccion("history"),
-            accelerator="Ctrl+H",
-        )
-        opciones_menu.add_separator()
-        opciones_menu.add_command(label="Acerca de", command=self.mostrar_acerca_de)
-        menu_bar.add_cascade(label="Opciones", menu=opciones_menu)
-
-        ayuda_menu = tk.Menu(menu_bar, tearoff=0)
-        ayuda_menu.add_command(label="Acerca de", command=self.mostrar_acerca_de)
-        menu_bar.add_cascade(label="Ayuda", menu=ayuda_menu)
-
-        self.root.config(menu=menu_bar)
+        """Crea el menú, la barra superior, las pestañas y la barra de estado."""
+        self._crear_menu()
         self._registrar_atajos()
 
-        main_frame = tk.Frame(self.root, bg="#f0f0f0")
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        shell = tk.Frame(self.root)
+        theme.remember(shell, "plain", bg="window", fg="text")
+        shell.pack(fill=tk.BOTH, expand=True)
 
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True, pady=10)
+        self._crear_encabezado(shell)
+        # La barra de estado se empaqueta ANTES del notebook: con ``pack`` el
+        # widget expandible reclama todo el espacio sobrante, así que si se
+        # añadiera después quedaría fuera de la vista al encoger la ventana.
+        self._crear_barra_estado(shell)
+
+        self.notebook = ttk.Notebook(shell)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=14, pady=(10, 4))
 
         self.crear_pestaña_facturacion()
         self.crear_pestaña_productos()
         self.crear_pestaña_clientes()
         self.crear_pestaña_admin()
         self.crear_pestaña_historial()
-        dashboard = DashboardView(self.notebook, self.conn)
-        self.dashboard = dashboard
-        self.tabs["dashboard"] = dashboard.frame
-        self.notebook.add(dashboard.frame, text="  Dashboard  ")
+        self._crear_pestaña_caja_dashboard()
+
+    def _crear_menu(self):
+        """Construye la barra de menús de la aplicación."""
+        menu_bar = tk.Menu(self.root)
+
+        archivo = tk.Menu(menu_bar, tearoff=0)
+        archivo.add_command(label="Cerrar sesión", command=self.cerrar_sesion)
+        archivo.add_command(label="Crear copia de seguridad", command=self.crear_backup)
+        archivo.add_command(
+            label="Restaurar copia de seguridad", command=self.restaurar_backup
+        )
+        archivo.add_separator()
+        archivo.add_command(label="Salir", command=self.salir)
+        menu_bar.add_cascade(label="Archivo", menu=archivo)
+
+        caja = tk.Menu(menu_bar, tearoff=0)
+        caja.add_command(
+            label="Ir a Caja y Dashboard",
+            command=lambda: self.seleccionar_seccion("dashboard"),
+        )
+        caja.add_separator()
+        caja.add_command(label="Abrir caja", command=self.abrir_caja)
+        caja.add_command(label="Cerrar caja", command=self.cerrar_caja)
+        caja.add_command(
+            label="Registrar movimiento manual", command=self.abrir_movimiento_caja
+        )
+        menu_bar.add_cascade(label="Caja", menu=caja)
+
+        opciones = tk.Menu(menu_bar, tearoff=0)
+        opciones.add_command(
+            label="Nueva factura",
+            command=lambda: self.seleccionar_seccion("invoice"),
+            accelerator="Ctrl+N",
+        )
+        opciones.add_command(
+            label="Facturación rápida",
+            command=self.abrir_facturacion_rapida,
+            accelerator="F2",
+        )
+        opciones.add_command(
+            label="Caja y Dashboard",
+            command=lambda: self.seleccionar_seccion("dashboard"),
+            accelerator="Ctrl+D",
+        )
+        opciones.add_command(
+            label="Inventario",
+            command=lambda: self.seleccionar_seccion("products"),
+            accelerator="Ctrl+I",
+        )
+        opciones.add_command(
+            label="Clientes",
+            command=lambda: self.seleccionar_seccion("customers"),
+            accelerator="Ctrl+L",
+        )
+        opciones.add_command(
+            label="Facturas guardadas",
+            command=lambda: self.seleccionar_seccion("history"),
+            accelerator="Ctrl+H",
+        )
+        opciones.add_command(label="Mi empresa", command=self.ir_mi_empresa)
+        opciones.add_separator()
+        opciones.add_command(
+            label="Movimientos de inventario", command=self.abrir_movimientos_inventario
+        )
+        opciones.add_command(label="Usuarios y permisos", command=self.abrir_usuarios)
+        opciones.add_separator()
+        opciones.add_command(
+            label="Alternar tema claro / oscuro", command=self.alternar_tema
+        )
+        opciones.add_separator()
+        opciones.add_command(label="Acerca de", command=self.mostrar_acerca_de)
+        menu_bar.add_cascade(label="Opciones", menu=opciones)
+
+        ayuda = tk.Menu(menu_bar, tearoff=0)
+        ayuda.add_command(label="Atajos de teclado", command=self.mostrar_atajos)
+        ayuda.add_command(label="Acerca de", command=self.mostrar_acerca_de)
+        menu_bar.add_cascade(label="Ayuda", menu=ayuda)
+
+        self.root.config(menu=menu_bar)
+
+    def _crear_encabezado(self, parent):
+        """Barra superior con el nombre del sistema, el usuario y accesos rápidos."""
+        header = tk.Frame(parent)
+        theme.remember(header, "plain", bg="header", fg="header_text")
+        header.pack(fill=tk.X)
+
+        left = tk.Frame(header)
+        theme.remember(left, "plain", bg="header", fg="header_text")
+        left.pack(side=tk.LEFT, padx=18, pady=12)
+
+        title = tk.Label(
+            left, text=theme.APP_NAME, font=theme.font("display"), anchor="w"
+        )
+        theme.remember(title, "label", bg="header", fg="header_text")
+        title.pack(anchor="w")
+
+        subtitle = tk.Label(
+            left,
+            text="Facturación · Caja · Inventario · Clientes",
+            font=theme.font("small"),
+            anchor="w",
+        )
+        theme.remember(subtitle, "label", bg="header", fg="header_text")
+        subtitle.pack(anchor="w", pady=(2, 0))
+
+        right = tk.Frame(header)
+        theme.remember(right, "plain", bg="header", fg="header_text")
+        right.pack(side=tk.RIGHT, padx=18)
+
+        user_text = (
+            f"{self.current_user.get('usuario', 'Usuario')} · "
+            f"{self.current_user.get('role', 'Sin rol')}"
+        )
+        self.user_label = tk.Label(
+            right, text=user_text, font=theme.font("small_bold"), anchor="e"
+        )
+        theme.remember(self.user_label, "label", bg="header", fg="header_text")
+        self.user_label.pack(anchor="e", pady=(0, 6))
+
+        actions = tk.Frame(right)
+        theme.remember(actions, "plain", bg="header", fg="header_text")
+        actions.pack(anchor="e")
+
+        AppButton(
+            actions,
+            text="Facturación rápida",
+            command=self.abrir_facturacion_rapida,
+            variant="primary",
+            size="small",
+            tooltip="Venta de mostrador con lector de códigos (F2)",
+        ).pack(side=tk.LEFT, padx=3)
+
+        AppButton(
+            actions,
+            text="Caja y Dashboard",
+            command=lambda: self.seleccionar_seccion("dashboard"),
+            variant="ghost",
+            size="small",
+            tooltip="Indicadores del negocio y movimientos de caja",
+        ).pack(side=tk.LEFT, padx=3)
+
+        self.theme_button = AppButton(
+            actions,
+            text="Tema oscuro",
+            command=self.alternar_tema,
+            variant="neutral",
+            size="small",
+            width=12,
+            tooltip="Alternar entre tema claro y oscuro",
+        )
+        self.theme_button.pack(side=tk.LEFT, padx=3)
+
+        AppButton(
+            actions,
+            text="Cerrar sesión",
+            command=self.cerrar_sesion,
+            variant="danger",
+            size="small",
+            tooltip="Volver a la pantalla de inicio de sesión",
+        ).pack(side=tk.LEFT, padx=3)
+
+    def _crear_barra_estado(self, parent):
+        """Barra inferior con mensajes de estado y la versión del sistema."""
+        bar = tk.Frame(parent)
+        theme.remember(bar, "plain", bg="surface_alt", fg="text")
+        bar.pack(fill=tk.X, side=tk.BOTTOM)
+
+        self.status_var = tk.StringVar(value="Listo.")
+        status = tk.Label(
+            bar, textvariable=self.status_var, font=theme.font("small"), anchor="w"
+        )
+        theme.remember(status, "label", bg="surface_alt", fg="text")
+        status.pack(side=tk.LEFT, padx=14, pady=6)
+
+        self.status_right_var = tk.StringVar(
+            value=f"{theme.APP_NAME} v{theme.APP_VERSION} · base local"
+        )
+        right = tk.Label(
+            bar,
+            textvariable=self.status_right_var,
+            font=theme.font("small"),
+            anchor="e",
+        )
+        theme.remember(right, "label", bg="surface_alt", fg="text_muted")
+        right.pack(side=tk.RIGHT, padx=14, pady=6)
+
+    def _crear_pestaña_caja_dashboard(self):
+        """Pestaña única que combina el dashboard y el control de caja."""
+        self.dashboard_caja = DashboardCajaView(
+            self.notebook,
+            self.conn,
+            actor_id=self.current_user.get("id"),
+            on_open_cash=self.abrir_caja,
+            on_close_cash=self.cerrar_caja,
+            can_manage_cash=can(self.current_user.get("role"), "manage_cash"),
+            on_change=lambda: self.set_status("Movimiento de caja registrado."),
+        )
+        self.tabs["dashboard"] = self.dashboard_caja.frame
+        self.notebook.add(self.dashboard_caja.frame, text="  Caja y Dashboard  ")
+
+    def set_status(self, message):
+        """Muestra un mensaje en la barra de estado inferior."""
+        if getattr(self, "status_var", None) is not None:
+            self.status_var.set(message)
+
+    def cambiar_tema(self, name):
+        """Aplica un tema concreto (``claro`` u ``oscuro``)."""
+        selected = self.theme_manager.apply(name)
+        self._actualizar_boton_tema(selected)
+
+    def alternar_tema(self):
+        """Alterna el tema claro/oscuro desde el botón o el menú."""
+        self._actualizar_boton_tema(self.theme_manager.toggle())
+
+    def _actualizar_boton_tema(self, selected):
+        if getattr(self, "theme_button", None) is not None:
+            self.theme_button.configure(
+                text="Tema claro" if selected == "oscuro" else "Tema oscuro"
+            )
+        self.set_status(f"Tema {selected} aplicado.")
+
+    def mostrar_atajos(self):
+        """Muestra los atajos de teclado disponibles."""
+        messagebox.showinfo(
+            "Atajos de teclado",
+            "Ctrl+N  Nueva factura\n"
+            "F2         Facturación rápida\n"
+            "Ctrl+D  Caja y Dashboard\n"
+            "Ctrl+I   Inventario\n"
+            "Ctrl+L   Clientes\n"
+            "Ctrl+H  Facturas guardadas\n\n"
+            "Enter    Agrega el producto escrito en el formulario de factura",
+        )
+
+    def _limpiar_busqueda_producto(self):
+        self.prod_buscar.delete(0, tk.END)
+        self.cargar_productos()
+
+    def _limpiar_busqueda_cliente(self):
+        self.cli_buscar.delete(0, tk.END)
+        self.cargar_clientes()
 
     def seleccionar_pestaña(self, index):
         """Activa una sección desde el menú principal."""
         self.notebook.select(index)
 
     def seleccionar_seccion(self, name):
+        """Activa una pestaña y refresca sus datos."""
         tab = self.tabs.get(name)
-        if tab is not None:
-            self.notebook.select(tab)
-            if name == "dashboard" and hasattr(self, "dashboard"):
-                self.dashboard.refresh()
+        if tab is None:
+            return
+        self.notebook.select(tab)
+        if name == "dashboard" and hasattr(self, "dashboard_caja"):
+            self.dashboard_caja.refresh()
+        elif name == "products":
+            self.cargar_productos()
+        elif name == "customers":
+            self.cargar_clientes()
+        elif name == "history":
+            self.cargar_historial()
+        self.set_status(f"Sección activa: {name}")
 
     def _registrar_atajos(self):
         """Registra atajos globales para que funcionen con cualquier control enfocado."""
         shortcuts = {
             "n": "invoice",
+            "d": "dashboard",
             "i": "products",
             "l": "customers",
             "h": "history",
         }
-        for key, tab_index in shortcuts.items():
+        for key, section in shortcuts.items():
             self.root.bind_all(
                 f"<Control-KeyPress-{key}>",
-                lambda event, section=tab_index: self._atajo_pestaña(event, section),
+                lambda event, target=section: self._atajo_pestaña(event, target),
                 add="+",
             )
-            self.root.bind_all("<F2>", self._atajo_facturacion_rapida, add="+")
+        self.root.bind_all("<F2>", self._atajo_facturacion_rapida, add="+")
 
     def _atajo_pestaña(self, event, section):
         """Cambia de sección y consume el evento para evitar interferencias del widget."""
@@ -362,121 +529,110 @@ class SistemaFacturacion:
 
         window = tk.Toplevel(self.root)
         self.quick_window = window
-        window.title("Facturación rápida")
-        set_app_icon(window, self.base_path)
-        window.geometry("720x520")
-        window.configure(bg="#f0f0f0")
-        window.transient(self.root)
+        theme.prepare_toplevel(window, "Facturación rápida", (780, 580), self.base_path)
 
-        header = tk.Frame(window, bg="#0984e3")
+        header = tk.Frame(window)
+        theme.remember(header, "plain", bg="accent", fg="text_on_accent")
         header.pack(fill=tk.X)
-        tk.Label(
-            header,
-            text="FACTURACIÓN RÁPIDA",
-            bg="#0984e3",
-            fg="white",
-            font=("Arial", 18, "bold"),
-        ).pack(pady=(14, 2))
-        tk.Label(
-            header,
-            text="Escanea el código, confirma el pago y entrega el ticket",
-            bg="#0984e3",
-            fg="white",
-            font=("Arial", 10),
-        ).pack(pady=(0, 14))
 
-        scan_frame = tk.Frame(window, bg="white", padx=14, pady=12)
-        scan_frame.pack(fill=tk.X, padx=12, pady=12)
-        tk.Label(
-            scan_frame,
-            text="Código de barras / SKU",
-            bg="white",
-            font=("Arial", 10, "bold"),
-        ).pack(side=tk.LEFT)
-        self.quick_code_var = tk.StringVar()
-        self.quick_code_entry = tk.Entry(
-            scan_frame,
-            textvariable=self.quick_code_var,
-            font=("Arial", 13),
-            width=28,
-            **INPUT_STYLE,
+        title = tk.Label(
+            header, text="FACTURACIÓN RÁPIDA", font=theme.font("title"), anchor="w"
         )
-        self.quick_code_entry.pack(side=tk.LEFT, padx=10)
-        self.quick_quantity_var = tk.StringVar(value="1")
-        tk.Label(
-            scan_frame, text="Cantidad", bg="white", font=("Arial", 10, "bold")
-        ).pack(side=tk.LEFT)
-        tk.Entry(
-            scan_frame,
-            textvariable=self.quick_quantity_var,
-            width=6,
-            font=("Arial", 12),
-            **INPUT_STYLE,
-        ).pack(side=tk.LEFT, padx=8)
-        tk.Button(
-            scan_frame,
-            text="Agregar",
-            command=self.agregar_item_rapido,
-            bg="#27ae60",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).pack(side=tk.LEFT)
+        theme.remember(title, "label", bg="accent", fg="text_on_accent")
+        title.pack(anchor="w", padx=18, pady=(14, 2))
+
+        hint = tk.Label(
+            header,
+            text="Escanee el código, confirme el pago y entregue el ticket",
+            font=theme.font("small"),
+            anchor="w",
+        )
+        theme.remember(hint, "label", bg="accent", fg="text_on_accent")
+        hint.pack(anchor="w", padx=18, pady=(0, 14))
+
+        shell = tk.Frame(window)
+        theme.remember(shell, "plain", bg="window", fg="text")
+        shell.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
+
+        scan_card = cards.Card(shell, title="Escanear producto", padding=12)
+        scan_card.pack(fill=tk.X)
+        scan = scan_card.body
+
+        cards.label(
+            scan, "Código de barras / SKU", font_role="body_bold", background="surface"
+        ).pack(side=tk.LEFT, padx=(0, 8))
+        self.quick_code_var = tk.StringVar()
+        self.quick_code_entry = iputs.make_entry(
+            scan, textvariable=self.quick_code_var, width=26, font_role="body"
+        )
+        self.quick_code_entry.pack(side=tk.LEFT)
         self.quick_code_entry.bind("<Return>", lambda event: self.agregar_item_rapido())
 
-        table_frame = tk.Frame(window, bg="white")
-        table_frame.pack(fill=tk.BOTH, expand=True, padx=12)
-        self.quick_tree = ttk.Treeview(
-            table_frame,
-            columns=("Código", "Producto", "Cantidad", "Precio", "Total"),
-            show="headings",
-            height=12,
+        cards.label(scan, "Cantidad", font_role="body_bold", background="surface").pack(
+            side=tk.LEFT, padx=(14, 8)
         )
-        for column in ("Código", "Producto", "Cantidad", "Precio", "Total"):
-            self.quick_tree.heading(column, text=column)
-        self.quick_tree.column("Código", width=120)
-        self.quick_tree.column("Producto", width=260)
-        self.quick_tree.column("Cantidad", width=80)
-        self.quick_tree.column("Precio", width=100)
-        self.quick_tree.column("Total", width=100)
-        self.quick_tree.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        self.quick_quantity_var = tk.StringVar(value="1")
+        iputs.make_entry(scan, textvariable=self.quick_quantity_var, width=6).pack(
+            side=tk.LEFT
+        )
+        AppButton(
+            scan,
+            text="Agregar",
+            command=self.agregar_item_rapido,
+            variant="success",
+            tooltip="Agrega el producto escaneado a la venta",
+        ).pack(side=tk.LEFT, padx=12)
 
-        footer = tk.Frame(window, bg="#f0f0f0", padx=12, pady=10)
-        footer.pack(fill=tk.X)
+        items_card = cards.Card(shell, title="Productos de la venta", padding=12)
+        items_card.pack(fill=tk.BOTH, expand=True, pady=12)
+        self.quick_table = tables.DataTable(
+            items_card.body,
+            columns=("Código", "Producto", "Cantidad", "Precio", "Total"),
+            widths=(120, 300, 90, 110, 120),
+            anchors=("w", "w", "e", "e", "e"),
+            height=9,
+        )
+        self.quick_table.pack(fill=tk.BOTH, expand=True)
+        self.quick_tree = self.quick_table.tree
+        self.quick_tree.bind("<Delete>", lambda event: self.eliminar_item_rapido())
+
+        footer_card = cards.Card(shell, padding=12)
+        footer_card.pack(fill=tk.X)
+        footer = footer_card.body
+
         self.quick_total_var = tk.StringVar(value="Total: RD$ 0.00")
-        tk.Label(
+        total = tk.Label(
             footer,
             textvariable=self.quick_total_var,
-            bg="#f0f0f0",
-            fg="#27ae60",
-            font=("Arial", 15, "bold"),
-        ).pack(side=tk.LEFT)
+            font=theme.font("title"),
+            anchor="w",
+        )
+        theme.remember(total, "label", bg="surface", fg="success")
+        total.pack(side=tk.LEFT)
+
         self.quick_payment_var = tk.StringVar(value="EFECTIVO")
-        ttk.Combobox(
+        iputs.make_combobox(
             footer,
-            textvariable=self.quick_payment_var,
             values=("EFECTIVO", "TARJETA", "TRANSFERENCIA", "OTRO"),
-            state="readonly",
+            textvariable=self.quick_payment_var,
             width=16,
         ).pack(side=tk.LEFT, padx=18)
-        tk.Button(
-            footer,
-            text="Quitar seleccionado",
-            command=self.eliminar_item_rapido,
-            bg="#e74c3c",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).pack(side=tk.RIGHT, padx=5)
-        tk.Button(
+
+        AppButton(
             footer,
             text="Cobrar e imprimir ticket",
             command=self.confirmar_factura_rapida,
-            bg="#0984e3",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
+            variant="primary",
+            tooltip="Guarda la venta y genera el ticket en PDF",
         ).pack(side=tk.RIGHT, padx=5)
+        AppButton(
+            footer,
+            text="Quitar seleccionado",
+            command=self.eliminar_item_rapido,
+            variant="danger",
+            tooltip="Quita el producto seleccionado (Supr)",
+        ).pack(side=tk.RIGHT, padx=5)
+
         self.quick_items = []
         window.protocol("WM_DELETE_WINDOW", window.destroy)
         window.after(100, self.quick_code_entry.focus_set)
@@ -530,28 +686,26 @@ class SistemaFacturacion:
             messagebox.showwarning("Validación", str(exc), parent=self.quick_window)
 
     def _refrescar_factura_rapida(self):
-        for row in self.quick_tree.get_children():
-            self.quick_tree.delete(row)
+        self.quick_table.clear()
         total = 0
         for item in self.quick_items:
             total += item["subtotal"]
-            self.quick_tree.insert(
-                "",
-                tk.END,
-                values=(
+            self.quick_table.add_row(
+                (
                     item["codigo"],
                     item["nombre"],
                     item["cantidad"],
                     f"RD$ {item['precio']:.2f}",
                     f"RD$ {item['subtotal']:.2f}",
-                ),
+                )
             )
+        self.quick_table.restripe()
         self.quick_total_var.set(f"Total: RD$ {total:.2f}")
 
     def eliminar_item_rapido(self):
-        selected = self.quick_tree.selection()
-        if selected:
-            del self.quick_items[self.quick_tree.index(selected[0])]
+        index = self.quick_table.remove_selected()
+        if index is not None:
+            del self.quick_items[index]
             self._refrescar_factura_rapida()
 
     def confirmar_factura_rapida(self):
@@ -613,9 +767,11 @@ class SistemaFacturacion:
                         item["subtotal"],
                     ),
                 )
+                # La cantidad se guarda siempre en positivo: la columna
+                # ``tipo`` es la que indica si entra o sale del inventario.
                 self.cursor.execute(
                     "INSERT INTO inventory_movements (producto_id, tipo, cantidad, motivo, referencia, usuario_id) VALUES (?, 'SALIDA', ?, 'Venta rápida', ?, ?)",
-                    (product_id, -item["cantidad"], invoice_number, user_id),
+                    (product_id, item["cantidad"], invoice_number, user_id),
                 )
             self.cursor.execute(
                 "INSERT INTO payments (factura_id, metodo_id, monto, usuario_id) VALUES (?, ?, ?, ?)",
@@ -669,85 +825,91 @@ class SistemaFacturacion:
         return False
 
     def ir_mi_empresa(self):
+        """Abre una ventana aparte para editar los datos de la empresa."""
         empresa_win = tk.Toplevel(self.root)
-        empresa_win.title("Mi Empresa")
-        set_app_icon(empresa_win, self.base_path)
-        empresa_win.geometry("640x420")
-        empresa_win.configure(bg="#f0f0f0")
-        empresa_win.transient(self.root)
-        empresa_win.grab_set()
-        self.center_window(640, 420, window=empresa_win)
-
-        container = tk.Frame(
-            empresa_win,
-            bg="white",
-            relief=tk.RIDGE,
-            bd=0,
-            highlightbackground="#dfe6e9",
-            highlightthickness=1,
+        theme.prepare_toplevel(
+            empresa_win, "Mi empresa", (640, 470), self.base_path, modal=True
         )
-        container.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
-        container.columnconfigure(1, weight=1)
 
-        tk.Label(
-            container,
-            text="Datos de mi empresa",
-            font=("Arial", 16, "bold"),
-            bg="white",
-            fg="#2d3436",
-        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=20, pady=(18, 12))
+        card = cards.Card(
+            empresa_win,
+            title="Datos de mi empresa",
+            subtitle="Se imprimen en el encabezado de cada factura",
+            padding=18,
+        )
+        card.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
 
-        fields = [
+        form = card.body
+        form.columnconfigure(1, weight=1)
+
+        fields = (
             ("Nombre de la empresa", self.empresa_nombre_var),
             ("RNC", self.empresa_rnc_var),
             ("Dirección", self.empresa_direccion_var),
             ("Teléfono", self.empresa_telefono_var),
             ("Email", self.empresa_email_var),
             ("Sitio web", self.empresa_website_var),
-        ]
+        )
 
-        for index, (label, variable) in enumerate(fields, start=1):
-            tk.Label(
-                container, text=label, bg="white", font=("Arial", 10, "bold")
-            ).grid(row=index, column=0, padx=20, pady=6, sticky="w")
-            tk.Entry(
-                container, textvariable=variable, font=("Arial", 10), **INPUT_STYLE
-            ).grid(row=index, column=1, padx=(0, 20), pady=6, sticky="ew")
+        entries = []
+        for index, (text, variable) in enumerate(fields):
+            _caption, entry = iputs.labeled_entry(
+                form,
+                text,
+                textvariable=variable,
+                row=index,
+                column=0,
+                label_column=0,
+                entry_column=1,
+                label_sticky="w",
+                background="surface",
+            )
+            entries.append(entry)
 
-        btn_frame = tk.Frame(container, bg="white")
-        btn_frame.grid(row=7, column=0, columnspan=2, pady=(18, 16))
-
-        tk.Button(
-            btn_frame,
+        actions = tk.Frame(form)
+        theme.remember(actions, "plain", bg="surface", fg="text")
+        actions.grid(row=len(fields), column=0, columnspan=2, sticky="ew", pady=(16, 0))
+        AppButton(
+            actions,
             text="Guardar datos",
             command=self.guardar_empresa,
-            bg="#3498db",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=18,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=6)
-        tk.Button(
-            btn_frame,
+            variant="primary",
+            tooltip="Guarda los datos de la empresa",
+        ).pack(side=tk.LEFT)
+        AppButton(
+            actions,
             text="Cerrar",
             command=empresa_win.destroy,
-            bg="#95a5a6",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=12,
-            cursor="hand2",
+            variant="neutral",
+            tooltip="Cerrar sin guardar (Esc)",
         ).pack(side=tk.LEFT, padx=6)
+
+        empresa_win.bind("<Escape>", lambda event: empresa_win.destroy())
+        if entries:
+            entries[0].focus_set()
+
+    def _cerrar_conexion(self):
+        """Cierra la base de datos ignorando errores de cierre repetido."""
+        conexion = getattr(self, "conn", None)
+        if conexion is None:
+            return
+        try:
+            conexion.close()
+        except sqlite3.Error:
+            logging.exception("No se pudo cerrar la base de datos")
 
     def cerrar_sesion(self):
         if messagebox.askyesno(
             "Cerrar sesión", "¿Desea cerrar sesión y volver al login?"
         ):
+            self._cerrar_conexion()
             self.root.destroy()
             if self.on_logout:
                 self.on_logout()
 
     def salir(self):
         if messagebox.askyesno("Salir", "¿Desea salir del sistema?"):
+            self._cerrar_conexion()
             self.root.destroy()
 
     def crear_backup(self):
@@ -767,6 +929,7 @@ class SistemaFacturacion:
                 "backups",
                 self.cursor.lastrowid,
                 str(backup_path),
+                self.current_user.get("id"),
             )
             self.conn.commit()
             messagebox.showinfo(
@@ -786,8 +949,13 @@ class SistemaFacturacion:
             InventoryMovementView(self.root, self.conn, self.current_user.get("id"))
 
     def abrir_movimiento_caja(self):
-        if self.require_permission("manage_cash"):
-            CashMovementView(self.root, self.conn, self.current_user.get("id"))
+        """Lleva al usuario al panel de caja para registrar un movimiento manual."""
+        if not self.require_permission("manage_cash"):
+            return
+        self.seleccionar_seccion("dashboard")
+        self.notebook.select(self.tabs["dashboard"])
+        self.dashboard_caja.focus_movement_form()
+        self.set_status("Registre el movimiento de caja en el formulario del panel.")
 
     def restaurar_backup(self):
         if not self.require_permission("manage_company"):
@@ -812,8 +980,12 @@ class SistemaFacturacion:
             )
             self.conn = connect_database(database_path)
             self.cursor = self.conn.cursor()
+            # Las vistas hijas guardan la conexión que recibieron al crearse:
+            # si no se reemplaza seguirían usando la que acabamos de cerrar.
+            self._propagar_conexion()
             self.cargar_datos()
-            self.dashboard.refresh()
+            self.dashboard_caja.refresh()
+            self.set_status("Copia de seguridad restaurada.")
             messagebox.showinfo(
                 "Restauración", "La copia de seguridad fue restaurada correctamente."
             )
@@ -821,9 +993,18 @@ class SistemaFacturacion:
             try:
                 self.conn = connect_database(database_path)
                 self.cursor = self.conn.cursor()
+                self._propagar_conexion()
             except sqlite3.Error:
-                pass
+                logging.exception(
+                    "No se pudo reabrir la base tras un fallo al restaurar"
+                )
             messagebox.showerror("Error de restauración", str(exc))
+
+    def _propagar_conexion(self):
+        """Reparte la conexión activa entre las vistas que la conservan."""
+        for vista in (getattr(self, "dashboard_caja", None),):
+            if vista is not None and hasattr(vista, "conn"):
+                vista.conn = self.conn
 
     def abrir_caja(self):
         if not self.require_permission("manage_cash"):
@@ -851,6 +1032,8 @@ class SistemaFacturacion:
             self.current_user.get("id"),
         )
         self.conn.commit()
+        self.dashboard_caja.refresh()
+        self.set_status("Caja abierta correctamente.")
         messagebox.showinfo("Caja", "Caja abierta correctamente.")
 
     def cerrar_caja(self):
@@ -892,652 +1075,703 @@ class SistemaFacturacion:
             self.current_user.get("id"),
         )
         self.conn.commit()
+        self.dashboard_caja.refresh()
+        self.set_status(f"Caja cerrada. Diferencia: RD$ {difference:.2f}")
         messagebox.showinfo("Caja", f"Caja cerrada. Diferencia: RD$ {difference:.2f}")
 
     def mostrar_acerca_de(self):
+        """Ventana «Acerca de» con la versión, el autor y el enlace del proyecto."""
         about = tk.Toplevel(self.root)
-        about.title("Acerca de")
-        set_app_icon(about, self.base_path)
-        about.resizable(False, False)
-        about.configure(bg="#f0f0f0")
-        about.geometry("400x240")
-        self.center_window(400, 240, window=about)
-        about.transient(self.root)
-        about.grab_set()
+        theme.prepare_toplevel(
+            about, "Acerca de", (460, 340), self.base_path, modal=True
+        )
         about.attributes("-topmost", True)
-        about.after(100, lambda: about.attributes("-topmost", False))
+        about.after(150, lambda: about.attributes("-topmost", False))
         about.focus_force()
 
-        tk.Label(
-            about,
-            text="Sistema de Facturación",
-            font=("Arial", 14, "bold"),
-            bg="#f0f0f0",
-        ).pack(pady=(20, 8))
-        tk.Label(
-            about,
-            text="Versión 1.0\nDesarrollado por K.A.R.M.",
-            font=("Arial", 10),
-            bg="#f0f0f0",
-            fg="#555",
-        ).pack()
+        card = cards.Card(about, padding=20)
+        card.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
+
+        title = tk.Label(card.body, text=theme.APP_NAME, font=theme.font("display"))
+        theme.remember(title, "label", bg="surface", fg="accent")
+        title.pack(pady=(6, 2))
+
+        subtitle = tk.Label(
+            card.body, text="Sistema de gestión y facturación de escritorio"
+        )
+        theme.remember(subtitle, "label", bg="surface", fg="text_muted")
+        subtitle.pack(pady=(0, 10))
+
+        version = tk.Label(
+            card.body, text=f"Versión {theme.APP_VERSION} · Desarrollado por K.A.R.M."
+        )
+        theme.remember(version, "label", bg="surface", fg="text")
+        version.pack(pady=(0, 4))
+
+        stack = tk.Label(card.body, text="tkinter/ttk · SQLite · ReportLab")
+        theme.remember(stack, "label", bg="surface", fg="text_muted")
+        stack.pack(pady=(0, 14))
 
         link = tk.Label(
-            about,
-            text=CREATOR_URL,
-            font=("Arial", 10, "underline"),
-            fg="#0984e3",
-            bg="#f0f0f0",
-            cursor="hand2",
+            card.body, text=theme.CREATOR_URL, font=theme.font("link"), cursor="hand2"
         )
-        link.pack(pady=12)
-        link.bind("<Button-1>", lambda event: webbrowser.open_new_tab(CREATOR_URL))
+        theme.remember(link, "label", bg="surface", fg="accent")
+        link.pack(pady=(0, 16))
+        link.bind(
+            "<Button-1>", lambda event: webbrowser.open_new_tab(theme.CREATOR_URL)
+        )
 
-        tk.Button(
-            about,
-            text="Cerrar",
-            command=about.destroy,
-            bg="#3498db",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            activebackground="#2980b9",
-            activeforeground="white",
-            width=12,
-            cursor="hand2",
-            relief=tk.FLAT,
-        ).pack(pady=(10, 16))
+        AppButton(
+            card.body, text="Cerrar", command=about.destroy, variant="primary", width=12
+        ).pack()
+        about.bind("<Escape>", lambda event: about.destroy())
 
     def crear_pestaña_facturacion(self):
-        """Crea la pestaña de facturación"""
-        tab = tk.Frame(self.notebook, bg="white")
-        self.notebook.add(tab, text="  Crear Factura  ")
+        """Crea la pestaña de facturación."""
+        tab = tk.Frame(self.notebook)
+        theme.remember(tab, "plain", bg="window", fg="text")
+        self.notebook.add(tab, text="  Crear factura  ")
         self.tabs["invoice"] = tab
 
-        # Canvas con scrollbar que envuelve todo
-        main_canvas = tk.Canvas(tab, bg="white", highlightthickness=0)
-        main_scrollbar = ttk.Scrollbar(
-            tab, orient="vertical", command=main_canvas.yview
+        canvas = tk.Canvas(tab, highlightthickness=0, bd=0)
+        theme.remember(canvas, "plain", bg="window", fg="text")
+        scrollbar = ttk.Scrollbar(tab, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(fill=tk.BOTH, expand=True)
+
+        inner = tk.Frame(canvas)
+        theme.remember(inner, "plain", bg="window", fg="text")
+        window_id = canvas.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind(
+            "<Configure>",
+            lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
         )
-        main_canvas.configure(yscrollcommand=main_scrollbar.set)
-
-        main_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        main_canvas.pack(fill=tk.BOTH, expand=True)
-
-        inner = tk.Frame(main_canvas, bg="white")
-        win = main_canvas.create_window((0, 0), window=inner, anchor="nw")
-
-        def on_frame_configure(event):
-            main_canvas.configure(scrollregion=main_canvas.bbox("all"))
-
-        def on_canvas_configure(event):
-            main_canvas.itemconfig(win, width=event.width)
-
-        inner.bind("<Configure>", on_frame_configure)
-        main_canvas.bind("<Configure>", on_canvas_configure)
-
-        # Frame unificado
-        unified_frame = tk.LabelFrame(
-            inner,
-            text="  Factura  ",
-            bg="white",
-            fg="#2d3436",
-            font=("Arial", 11, "bold"),
-            padx=16,
-            pady=12,
+        canvas.bind(
+            "<Configure>", lambda event: canvas.itemconfig(window_id, width=event.width)
         )
-        unified_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
-        unified_frame.columnconfigure(1, weight=1)
-        unified_frame.columnconfigure(3, weight=1)
 
-        # --- Datos del comprobante ---
-        tk.Label(
-            unified_frame, text="Factura No.", font=("Arial", 10, "bold"), bg="white"
-        ).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        def _rueda(event):
+            if event.num == 4:
+                delta = -1
+            elif event.num == 5:
+                delta = 1
+            else:
+                delta = -1 if event.delta > 0 else 1
+            canvas.yview_scroll(delta, "units")
+
+        # El binding se activa solo mientras el puntero está sobre la pestaña,
+        # para no robarle la rueda a las demás secciones.
+        def _activar_rueda(_event):
+            canvas.bind_all("<MouseWheel>", _rueda)
+            canvas.bind_all("<Button-4>", _rueda)
+            canvas.bind_all("<Button-5>", _rueda)
+
+        def _desactivar_rueda(_event):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        canvas.bind("<Enter>", _activar_rueda)
+        canvas.bind("<Leave>", _desactivar_rueda)
+
+        columns = tk.Frame(inner)
+        theme.remember(columns, "plain", bg="window", fg="text")
+        columns.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
+        columns.columnconfigure(0, minsize=360)
+        columns.columnconfigure(1, weight=1)
+        columns.rowconfigure(0, weight=1)
+
+        self._build_invoice_form(columns)
+        self._build_invoice_detail(columns)
+
+    def _build_invoice_form(self, parent):
+        """Columna izquierda de la factura: comprobante y captura de productos."""
+        card = cards.Card(
+            parent,
+            title="Datos del comprobante",
+            subtitle="Cliente, número y método de pago",
+            padding=14,
+        )
+        card.grid(row=0, column=0, sticky="new", padx=(0, 10))
+        body = card.body
+
+        # ``body`` se organiza con ``pack``; los campos usan ``grid``, así que
+        # viven en su propio frame. Mezclar ambos gestores en un mismo padre
+        # lanza un TclError y la ventana nunca llega a mostrarse.
+        head = tk.Frame(body)
+        theme.remember(head, "plain", bg="surface", fg="text")
+        head.pack(fill=tk.X)
+        head.columnconfigure(1, weight=1)
+
         self.num_factura = tk.StringVar(value=self.generar_numero_factura())
-        tk.Entry(
-            unified_frame,
+        iputs.labeled_entry(
+            head,
+            "Factura No.",
             textvariable=self.num_factura,
             state="readonly",
-            width=20,
-            font=("Arial", 10),
-        ).grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+            row=0,
+            background="surface",
+        )
 
-        tk.Label(
-            unified_frame, text="Fecha", font=("Arial", 10, "bold"), bg="white"
-        ).grid(row=0, column=2, padx=10, pady=5, sticky="w")
         self.fecha_factura = tk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
-        tk.Entry(
-            unified_frame,
+        iputs.labeled_entry(
+            head,
+            "Fecha",
             textvariable=self.fecha_factura,
             state="readonly",
-            width=15,
-            font=("Arial", 10),
-        ).grid(row=0, column=3, padx=10, pady=5, sticky="ew")
+            row=1,
+            background="surface",
+        )
 
-        tk.Label(
-            unified_frame, text="Cliente", font=("Arial", 10, "bold"), bg="white"
-        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.cliente_var = tk.StringVar()
-        self.combo_cliente = ttk.Combobox(
-            unified_frame, textvariable=self.cliente_var, width=40, font=("Arial", 10)
-        )
-        self.combo_cliente.grid(
-            row=1, column=1, columnspan=3, padx=10, pady=5, sticky="ew"
+        _caption, self.combo_cliente = iputs.labeled_combobox(
+            head,
+            "Cliente",
+            textvariable=self.cliente_var,
+            width=34,
+            row=2,
+            background="surface",
         )
 
-        tk.Label(
-            unified_frame, text="Método de pago", font=("Arial", 10, "bold"), bg="white"
-        ).grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.metodo_pago_var = tk.StringVar(value="EFECTIVO")
-        self.combo_metodo_pago = ttk.Combobox(
-            unified_frame,
-            textvariable=self.metodo_pago_var,
+        _caption, self.combo_metodo_pago = iputs.labeled_combobox(
+            head,
+            "Método de pago",
             values=("EFECTIVO", "TARJETA", "TRANSFERENCIA", "CREDITO", "OTRO"),
-            state="readonly",
-            width=20,
-        )
-        self.combo_metodo_pago.grid(row=2, column=1, padx=10, pady=5, sticky="w")
-
-        # Separador
-        ttk.Separator(unified_frame, orient="horizontal").grid(
-            row=3, column=0, columnspan=4, sticky="ew", padx=5, pady=6
+            textvariable=self.metodo_pago_var,
+            width=18,
+            row=3,
+            background="surface",
         )
 
-        # --- Agregar producto ---
-        tk.Label(
-            unified_frame, text="Producto", bg="white", font=("Arial", 10, "bold")
-        ).grid(row=4, column=0, padx=5, pady=5)
+        theme.separator(body, fill=tk.X, pady=10)
+
+        cards.label(
+            body, "Agregar producto", font_role="body_bold", background="surface"
+        ).pack(anchor="w")
+
+        form = tk.Frame(body)
+        theme.remember(form, "plain", bg="surface", fg="text")
+        form.pack(fill=tk.X, pady=(6, 0))
+        form.columnconfigure(1, weight=1)
+
         self.producto_var = tk.StringVar()
-        self.combo_producto = ttk.Combobox(
-            unified_frame, textvariable=self.producto_var, width=35, font=("Arial", 10)
+        _caption, self.combo_producto = iputs.labeled_combobox(
+            form,
+            "Producto",
+            textvariable=self.producto_var,
+            width=28,
+            row=0,
+            on_select=self.seleccionar_producto,
+            background="surface",
         )
-        self.combo_producto.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
-        self.combo_producto.bind("<<ComboboxSelected>>", self.seleccionar_producto)
 
-        tk.Label(
-            unified_frame, text="Precio", bg="white", font=("Arial", 10, "bold")
-        ).grid(row=4, column=2, padx=5, pady=5)
         self.precio_var = tk.StringVar()
-        tk.Entry(
-            unified_frame, textvariable=self.precio_var, width=12, font=("Arial", 10)
-        ).grid(row=4, column=3, padx=5, pady=5, sticky="w")
+        iputs.labeled_entry(
+            form,
+            "Precio",
+            textvariable=self.precio_var,
+            width=12,
+            row=1,
+            background="surface",
+        )
 
-        tk.Label(
-            unified_frame, text="Cantidad", bg="white", font=("Arial", 10, "bold")
-        ).grid(row=5, column=0, padx=5, pady=5)
         self.cantidad_var = tk.StringVar(value="1")
-        tk.Entry(
-            unified_frame, textvariable=self.cantidad_var, width=10, font=("Arial", 10)
-        ).grid(row=5, column=1, padx=5, pady=5, sticky="w")
+        _caption, cantidad_entry = iputs.labeled_entry(
+            form,
+            "Cantidad",
+            textvariable=self.cantidad_var,
+            width=12,
+            row=2,
+            background="surface",
+        )
+        cantidad_entry.bind("<Return>", lambda event: self.agregar_item())
 
-        tk.Button(
-            unified_frame,
+        AppButton(
+            form,
             text="Agregar producto",
             command=self.agregar_item,
-            bg="#27ae60",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).grid(row=5, column=3, padx=10, pady=5, sticky="e")
+            variant="success",
+            tooltip="Agrega el producto a la factura (Enter)",
+        ).grid(row=3, column=0, columnspan=2, sticky="ew", pady=(12, 2))
 
-        # Separador
-        ttk.Separator(unified_frame, orient="horizontal").grid(
-            row=6, column=0, columnspan=4, sticky="ew", padx=5, pady=6
+        # --- Tabla de productos disponibles ---
+        # Atajo de mostrador: buscar un artículo y cargarlo en el formulario
+        # con doble clic, sin tener que desplegar el combo.
+        theme.separator(body, fill=tk.X, pady=10)
+        cards.label(
+            body, "Productos disponibles", font_role="body_bold", background="surface"
+        ).pack(anchor="w")
+
+        search = tk.Frame(body)
+        theme.remember(search, "plain", bg="surface", fg="text")
+        search.pack(fill=tk.X, pady=(6, 4))
+        self.invoice_search = iputs.make_entry(search, width=24)
+        self.invoice_search.pack(side=tk.LEFT)
+        self.invoice_search.bind(
+            "<KeyRelease>", lambda event: self.cargar_catalogo_factura()
+        )
+        AppButton(
+            search,
+            text="Limpiar",
+            command=self._limpiar_busqueda_catalogo,
+            variant="ghost",
+            size="small",
+            width=8,
+        ).pack(side=tk.LEFT, padx=8)
+
+        self.catalogo_table = tables.DataTable(
+            body,
+            columns=("Código", "Producto", "Precio", "Stock"),
+            widths=(90, 180, 90, 60),
+            anchors=("w", "w", "e", "e"),
+            height=7,
+        )
+        self.catalogo_table.pack(fill=tk.BOTH, expand=True)
+        self.tree_catalogo = self.catalogo_table.tree
+        self.tree_catalogo.bind("<Double-1>", self.seleccionar_producto_catalogo)
+        self.tree_catalogo.bind(
+            "<Return>", lambda event: self.seleccionar_producto_catalogo(event)
+        )
+        theme.Tooltip(
+            self.tree_catalogo,
+            "Doble clic sobre un producto para cargarlo en el formulario",
         )
 
-        # --- Tabla de productos ---
-        table_frame = tk.Frame(unified_frame, bg="white")
-        table_frame.grid(row=7, column=0, columnspan=4, sticky="ew", padx=5, pady=5)
-        table_frame.columnconfigure(0, weight=1)
+    def _limpiar_busqueda_catalogo(self):
+        self.invoice_search.delete(0, tk.END)
+        self.cargar_catalogo_factura()
 
-        scrollbar = ttk.Scrollbar(table_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    def cargar_catalogo_factura(self):
+        """Refresca el catálogo auxiliar de la pestaña de facturación."""
+        if getattr(self, "catalogo_table", None) is None:
+            return
+        termino = self.invoice_search.get().strip()
+        self.catalogo_table.clear()
+        try:
+            if termino:
+                patron = f"%{termino}%"
+                self.cursor.execute(
+                    "SELECT codigo, nombre, precio, stock FROM productos "
+                    "WHERE activo=1 AND (codigo LIKE ? OR nombre LIKE ?) "
+                    "ORDER BY nombre LIMIT 200",
+                    (patron, patron),
+                )
+            else:
+                self.cursor.execute(
+                    "SELECT codigo, nombre, precio, stock FROM productos "
+                    "WHERE activo=1 ORDER BY nombre LIMIT 200"
+                )
+            for codigo, nombre, precio, stock in self.cursor.fetchall():
+                self.catalogo_table.add_row(
+                    (codigo, nombre, f"RD$ {precio:.2f}", stock)
+                )
+            self.catalogo_table.restripe()
+        except sqlite3.Error:
+            logging.exception("No se pudo cargar el catálogo de la factura")
 
-        # Treeview para items
-        self.tree_items = ttk.Treeview(
-            table_frame,
+    def seleccionar_producto_catalogo(self, event=None):
+        """Carga en el formulario el producto elegido en el catálogo."""
+        selected = self.tree_catalogo.selection()
+        if not selected:
+            return
+        valores = self.tree_catalogo.item(selected[0])["values"]
+        if not valores:
+            return
+        self.producto_var.set(f"{valores[0]} - {valores[1]}")
+        self.precio_var.set(str(valores[2]).replace("RD$", "").strip())
+        self.cantidad_var.set("1")
+
+    def _build_invoice_detail(self, parent):
+        """Columna derecha: detalle de la factura, totales y acciones."""
+        card = cards.Card(
+            parent,
+            title="Detalle de la factura",
+            subtitle="Productos, impuestos y total",
+            padding=14,
+        )
+        card.grid(row=0, column=1, sticky="nsew")
+        body = card.body
+
+        self.items_table = tables.DataTable(
+            body,
             columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
-            show="headings",
-            height=6,
-            yscrollcommand=scrollbar.set,
+            headings=("Código", "Producto", "Cantidad", "Precio unit.", "Subtotal"),
+            widths=(130, 320, 90, 120, 130),
+            anchors=("w", "w", "e", "e", "e"),
+            height=10,
+            hscroll=True,
         )
-        scrollbar.config(command=self.tree_items.yview)
+        self.items_table.pack(fill=tk.BOTH, expand=True)
+        self.tree_items = self.items_table.tree
+        self.tree_items.bind("<Delete>", lambda event: self.eliminar_item())
 
-        self.tree_items.heading("Código", text="Código")
-        self.tree_items.heading("Producto", text="Producto")
-        self.tree_items.heading("Cantidad", text="Cantidad")
-        self.tree_items.heading("Precio", text="Precio Unit.")
-        self.tree_items.heading("Subtotal", text="Subtotal")
+        totals = tk.Frame(body)
+        theme.remember(totals, "plain", bg="surface", fg="text")
+        totals.pack(fill=tk.X, pady=(14, 0))
 
-        self.tree_items.column("Código", width=140, minwidth=100, stretch=False)
-        self.tree_items.column("Producto", width=420, minwidth=220, stretch=True)
-        self.tree_items.column("Cantidad", width=110, minwidth=80, stretch=False)
-        self.tree_items.column("Precio", width=140, minwidth=100, stretch=False)
-        self.tree_items.column("Subtotal", width=150, minwidth=110, stretch=False)
-
-        self.tree_items.pack(fill=tk.BOTH, expand=True)
-
-        # Separador
-        ttk.Separator(unified_frame, orient="horizontal").grid(
-            row=8, column=0, columnspan=4, sticky="ew", padx=5, pady=6
-        )
-
-        # --- Totales en fila horizontal ---
-        totals_row = tk.Frame(unified_frame, bg="white")
-        totals_row.grid(
-            row=9, column=0, columnspan=4, sticky="ew", padx=10, pady=(4, 2)
-        )
-        totals_row.columnconfigure(1, weight=1)
-
-        tk.Label(
-            totals_row, text="Subtotal:", font=("Arial", 11, "bold"), bg="white"
-        ).pack(side=tk.LEFT, padx=(0, 4))
         self.subtotal_var = tk.StringVar(value="RD$ 0.00")
-        tk.Label(
-            totals_row, textvariable=self.subtotal_var, font=("Arial", 11), bg="white"
-        ).pack(side=tk.LEFT, padx=(0, 20))
-
-        tk.Label(
-            totals_row, text="ITBIS (18%):", font=("Arial", 11, "bold"), bg="white"
-        ).pack(side=tk.LEFT, padx=(0, 4))
         self.itbis_var = tk.StringVar(value="RD$ 0.00")
-        tk.Label(
-            totals_row, textvariable=self.itbis_var, font=("Arial", 11), bg="white"
-        ).pack(side=tk.LEFT, padx=(0, 20))
-
-        tk.Label(
-            totals_row,
-            text="TOTAL:",
-            font=("Arial", 13, "bold"),
-            bg="white",
-            fg="#27ae60",
-        ).pack(side=tk.LEFT, padx=(0, 4))
         self.total_var = tk.StringVar(value="RD$ 0.00")
-        tk.Label(
-            totals_row,
-            textvariable=self.total_var,
-            font=("Arial", 13, "bold"),
-            bg="white",
-            fg="#27ae60",
-        ).pack(side=tk.LEFT)
+        blocks = (
+            ("Subtotal", self.subtotal_var, "text", "title"),
+            ("ITBIS (18%)", self.itbis_var, "text", "title"),
+            ("Total a pagar", self.total_var, "success", "metric"),
+        )
+        for title, variable, tone, font_role in blocks:
+            block = tk.Frame(totals)
+            theme.remember(block, "plain", bg="surface", fg="text")
+            block.pack(side=tk.LEFT, padx=(0, 28))
+            cards.label(
+                block,
+                title.upper(),
+                font_role="metric_title",
+                tone="text_muted",
+                background="surface",
+            ).pack(anchor="w")
+            value = tk.Label(
+                block, textvariable=variable, font=theme.font(font_role), anchor="w"
+            )
+            theme.remember(value, "label", bg="surface", fg=tone)
+            value.pack(anchor="w")
 
-        # --- Botones ---
-        btn_frame = tk.Frame(unified_frame, bg="white")
-        btn_frame.grid(row=10, column=0, columnspan=4, pady=(4, 6))
-
-        tk.Button(
-            btn_frame,
+        actions = tk.Frame(body)
+        theme.remember(actions, "plain", bg="surface", fg="text")
+        actions.pack(fill=tk.X, pady=(16, 2))
+        AppButton(
+            actions,
             text="Guardar factura y crear PDF",
             command=self.generar_factura,
-            bg="#3498db",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=23,
-            height=1,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=6)
-
-        tk.Button(
-            btn_frame,
-            text="Limpiar y crear nueva factura",
+            variant="primary",
+            tooltip="Registra la factura, descuenta el stock y genera el PDF",
+        ).pack(side=tk.LEFT, padx=(0, 6))
+        AppButton(
+            actions,
+            text="Nueva factura",
             command=self.nueva_factura,
-            bg="#95a5a6",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=23,
-            height=1,
-            cursor="hand2",
+            variant="neutral",
+            tooltip="Limpia el formulario para una nueva venta (Ctrl+N)",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
+            text="Quitar producto",
+            command=self.eliminar_item,
+            variant="danger",
+            tooltip="Quita el producto seleccionado del detalle (Supr)",
         ).pack(side=tk.LEFT, padx=6)
 
-        tk.Button(
-            btn_frame,
-            text="Eliminar producto",
-            command=self.eliminar_item,
-            bg="#e74c3c",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=23,
-            height=1,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=6)
+        hint = cards.label(
+            actions,
+            "Enter agrega el producto seleccionado en la lista",
+            font_role="small",
+            tone="text_muted",
+            background="surface",
+        )
+        hint.pack(side=tk.RIGHT)
 
     def crear_pestaña_productos(self):
-        """Crea la pestaña de gestión de productos"""
-        tab = tk.Frame(self.notebook, bg="white")
+        """Crea la pestaña de gestión de productos."""
+        tab = tk.Frame(self.notebook)
+        theme.remember(tab, "plain", bg="window", fg="text")
         self.notebook.add(tab, text="  Inventario  ")
         self.tabs["products"] = tab
 
-        # Frame para formulario
-        form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
-        form_frame.pack(fill=tk.X, padx=10, pady=10)
+        wrapper = tk.Frame(tab)
+        theme.remember(wrapper, "plain", bg="window", fg="text")
+        wrapper.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
 
-        tk.Label(
-            form_frame,
-            text="Inventario de productos",
-            font=("Arial", 14, "bold"),
-            bg="white",
-        ).grid(row=0, column=0, columnspan=4, pady=10)
-
-        # Campos del formulario
-        tk.Label(form_frame, text="Código:", bg="white", font=("Arial", 10)).grid(
-            row=1, column=0, padx=10, pady=5, sticky="e"
+        card = cards.Card(
+            wrapper,
+            title="Productos",
+            subtitle="Registre, actualice o desactive los artículos del inventario",
+            padding=14,
         )
-        self.prod_codigo = tk.Entry(form_frame, width=20, font=("Arial", 10))
-        self.prod_codigo.grid(row=1, column=1, padx=10, pady=5)
+        card.pack(fill=tk.BOTH, expand=True)
+        body = card.body
 
-        tk.Label(form_frame, text="Nombre:", bg="white", font=("Arial", 10)).grid(
-            row=1, column=2, padx=10, pady=5, sticky="e"
-        )
-        self.prod_nombre = tk.Entry(form_frame, width=30, font=("Arial", 10))
-        self.prod_nombre.grid(row=1, column=3, padx=10, pady=5)
+        form = tk.Frame(body)
+        theme.remember(form, "plain", bg="surface", fg="text")
+        form.pack(fill=tk.X)
+        form.columnconfigure(1, weight=1)
+        form.columnconfigure(3, weight=1)
 
-        tk.Label(form_frame, text="Precio:", bg="white", font=("Arial", 10)).grid(
-            row=2, column=0, padx=10, pady=5, sticky="e"
-        )
-        self.prod_precio = tk.Entry(form_frame, width=20, font=("Arial", 10))
-        self.prod_precio.grid(row=2, column=1, padx=10, pady=5)
+        self.prod_codigo = iputs.labeled_entry(
+            form, "Código", row=0, column=0, entry_sticky="ew"
+        )[1]
+        self.prod_nombre = iputs.labeled_entry(
+            form, "Nombre", row=0, column=2, entry_sticky="ew"
+        )[1]
+        self.prod_precio = iputs.labeled_entry(
+            form, "Precio", row=1, column=0, entry_sticky="ew"
+        )[1]
+        self.prod_stock = iputs.labeled_entry(
+            form, "Stock", row=1, column=2, entry_sticky="ew"
+        )[1]
 
-        tk.Label(form_frame, text="Stock:", bg="white", font=("Arial", 10)).grid(
-            row=2, column=2, padx=10, pady=5, sticky="e"
-        )
-        self.prod_stock = tk.Entry(form_frame, width=30, font=("Arial", 10))
-        self.prod_stock.grid(row=2, column=3, padx=10, pady=5)
-
-        # Botones
-        btn_frame = tk.Frame(form_frame, bg="white")
-        btn_frame.grid(row=3, column=0, columnspan=4, pady=10)
-
-        tk.Button(
-            btn_frame,
+        actions = tk.Frame(body)
+        theme.remember(actions, "plain", bg="surface", fg="text")
+        actions.pack(fill=tk.X, pady=(12, 0))
+        AppButton(
+            actions,
             text="Agregar",
             command=self.agregar_producto,
-            bg="#27ae60",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            btn_frame,
+            variant="success",
+            tooltip="Registra un producto nuevo",
+        ).pack(side=tk.LEFT, padx=(0, 6))
+        AppButton(
+            actions,
             text="Actualizar",
             command=self.actualizar_producto,
-            bg="#f39c12",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            btn_frame,
-            text="Eliminar",
+            variant="warning",
+            tooltip="Actualiza el producto seleccionado en la tabla",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
+            text="Desactivar",
             command=self.eliminar_producto,
-            bg="#e74c3c",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            btn_frame,
+            variant="danger",
+            tooltip="Desactiva el producto seleccionado",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
             text="Limpiar",
             command=self.limpiar_form_producto,
-            bg="#95a5a6",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
+            variant="neutral",
+            tooltip="Vacía el formulario",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
+            text="Movimientos de inventario",
+            command=self.abrir_movimientos_inventario,
+            variant="ghost",
+            tooltip="Registra entradas, ajustes y devoluciones",
+        ).pack(side=tk.RIGHT)
 
-        # Frame para búsqueda
-        search_frame = tk.Frame(tab, bg="white")
-        search_frame.pack(fill=tk.X, padx=10, pady=5)
+        search = tk.Frame(body)
+        theme.remember(search, "plain", bg="surface", fg="text")
+        search.pack(fill=tk.X, pady=(14, 6))
+        cards.label(
+            search,
+            "Buscar por código o nombre",
+            font_role="body_bold",
+            background="surface",
+        ).pack(side=tk.LEFT, padx=(0, 8))
+        self.prod_buscar = iputs.make_entry(search, width=32)
+        self.prod_buscar.pack(side=tk.LEFT)
+        self.prod_buscar.bind("<KeyRelease>", lambda event: self.cargar_productos())
+        AppButton(
+            search,
+            text="Limpiar",
+            command=self._limpiar_busqueda_producto,
+            variant="ghost",
+            size="small",
+            width=8,
+        ).pack(side=tk.LEFT, padx=8)
+        self.products_count = cards.Badge(search, text="0 productos", tone="neutral")
+        self.products_count.pack(side=tk.RIGHT)
 
-        tk.Label(
-            search_frame,
-            text="Buscar por código o nombre:",
-            bg="white",
-            font=("Arial", 10, "bold"),
-        ).pack(side=tk.LEFT, padx=5)
-        self.prod_buscar = tk.Entry(search_frame, width=40, font=("Arial", 10))
-        self.prod_buscar.pack(side=tk.LEFT, padx=5)
-        self.prod_buscar.bind("<KeyRelease>", lambda e: self.cargar_productos())
-
-        # Frame para tabla
-        table_frame = tk.Frame(tab, bg="white")
-        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        scrollbar = ttk.Scrollbar(table_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.tree_productos = ttk.Treeview(
-            table_frame,
+        self.table_productos = tables.DataTable(
+            body,
             columns=("ID", "Código", "Nombre", "Precio", "Stock"),
-            show="headings",
-            yscrollcommand=scrollbar.set,
+            widths=(60, 120, 320, 120, 90),
+            anchors=("w", "w", "w", "e", "e"),
+            height=12,
+            hscroll=True,
         )
-        scrollbar.config(command=self.tree_productos.yview)
-
-        self.tree_productos.heading("ID", text="ID")
-        self.tree_productos.heading("Código", text="Código")
-        self.tree_productos.heading("Nombre", text="Nombre")
-        self.tree_productos.heading("Precio", text="Precio")
-        self.tree_productos.heading("Stock", text="Stock")
-
-        self.tree_productos.column("ID", width=50)
-        self.tree_productos.column("Código", width=100)
-        self.tree_productos.column("Nombre", width=300)
-        self.tree_productos.column("Precio", width=100)
-        self.tree_productos.column("Stock", width=100)
-
-        self.tree_productos.pack(fill=tk.BOTH, expand=True)
+        self.table_productos.pack(fill=tk.BOTH, expand=True)
+        self.tree_productos = self.table_productos.tree
         self.tree_productos.bind("<ButtonRelease-1>", self.seleccionar_producto_tabla)
+        theme.Tooltip(
+            self.tree_productos, "Seleccione una fila para cargarla en el formulario"
+        )
 
     def crear_pestaña_clientes(self):
-        """Crea la pestaña de gestión de clientes"""
-        tab = tk.Frame(self.notebook, bg="white")
+        """Crea la pestaña de gestión de clientes."""
+        tab = tk.Frame(self.notebook)
+        theme.remember(tab, "plain", bg="window", fg="text")
         self.notebook.add(tab, text="  Clientes  ")
         self.tabs["customers"] = tab
 
-        # Frame para formulario
-        form_frame = tk.Frame(tab, bg="white", relief=tk.RIDGE, bd=2)
-        form_frame.pack(fill=tk.X, padx=10, pady=10)
+        wrapper = tk.Frame(tab)
+        theme.remember(wrapper, "plain", bg="window", fg="text")
+        wrapper.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
 
-        tk.Label(
-            form_frame,
-            text="Registro de clientes",
-            font=("Arial", 14, "bold"),
-            bg="white",
-        ).grid(row=0, column=0, columnspan=4, pady=10)
-
-        # Campos del formulario
-        tk.Label(form_frame, text="Nombre:", bg="white", font=("Arial", 10)).grid(
-            row=1, column=0, padx=10, pady=5, sticky="e"
+        card = cards.Card(
+            wrapper,
+            title="Clientes",
+            subtitle="Datos de contacto que se imprimen en la factura",
+            padding=14,
         )
-        self.cli_nombre = tk.Entry(form_frame, width=30, font=("Arial", 10))
-        self.cli_nombre.grid(row=1, column=1, padx=10, pady=5)
+        card.pack(fill=tk.BOTH, expand=True)
+        body = card.body
 
-        tk.Label(form_frame, text="Cédula:", bg="white", font=("Arial", 10)).grid(
-            row=1, column=2, padx=10, pady=5, sticky="e"
-        )
-        self.cli_cedula = tk.Entry(form_frame, width=30, font=("Arial", 10))
-        self.cli_cedula.grid(row=1, column=3, padx=10, pady=5)
+        form = tk.Frame(body)
+        theme.remember(form, "plain", bg="surface", fg="text")
+        form.pack(fill=tk.X)
+        form.columnconfigure(1, weight=1)
+        form.columnconfigure(3, weight=1)
 
-        tk.Label(form_frame, text="Teléfono:", bg="white", font=("Arial", 10)).grid(
-            row=2, column=0, padx=10, pady=5, sticky="e"
-        )
-        self.cli_telefono = tk.Entry(form_frame, width=30, font=("Arial", 10))
-        self.cli_telefono.grid(row=2, column=1, padx=10, pady=5)
+        self.cli_nombre = iputs.labeled_entry(
+            form, "Nombre", row=0, column=0, entry_sticky="ew"
+        )[1]
+        self.cli_cedula = iputs.labeled_entry(
+            form, "Cédula", row=0, column=2, entry_sticky="ew"
+        )[1]
+        self.cli_telefono = iputs.labeled_entry(
+            form, "Teléfono", row=1, column=0, entry_sticky="ew"
+        )[1]
+        self.cli_direccion = iputs.labeled_entry(
+            form, "Dirección", row=1, column=2, entry_sticky="ew"
+        )[1]
 
-        tk.Label(form_frame, text="Dirección:", bg="white", font=("Arial", 10)).grid(
-            row=2, column=2, padx=10, pady=5, sticky="e"
-        )
-        self.cli_direccion = tk.Entry(form_frame, width=30, font=("Arial", 10))
-        self.cli_direccion.grid(row=2, column=3, padx=10, pady=5)
-
-        # Botones
-        btn_frame = tk.Frame(form_frame, bg="white")
-        btn_frame.grid(row=3, column=0, columnspan=4, pady=10)
-
-        tk.Button(
-            btn_frame,
+        actions = tk.Frame(body)
+        theme.remember(actions, "plain", bg="surface", fg="text")
+        actions.pack(fill=tk.X, pady=(12, 0))
+        AppButton(
+            actions,
             text="Agregar",
             command=self.agregar_cliente,
-            bg="#27ae60",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            btn_frame,
+            variant="success",
+            tooltip="Registra un cliente nuevo",
+        ).pack(side=tk.LEFT, padx=(0, 6))
+        AppButton(
+            actions,
             text="Actualizar",
             command=self.actualizar_cliente,
-            bg="#f39c12",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            btn_frame,
+            variant="warning",
+            tooltip="Actualiza el cliente seleccionado",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
             text="Desactivar",
             command=self.eliminar_cliente,
-            bg="#e74c3c",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            btn_frame,
+            variant="danger",
+            tooltip="Desactiva el cliente conservando su historial",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
             text="Limpiar",
             command=self.limpiar_form_cliente,
-            bg="#95a5a6",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            width=15,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
+            variant="neutral",
+            tooltip="Vacía el formulario",
+        ).pack(side=tk.LEFT, padx=6)
 
-        # Frame para búsqueda
-        search_frame = tk.Frame(tab, bg="white")
-        search_frame.pack(fill=tk.X, padx=10, pady=5)
+        search = tk.Frame(body)
+        theme.remember(search, "plain", bg="surface", fg="text")
+        search.pack(fill=tk.X, pady=(14, 6))
+        cards.label(
+            search,
+            "Buscar por nombre o cédula",
+            font_role="body_bold",
+            background="surface",
+        ).pack(side=tk.LEFT, padx=(0, 8))
+        self.cli_buscar = iputs.make_entry(search, width=32)
+        self.cli_buscar.pack(side=tk.LEFT)
+        self.cli_buscar.bind("<KeyRelease>", lambda event: self.cargar_clientes())
+        AppButton(
+            search,
+            text="Limpiar",
+            command=self._limpiar_busqueda_cliente,
+            variant="ghost",
+            size="small",
+            width=8,
+        ).pack(side=tk.LEFT, padx=8)
+        self.customers_count = cards.Badge(search, text="0 clientes", tone="neutral")
+        self.customers_count.pack(side=tk.RIGHT)
 
-        tk.Label(
-            search_frame,
-            text="Buscar por nombre o cédula:",
-            bg="white",
-            font=("Arial", 10, "bold"),
-        ).pack(side=tk.LEFT, padx=5)
-        self.cli_buscar = tk.Entry(search_frame, width=40, font=("Arial", 10))
-        self.cli_buscar.pack(side=tk.LEFT, padx=5)
-        self.cli_buscar.bind("<KeyRelease>", lambda e: self.cargar_clientes())
-
-        # Frame para tabla
-        table_frame = tk.Frame(tab, bg="white")
-        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        scrollbar = ttk.Scrollbar(table_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.tree_clientes = ttk.Treeview(
-            table_frame,
+        self.table_clientes = tables.DataTable(
+            body,
             columns=("ID", "Nombre", "Cédula", "Teléfono", "Dirección"),
-            show="headings",
-            yscrollcommand=scrollbar.set,
+            widths=(60, 230, 140, 140, 280),
+            anchors=("w", "w", "w", "w", "w"),
+            height=12,
+            hscroll=True,
         )
-        scrollbar.config(command=self.tree_clientes.yview)
-
-        self.tree_clientes.heading("ID", text="ID")
-        self.tree_clientes.heading("Nombre", text="Nombre")
-        self.tree_clientes.heading("Cédula", text="Cédula")
-        self.tree_clientes.heading("Teléfono", text="Teléfono")
-        self.tree_clientes.heading("Dirección", text="Dirección")
-
-        self.tree_clientes.column("ID", width=50)
-        self.tree_clientes.column("Nombre", width=200)
-        self.tree_clientes.column("Cédula", width=120)
-        self.tree_clientes.column("Teléfono", width=120)
-        self.tree_clientes.column("Dirección", width=300)
-
-        self.tree_clientes.pack(fill=tk.BOTH, expand=True)
+        self.table_clientes.pack(fill=tk.BOTH, expand=True)
+        self.tree_clientes = self.table_clientes.tree
         self.tree_clientes.bind("<ButtonRelease-1>", self.seleccionar_cliente_tabla)
+        theme.Tooltip(
+            self.tree_clientes, "Seleccione una fila para cargarla en el formulario"
+        )
 
     def crear_pestaña_historial(self):
-        """Crea la pestaña de historial de facturas"""
-        tab = tk.Frame(self.notebook, bg="white")
+        """Crea la pestaña de historial de facturas."""
+        tab = tk.Frame(self.notebook)
+        theme.remember(tab, "plain", bg="window", fg="text")
         self.notebook.add(tab, text="  Facturas guardadas  ")
         self.tabs["history"] = tab
 
-        # Frame para búsqueda
-        search_frame = tk.Frame(tab, bg="white")
-        search_frame.pack(fill=tk.X, padx=10, pady=10)
+        wrapper = tk.Frame(tab)
+        theme.remember(wrapper, "plain", bg="window", fg="text")
+        wrapper.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
 
-        tk.Label(
-            search_frame,
-            text="Buscar factura o cliente:",
-            bg="white",
-            font=("Arial", 10, "bold"),
-        ).pack(side=tk.LEFT, padx=5)
-        self.hist_buscar = tk.Entry(search_frame, width=30, font=("Arial", 10))
-        self.hist_buscar.pack(side=tk.LEFT, padx=5)
-        self.hist_buscar.bind("<KeyRelease>", lambda e: self.cargar_historial())
+        card = cards.Card(
+            wrapper,
+            title="Facturas guardadas",
+            subtitle="Consulte, cobre o anule comprobantes ya emitidos",
+            padding=14,
+        )
+        card.pack(fill=tk.BOTH, expand=True)
+        body = card.body
 
-        tk.Button(
-            search_frame,
+        actions = tk.Frame(body)
+        theme.remember(actions, "plain", bg="surface", fg="text")
+        actions.pack(fill=tk.X)
+        AppButton(
+            actions,
             text="Ver detalles",
             command=self.ver_detalles_factura,
-            bg="#3498db",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=10)
-
-        tk.Button(
-            search_frame,
+            variant="primary",
+            tooltip="Muestra los productos y totales de la factura",
+        ).pack(side=tk.LEFT, padx=(0, 6))
+        AppButton(
+            actions,
             text="Crear PDF de nuevo",
             command=self.regenerar_pdf,
-            bg="#27ae60",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            search_frame,
+            variant="success",
+            tooltip="Vuelve a generar el PDF de la factura seleccionada",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
             text="Registrar abono",
             command=self.registrar_abono,
-            bg="#f39c12",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
-
-        tk.Button(
-            search_frame,
+            variant="warning",
+            tooltip="Registra un pago parcial o total",
+        ).pack(side=tk.LEFT, padx=6)
+        AppButton(
+            actions,
             text="Anular factura",
             command=self.anular_factura,
-            bg="#e74c3c",
-            fg="white",
-            font=("Arial", 10, "bold"),
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=5)
+            variant="danger",
+            tooltip="Anula la factura y reintegra el stock",
+        ).pack(side=tk.LEFT, padx=6)
 
-        # Frame para tabla
-        table_frame = tk.Frame(tab, bg="white")
-        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        search = tk.Frame(body)
+        theme.remember(search, "plain", bg="surface", fg="text")
+        search.pack(fill=tk.X, pady=(14, 6))
+        cards.label(
+            search,
+            "Buscar factura o cliente",
+            font_role="body_bold",
+            background="surface",
+        ).pack(side=tk.LEFT, padx=(0, 8))
+        self.hist_buscar = iputs.make_entry(search, width=32)
+        self.hist_buscar.pack(side=tk.LEFT)
+        self.hist_buscar.bind("<KeyRelease>", lambda event: self.cargar_historial())
+        AppButton(
+            search,
+            text="Limpiar",
+            command=self._limpiar_busqueda_historial,
+            variant="ghost",
+            size="small",
+            width=8,
+        ).pack(side=tk.LEFT, padx=8)
+        self.invoices_count = cards.Badge(search, text="0 facturas", tone="neutral")
+        self.invoices_count.pack(side=tk.RIGHT)
 
-        scrollbar = ttk.Scrollbar(table_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.tree_historial = ttk.Treeview(
-            table_frame,
+        self.table_historial = tables.DataTable(
+            body,
             columns=(
                 "ID",
                 "Número",
@@ -1548,30 +1782,23 @@ class SistemaFacturacion:
                 "Total",
                 "Estado",
             ),
-            show="headings",
-            yscrollcommand=scrollbar.set,
+            widths=(50, 120, 100, 240, 110, 110, 110, 100),
+            anchors=("w", "w", "w", "w", "e", "e", "e", "w"),
+            height=12,
+            hscroll=True,
         )
-        scrollbar.config(command=self.tree_historial.yview)
+        self.table_historial.pack(fill=tk.BOTH, expand=True)
+        self.tree_historial = self.table_historial.tree
+        self.tree_historial.bind(
+            "<Double-1>", lambda event: self.ver_detalles_factura()
+        )
+        theme.Tooltip(
+            self.tree_historial, "Doble clic para ver el detalle de la factura"
+        )
 
-        self.tree_historial.heading("ID", text="ID")
-        self.tree_historial.heading("Número", text="Número")
-        self.tree_historial.heading("Fecha", text="Fecha")
-        self.tree_historial.heading("Cliente", text="Cliente")
-        self.tree_historial.heading("Subtotal", text="Subtotal")
-        self.tree_historial.heading("ITBIS", text="ITBIS")
-        self.tree_historial.heading("Total", text="Total")
-        self.tree_historial.heading("Estado", text="Estado")
-
-        self.tree_historial.column("ID", width=50)
-        self.tree_historial.column("Número", width=120)
-        self.tree_historial.column("Fecha", width=100)
-        self.tree_historial.column("Cliente", width=250)
-        self.tree_historial.column("Subtotal", width=100)
-        self.tree_historial.column("ITBIS", width=100)
-        self.tree_historial.column("Total", width=100)
-        self.tree_historial.column("Estado", width=100)
-
-        self.tree_historial.pack(fill=tk.BOTH, expand=True)
+    def _limpiar_busqueda_historial(self):
+        self.hist_buscar.delete(0, tk.END)
+        self.cargar_historial()
 
     # Métodos de Productos
     def agregar_producto(self):
@@ -1587,8 +1814,11 @@ class SistemaFacturacion:
             return
 
         try:
-            precio = float(precio)
-            stock = int(stock)
+            try:
+                precio = float(precio)
+                stock = int(stock)
+            except ValueError:
+                raise ValueError("Precio y Stock deben ser números válidos") from None
             if precio <= 0:
                 raise ValueError("El precio debe ser mayor a 0")
             if stock < 0:
@@ -1604,10 +1834,10 @@ class SistemaFacturacion:
 
         except sqlite3.IntegrityError:
             messagebox.showerror("Error", "El código del producto ya existe")
-        except ValueError:
-            messagebox.showerror("Error", "Precio y Stock deben ser números válidos")
+        except ValueError as e:
+            messagebox.showerror("Error de validación", str(e))
         except Exception as e:
-            messagebox.showerror("Error", f"Error al actualizar producto: {str(e)}")
+            messagebox.showerror("Error", f"Error al agregar producto: {str(e)}")
 
     def eliminar_producto(self):
         if not self.require_permission("manage_products"):
@@ -1656,12 +1886,34 @@ class SistemaFacturacion:
             self.prod_stock.delete(0, tk.END)
             self.prod_stock.insert(0, values[4])
 
-    def cargar_productos(self):
-        for item in self.tree_productos.get_children():
-            self.tree_productos.delete(item)
+    def _actualizar_badge(self, badge, texto, tone=None):
+        """Actualiza el contador de una insignia sin romper si cambia su API."""
+        if badge is None:
+            return
+        try:
+            if tone is not None:
+                badge.configure(text=texto, tone=tone)
+            else:
+                badge.configure(text=texto)
+        except (tk.TclError, TypeError):
+            etiqueta = getattr(badge, "label", None)
+            if etiqueta is not None:
+                etiqueta.configure(text=texto)
 
-        for row in products_service.list_products(self.conn, self.prod_buscar.get()):
-            self.tree_productos.insert("", tk.END, values=row)
+    def cargar_productos(self):
+        self.table_productos.clear()
+
+        filas = list(products_service.list_products(self.conn, self.prod_buscar.get()))
+        for row in filas:
+            self.table_productos.add_row(row)
+        self.table_productos.restripe()
+
+        self._actualizar_badge(
+            getattr(self, "products_count", None),
+            f"{len(filas)} producto{'s' if len(filas) != 1 else ''}",
+        )
+        # El catálogo de la pestaña de factura lee la misma tabla.
+        self.cargar_catalogo_factura()
 
     # Métodos de Clientes
     def agregar_cliente(self):
@@ -1838,11 +2090,17 @@ class SistemaFacturacion:
             self.cli_direccion.insert(0, values[4])
 
     def cargar_clientes(self):
-        for item in self.tree_clientes.get_children():
-            self.tree_clientes.delete(item)
+        self.table_clientes.clear()
 
-        for row in customers_service.list_customers(self.conn, self.cli_buscar.get()):
-            self.tree_clientes.insert("", tk.END, values=row)
+        filas = list(customers_service.list_customers(self.conn, self.cli_buscar.get()))
+        for row in filas:
+            self.table_clientes.add_row(row)
+        self.table_clientes.restripe()
+
+        self._actualizar_badge(
+            getattr(self, "customers_count", None),
+            f"{len(filas)} cliente{'s' if len(filas) != 1 else ''}",
+        )
 
     # Métodos de Facturación
     def generar_numero_factura(self):
@@ -1915,17 +2173,16 @@ class SistemaFacturacion:
             subtotal = precio * cantidad
 
             # Agregar a la tabla
-            self.tree_items.insert(
-                "",
-                tk.END,
-                values=(
+            self.items_table.add_row(
+                (
                     codigo,
                     nombre,
                     cantidad,
                     f"RD$ {precio:.2f}",
                     f"RD$ {subtotal:.2f}",
-                ),
+                )
             )
+            self.items_table.restripe()
 
             # Agregar a lista interna
             self.items_factura.append(
@@ -1952,38 +2209,35 @@ class SistemaFacturacion:
             messagebox.showerror("Error", f"Error al agregar ítem: {str(e)}")
 
     def eliminar_item(self):
-        selected = self.tree_items.selection()
-        if not selected:
+        if not self.tree_items.selection():
             messagebox.showwarning("Advertencia", "Seleccione un item para eliminar")
             return
 
-        # Obtener índice del item
-        index = self.tree_items.index(selected[0])
+        # ``remove_selected`` borra la fila y devuelve su posición, de modo que
+        # la tabla y la lista interna no se puedan desincronizar.
+        index = self.items_table.remove_selected()
+        if index is None:
+            return
 
-        # Eliminar de la tabla visual
-        self.tree_items.delete(selected[0])
-
-        # Eliminar de la lista interna
         del self.items_factura[index]
+        self.items_table.restripe()
 
         # Actualizar totales
         self.actualizar_totales()
 
     def _refrescar_items_factura(self):
-        for item_id in self.tree_items.get_children():
-            self.tree_items.delete(item_id)
+        self.items_table.clear()
         for item in self.items_factura:
-            self.tree_items.insert(
-                "",
-                tk.END,
-                values=(
+            self.items_table.add_row(
+                (
                     item["codigo"],
                     item["nombre"],
                     item["cantidad"],
                     f"RD$ {item['precio']:.2f}",
                     f"RD$ {item['subtotal']:.2f}",
-                ),
+                )
             )
+        self.items_table.restripe()
 
     def actualizar_totales(self):
         subtotal = sum(item["subtotal"] for item in self.items_factura)
@@ -2088,7 +2342,7 @@ class SistemaFacturacion:
                     """INSERT INTO inventory_movements
                        (producto_id, tipo, cantidad, motivo, referencia, usuario_id)
                        VALUES (?, 'SALIDA', ?, ?, ?, ?)""",
-                    (producto_id, -item["cantidad"], "Venta", numero, usuario_id),
+                    (producto_id, item["cantidad"], "Venta", numero, usuario_id),
                 )
 
             if metodo_pago != "CREDITO":
@@ -2216,9 +2470,16 @@ class SistemaFacturacion:
             try:
                 os.makedirs(facturas_dir, exist_ok=True)
             except OSError as e:
-                raise RuntimeError(f"No se pudo crear la carpeta de facturas: {str(e)}")
+                raise RuntimeError(
+                    f"No se pudo crear la carpeta de facturas: {str(e)}"
+                ) from e
 
-            filename = os.path.join(facturas_dir, f"{factura_data[0]}.pdf")
+            # El número de factura llega desde la base: se limpia antes de
+            # usarlo como nombre de archivo para evitar rutas inválidas.
+            nombre_seguro = "".join(
+                c if c.isalnum() or c in "-_" else "_" for c in str(factura_data[0])
+            )
+            filename = os.path.join(facturas_dir, f"{nombre_seguro}.pdf")
             doc = SimpleDocTemplate(filename, pagesize=letter)
             elements = []
             styles = getSampleStyleSheet()
@@ -2358,8 +2619,7 @@ class SistemaFacturacion:
 
     def nueva_factura(self):
         # Limpiar tabla de items
-        for item in self.tree_items.get_children():
-            self.tree_items.delete(item)
+        self.items_table.clear()
 
         # Limpiar lista de items
         self.items_factura = []
@@ -2385,8 +2645,7 @@ class SistemaFacturacion:
         self.cantidad_var.set("1")
 
     def cargar_historial(self):
-        for item in self.tree_historial.get_children():
-            self.tree_historial.delete(item)
+        self.table_historial.clear()
 
         buscar = self.hist_buscar.get().strip()
 
@@ -2409,18 +2668,26 @@ class SistemaFacturacion:
                 ORDER BY f.id DESC
             """)
 
-        for row in self.cursor.fetchall():
-            formatted_row = (
-                row[0],
-                row[1],
-                row[2],
-                row[3],
-                f"RD$ {row[4]:.2f}",
-                f"RD$ {row[5]:.2f}",
-                f"RD$ {row[6]:.2f}",
-                row[7],
+        filas = self.cursor.fetchall()
+        for row in filas:
+            self.table_historial.add_row(
+                (
+                    row[0],
+                    row[1],
+                    row[2],
+                    row[3],
+                    f"RD$ {row[4]:.2f}",
+                    f"RD$ {row[5]:.2f}",
+                    f"RD$ {row[6]:.2f}",
+                    row[7],
+                )
             )
-            self.tree_historial.insert("", tk.END, values=formatted_row)
+        self.table_historial.restripe()
+
+        self._actualizar_badge(
+            getattr(self, "invoices_count", None),
+            f"{len(filas)} factura{'s' if len(filas) != 1 else ''}",
+        )
 
     def ver_detalles_factura(self):
         selected = self.tree_historial.selection()
@@ -2431,14 +2698,8 @@ class SistemaFacturacion:
         item = self.tree_historial.item(selected[0])
         factura_id = item["values"][0]
 
-        # Crear ventana de detalles
-        detalle_win = tk.Toplevel(self.root)
-        detalle_win.title("Detalles de Factura")
-        set_app_icon(detalle_win, self.base_path)
-        detalle_win.geometry("700x500")
-        detalle_win.configure(bg="white")
-
-        # Obtener datos
+        # Obtener datos ANTES de abrir la ventana: si la factura no existe no
+        # tiene sentido mostrar un Toplevel vacío.
         self.cursor.execute(
             """
             SELECT f.numero, f.fecha, f.subtotal, f.itbis, f.total,
@@ -2451,49 +2712,50 @@ class SistemaFacturacion:
         )
 
         factura_data = self.cursor.fetchone()
+        if not factura_data:
+            messagebox.showerror("Detalles", "La factura ya no existe en la base.")
+            self.cargar_historial()
+            return
+
+        # Crear ventana de detalles
+        detalle_win = tk.Toplevel(self.root)
+        theme.prepare_toplevel(
+            detalle_win, "Detalles de Factura", (700, 500), self.base_path
+        )
+        detalle_win.bind("<Escape>", lambda event: detalle_win.destroy())
 
         # Información general
-        info_frame = tk.Frame(detalle_win, bg="white", relief=tk.RIDGE, bd=2)
-        info_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        tk.Label(
-            info_frame,
-            text=f"Factura: {factura_data[0]}",
-            font=("Arial", 14, "bold"),
-            bg="white",
-        ).pack(pady=5)
-        tk.Label(info_frame, text=f"Fecha: {factura_data[1]}", bg="white").pack()
-        tk.Label(info_frame, text=f"Cliente: {factura_data[5]}", bg="white").pack()
-        tk.Label(info_frame, text=f"Cédula: {factura_data[6]}", bg="white").pack()
+        info_card = cards.Card(
+            detalle_win, title=f"Factura {factura_data[0]}", padding=14
+        )
+        info_card.pack(fill=tk.X, padx=14, pady=(14, 8))
+        for etiqueta, valor in (
+            ("Fecha", factura_data[1]),
+            ("Cliente", factura_data[5]),
+            ("Cédula", factura_data[6] or "N/A"),
+            ("Teléfono", factura_data[7] or "N/A"),
+        ):
+            cards.label(
+                info_card.body,
+                f"{etiqueta}: {valor}",
+                font_role="body",
+                background="surface",
+            ).pack(anchor="w")
 
         # Tabla de items
-        tk.Label(
-            detalle_win, text="Productos:", font=("Arial", 12, "bold"), bg="white"
-        ).pack(pady=5)
+        items_card = cards.Card(detalle_win, title="Productos", padding=14)
+        items_card.pack(fill=tk.BOTH, expand=True, padx=14, pady=8)
 
-        tree_frame = tk.Frame(detalle_win, bg="white")
-        tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
-        tree = ttk.Treeview(
-            tree_frame,
-            columns=("Código", "Producto", "Cant", "Precio", "Subtotal"),
-            show="headings",
+        tabla = tables.DataTable(
+            items_card.body,
+            columns=("Código", "Producto", "Cantidad", "Precio", "Subtotal"),
+            headings=("Código", "Producto", "Cantidad", "Precio unit.", "Subtotal"),
+            widths=(90, 260, 80, 110, 110),
+            anchors=("w", "w", "e", "e", "e"),
             height=8,
+            hscroll=True,
         )
-
-        tree.heading("Código", text="Código")
-        tree.heading("Producto", text="Producto")
-        tree.heading("Cant", text="Cant")
-        tree.heading("Precio", text="Precio")
-        tree.heading("Subtotal", text="Subtotal")
-
-        tree.column("Código", width=80)
-        tree.column("Producto", width=250)
-        tree.column("Cant", width=70)
-        tree.column("Precio", width=100)
-        tree.column("Subtotal", width=100)
-
-        tree.pack(fill=tk.BOTH, expand=True)
+        tabla.pack(fill=tk.BOTH, expand=True)
 
         # Cargar items
         self.cursor.execute(
@@ -2507,41 +2769,40 @@ class SistemaFacturacion:
         )
 
         for row in self.cursor.fetchall():
-            tree.insert(
-                "",
-                tk.END,
-                values=(
+            tabla.add_row(
+                (
                     row[0],
                     row[1],
                     row[2],
                     f"RD$ {row[3]:.2f}",
                     f"RD$ {row[4]:.2f}",
-                ),
+                )
             )
+        tabla.restripe()
 
         # Totales
-        total_frame = tk.Frame(detalle_win, bg="white")
-        total_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        tk.Label(
-            total_frame,
-            text=f"Subtotal: RD$ {factura_data[2]:.2f}",
-            font=("Arial", 11),
-            bg="white",
-        ).pack()
-        tk.Label(
-            total_frame,
-            text=f"ITBIS: RD$ {factura_data[3]:.2f}",
-            font=("Arial", 11),
-            bg="white",
-        ).pack()
-        tk.Label(
-            total_frame,
+        total_card = cards.Card(detalle_win, padding=14)
+        total_card.pack(fill=tk.X, padx=14, pady=(8, 14))
+        cards.label(
+            total_card.body,
+            f"Subtotal: RD$ {factura_data[2]:.2f}",
+            font_role="body",
+            background="surface",
+        ).pack(anchor="e")
+        cards.label(
+            total_card.body,
+            f"ITBIS: RD$ {factura_data[3]:.2f}",
+            font_role="body",
+            background="surface",
+        ).pack(anchor="e")
+        total_label = tk.Label(
+            total_card.body,
             text=f"TOTAL: RD$ {factura_data[4]:.2f}",
-            font=("Arial", 13, "bold"),
-            bg="white",
-            fg="#27ae60",
-        ).pack()
+            font=theme.font("metric"),
+            anchor="e",
+        )
+        theme.remember(total_label, "label", bg="surface", fg="success")
+        total_label.pack(anchor="e", pady=(4, 0))
 
     def regenerar_pdf(self):
         selected = self.tree_historial.selection()

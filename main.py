@@ -16,22 +16,23 @@ def start_main_app(user=None) -> None:
     try:
         main_root = tk.Tk()
         application = SistemaFacturacion(
-            main_root,  
+            main_root,
             on_logout=start_login,
             current_user=user,
         )
         main_root.mainloop()
-    except Exception as exc:
-        messagebox.showerror(
-            "Error Fatal",
-            f"Error al iniciar la aplicación: {exc}\n\nLa aplicación se cerrará.",
-        )
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        raise
     finally:
         if application and hasattr(application, "conn"):
             try:
                 application.conn.close()
             except Exception:
                 pass
+
 
 if __name__ == "__main__":
     start_login()
