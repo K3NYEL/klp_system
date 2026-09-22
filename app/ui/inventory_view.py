@@ -31,6 +31,29 @@ class InventoryMovementView:
         self.connection = connection
         self.actor_id = actor_id
 
+        self.window = ctk.CTkToplevel(parent)
+
+        self.window.title(
+            "Movimientos de inventario"
+        )
+
+        self.window.geometry(
+            "1050x720"
+        )
+
+        self.window.minsize(
+            900,
+            600,
+        )
+
+        self.window.transient(parent)
+
+        self.window.bind(
+            "<Escape>",
+            lambda event: self.window.destroy(),
+        )
+        
+
         self.product = tk.StringVar()
         self.kind = tk.StringVar(value="ENTRADA")
         self.quantity = tk.StringVar(value="1")
@@ -38,7 +61,16 @@ class InventoryMovementView:
 
         self.products: dict[str, int] = {}
 
-        self.frame = ctk.CTkFrame(parent)
+        self.frame = ctk.CTkFrame(
+            self.window,
+            fg_color=theme.color("window"),
+            corner_radius=0,
+        )
+
+        self.frame.pack(
+            fill="both",
+            expand=True,
+        )
 
         theme.remember(
             self.frame,
@@ -49,6 +81,11 @@ class InventoryMovementView:
 
         self._build()
         self.refresh()
+
+        self.window.after(
+            100,
+            self.focus_product,
+        )
 
     # ------------------------------------------------------------------
     # Construcción

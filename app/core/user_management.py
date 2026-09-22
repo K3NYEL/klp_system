@@ -483,10 +483,10 @@ def rename_role(
 
     old_name = role[0]
 
-    if old_name == new_name:
+    if old_name == "Administrador":
         raise ValueError(
-            "El rol ya tiene ese nombre."
-        )
+            "El rol Administrador no puede renombrarse."
+    )
 
     existing = connection.execute(
         """

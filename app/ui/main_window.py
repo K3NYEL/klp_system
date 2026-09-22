@@ -77,8 +77,7 @@ class SistemaFacturacion:
         self.root.geometry("1240x740")
         self.root.minsize(1020, 640)
 
-        if sys.platform == "win32":
-            self.root.state("zoomed")
+        self.root.state("zoomed")
 
         self.root.protocol(
             "WM_DELETE_WINDOW",
