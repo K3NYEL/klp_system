@@ -13,6 +13,7 @@ env/
 *.db
 *.db-wal
 *.db-shm
+*.log
 logs/
 backups/
 
