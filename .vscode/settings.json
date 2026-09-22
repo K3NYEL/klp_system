@@ -1,6 +1,0 @@
-{
-    "dataworkspace.excludedProjects": [
-        "facturas/facturas.sqlproj"
-    ],
-    "python-envs.defaultEnvManager": "ms-python.python:venv"
-}
