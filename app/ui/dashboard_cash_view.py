@@ -57,6 +57,11 @@ class DashboardCajaView:
             fg="text",
         )
 
+        self.frame.pack(
+            fill="both",
+            expand=True,
+        )
+
         self.start_date = tk.StringVar(value=date.today().replace(day=1).isoformat())
         self.end_date = tk.StringVar(value=date.today().isoformat())
 

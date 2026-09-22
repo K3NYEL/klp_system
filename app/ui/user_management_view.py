@@ -541,7 +541,7 @@ class UserManagementView:
             expand=True,
         )
 
-        self.roles_tree.bind(
+        self.roles_tree.bind_tree(
             "<<TreeviewSelect>>",
             self._on_role_selected,
         )

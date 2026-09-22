@@ -146,6 +146,7 @@ class InventoryMovementView:
             "Tipo",
             values=(
                 "ENTRADA",
+                "SALIDA",
                 "AJUSTE",
                 "DEVOLUCION",
             ),

@@ -61,6 +61,14 @@ class SistemaFacturacion:
         # ----------------------------------------------------
 
         self.tabs = {}
+        self.tab_names = {
+            "invoice": "Facturación",
+            "products": "Inventario",
+            "customers": "Clientes",
+            "admin": "Empresa",
+            "history": "Facturas guardadas",
+            "dashboard": "Caja y Dashboard",
+        }
         self.base_path = self.get_base_path()
 
         self.items_factura = []
@@ -77,7 +85,13 @@ class SistemaFacturacion:
         self.root.geometry("1240x740")
         self.root.minsize(1020, 640)
 
-        self.root.state("zoomed")
+        if sys.platform == "win32":
+            self.root.state("zoomed")
+        else:
+            try:
+                self.root.attributes("-zoomed", True)
+            except tk.TclError:
+                pass
 
         self.root.protocol(
             "WM_DELETE_WINDOW",
@@ -182,19 +196,15 @@ class SistemaFacturacion:
     def crear_pestaña_admin(self):
         """Crea la pestaña de configuración de la empresa."""
 
-        tab = ctk.CTkFrame(
-            self.notebook,
-            fg_color=theme.color("window"),
-            corner_radius=0,
-        )
-
-        self.empresa_tab = tab
-        self.tabs["company"] = tab
-
         self.notebook.add(
-            tab,
-            text="  Empresa  ",
+            "Empresa"
         )
+
+        tab = self.notebook.tab(
+            "Empresa"
+        )
+
+        self.tabs["company"] = tab
 
         wrapper = ctk.CTkFrame(
             tab,
@@ -469,7 +479,6 @@ class SistemaFacturacion:
         """Crea menú, encabezado, pestañas y barra de estado."""
 
         self._crear_menu()
-        self._registrar_atajos()
 
         shell = ctk.CTkFrame(
             self.root,
@@ -484,10 +493,13 @@ class SistemaFacturacion:
 
         self._crear_encabezado(shell)
 
-        # La barra de estado se crea antes del Notebook.
+        # La barra de estado se crea antes del Tabview.
         self._crear_barra_estado(shell)
 
-        self.notebook = ttk.Notebook(shell)
+        self.notebook = ctk.CTkTabview(
+            shell,
+            corner_radius=8,
+        )
 
         self.notebook.pack(
             fill="both",
@@ -918,44 +930,51 @@ class SistemaFacturacion:
     def _crear_pestaña_caja_dashboard(self):
         """Crea la pestaña unificada de dashboard y caja."""
 
+        tab_name = "Caja y Dashboard"
+
+        self.notebook.add(
+            tab_name
+        )
+
+        tab = self.notebook.tab(
+            tab_name
+        )
+
+        tab.configure(
+            fg_color=theme.color("window")
+        )
+
         self.dashboard_caja = DashboardCajaView(
-            self.notebook,
+            tab,
             self.conn,
             actor_id=self.current_user.get("id"),
             on_open_cash=self.abrir_caja,
             on_close_cash=self.cerrar_caja,
             can_manage_cash=can(
-            self.conn,
-            self.current_user.get("role"),
-            "manage_cash",
+                self.conn,
+                self.current_user.get("role"),
+                "manage_cash",
             ),
             on_change=lambda: self.set_status(
                 "Movimiento de caja registrado."
             ),
         )
 
-        self.tabs["dashboard"] = (
-            self.dashboard_caja.frame
-        )
+        self.tabs["dashboard"] = tab
 
-        self.notebook.add(
-            self.dashboard_caja.frame,
-            text="  Caja y Dashboard  ",
-        )
+        # ========================================================
+        # ESTADO
+        # ========================================================
 
-    # ========================================================
-    # ESTADO
-    # ========================================================
+        def set_status(self, message):
+            """Muestra un mensaje en la barra de estado."""
 
-    def set_status(self, message):
-        """Muestra un mensaje en la barra de estado."""
-
-        if getattr(
-            self,
-            "status_var",
-            None,
-        ) is not None:
-            self.status_var.set(message)
+            if getattr(
+                self,
+                "status_var",
+                None,
+            ) is not None:
+                self.status_var.set(message)
 
     # ========================================================
     # TEMA
@@ -1032,9 +1051,20 @@ class SistemaFacturacion:
         self.cargar_clientes()
 
     def seleccionar_pestaña(self, index):
-        """Activa una sección por índice."""
+        """Activa una pestaña por índice."""
 
-        self.notebook.select(index)
+        try:
+            tabs = self.notebook._segmented_button.cget(
+                "values"
+            )
+
+            if 0 <= index < len(tabs):
+                self.notebook.set(
+                    tabs[index]
+                )
+
+        except (IndexError, TypeError, tk.TclError):
+            pass
 
     def seleccionar_seccion(self, name):
         """Activa una pestaña y refresca sus datos."""
@@ -1044,7 +1074,7 @@ class SistemaFacturacion:
         if tab is None:
             return
 
-        self.notebook.select(tab)
+        self.notebook.set(tab)
 
         if (
             name == "dashboard"
@@ -1058,40 +1088,33 @@ class SistemaFacturacion:
         elif name == "customers":
             self.cargar_clientes()
 
-        elif name == "history":
-            self.cargar_historial()
+        def _registrar_atajos(self):
+            """Registra los atajos globales."""
 
-        self.set_status(
-            f"Sección activa: {name}"
-        )
+            shortcuts = {
+                "n": "invoice",
+                "d": "dashboard",
+                "i": "products",
+                "l": "customers",
+                "h": "history",
+            }
 
-    def _registrar_atajos(self):
-        """Registra los atajos globales."""
+            for key, section in shortcuts.items():
+                self.root.bind_all(
+                    f"<Control-KeyPress-{key}>",
+                    lambda event, target=section:
+                        self._atajo_pestaña(
+                            event,
+                            target,
+                        ),
+                    add="+",
+                )
 
-        shortcuts = {
-            "n": "invoice",
-            "d": "dashboard",
-            "i": "products",
-            "l": "customers",
-            "h": "history",
-        }
-
-        for key, section in shortcuts.items():
             self.root.bind_all(
-                f"<Control-KeyPress-{key}>",
-                lambda event, target=section:
-                    self._atajo_pestaña(
-                        event,
-                        target,
-                    ),
+                "<F2>",
+                self._atajo_facturacion_rapida,
                 add="+",
             )
-
-        self.root.bind_all(
-            "<F2>",
-            self._atajo_facturacion_rapida,
-            add="+",
-        )
 
     def _atajo_pestaña(self, event, section):
         """Cambia de sección."""
@@ -2415,14 +2438,12 @@ class SistemaFacturacion:
     def crear_pestaña_facturacion(self):
         """Crea la pestaña de facturación."""
 
-        tab = ctk.CTkFrame(
-            self.notebook,
-            fg_color=theme.color("window"),
+        self.notebook.add(
+            "Facturación"
         )
 
-        self.notebook.add(
-            tab,
-            text="  Crear factura  ",
+        tab = self.notebook.tab(
+            "Facturación"
         )
 
         self.tabs["invoice"] = tab
@@ -2463,11 +2484,6 @@ class SistemaFacturacion:
 
         columns.columnconfigure(
             1,
-            weight=1,
-        )
-
-        columns.rowconfigure(
-            0,
             weight=1,
         )
 
@@ -3053,14 +3069,12 @@ class SistemaFacturacion:
     def crear_pestaña_productos(self):
         """Crea la pestaña de gestión de productos."""
 
-        tab = ctk.CTkFrame(
-            self.notebook,
-            fg_color=theme.color("window"),
+        self.notebook.add(
+            "Inventario"
         )
 
-        self.notebook.add(
-            tab,
-            text="  Inventario  ",
+        tab = self.notebook.tab(
+            "Inventario"
         )
 
         self.tabs["products"] = tab
@@ -3081,8 +3095,7 @@ class SistemaFacturacion:
             wrapper,
             title="Productos",
             subtitle=(
-                "Registre, actualice o desactive "
-                "los artículos del inventario"
+                "Registre, actualice o desactive."
             ),
             padding=14,
         )
@@ -3313,14 +3326,12 @@ class SistemaFacturacion:
     def crear_pestaña_clientes(self):
         """Crea la pestaña de gestión de clientes."""
 
-        tab = ctk.CTkFrame(
-            self.notebook,
-            fg_color=theme.color("window"),
+        self.notebook.add(
+            "Clientes"
         )
 
-        self.notebook.add(
-            tab,
-            text="  Clientes  ",
+        tab = self.notebook.tab(
+            "Clientes"
         )
 
         self.tabs["customers"] = tab
@@ -3577,14 +3588,12 @@ class SistemaFacturacion:
     def crear_pestaña_historial(self):
         """Crea la pestaña de historial de facturas."""
 
-        tab = ctk.CTkFrame(
-            self.notebook,
-            fg_color=theme.color("window"),
+        self.notebook.add(
+            "Facturas guardadas"
         )
 
-        self.notebook.add(
-            tab,
-            text="  Facturas guardadas  ",
+        tab = self.notebook.tab(
+            "Facturas guardadas"
         )
 
         self.tabs["history"] = tab

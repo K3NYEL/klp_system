@@ -813,7 +813,13 @@ class DataTable(ctk.CTkFrame):
                 item,
                 tags=tuple(tags),
             )
-
+    def bind_tree(self, sequence, func, add=None):
+        """Permite enlazar eventos directamente al Treeview interno."""
+        return self.tree.bind(
+            sequence,
+            func,
+            add=add,
+        )
     # ================================================================
     # SELECTED VALUES
     # ================================================================
