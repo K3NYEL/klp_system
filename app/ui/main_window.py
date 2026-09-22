@@ -926,8 +926,9 @@ class SistemaFacturacion:
             on_open_cash=self.abrir_caja,
             on_close_cash=self.cerrar_caja,
             can_manage_cash=can(
-                self.current_user.get("role"),
-                "manage_cash",
+            self.conn,
+            self.current_user.get("role"),
+            "manage_cash",
             ),
             on_change=lambda: self.set_status(
                 "Movimiento de caja registrado."
@@ -1832,7 +1833,11 @@ class SistemaFacturacion:
 
 
     def require_permission(self, permission):
-        if can(self.current_user.get("role"), permission):
+        if can(
+            self.conn,
+            self.current_user.get("role"),
+            permission,
+        ):
             return True
 
         messagebox.showwarning(
@@ -1841,7 +1846,6 @@ class SistemaFacturacion:
         )
 
         return False
-
 
     def ir_mi_empresa(self):
         """Abre una ventana aparte para editar los datos de la empresa."""

@@ -2,6 +2,7 @@ import sqlite3
 from pathlib import Path
 from typing import Iterable
 
+SCHEMA_VERSION = 2
 SCHEMA_VERSION = 1
 
 
@@ -221,10 +222,112 @@ def migrate_database(connection: sqlite3.Connection) -> None:
         ("logo_path", "TEXT"),
     ))
 
+        # ------------------------------------------------------------------
+    # Roles
+    # ------------------------------------------------------------------
     connection.executemany(
         "INSERT OR IGNORE INTO roles (nombre) VALUES (?)",
-        [("Administrador",), ("Vendedor",), ("Cajero",), ("Contador",)],
+        [
+            ("Administrador",),
+            ("Vendedor",),
+            ("Cajero",),
+            ("Contador",),
+        ],
     )
+
+    # ------------------------------------------------------------------
+    # Permisos
+    # ------------------------------------------------------------------
+    permissions = [
+        ("manage_products", "Gestionar productos e inventario"),
+        ("manage_customers", "Gestionar clientes"),
+        ("manage_company", "Modificar la configuración de empresa"),
+        ("manage_users", "Gestionar usuarios y roles"),
+        ("manage_cash", "Gestionar caja y movimientos de efectivo"),
+        ("view_reports", "Consultar reportes y auditoría"),
+        ("create_invoices", "Crear y confirmar facturas"),
+    ]
+
+    connection.executemany(
+        """
+        INSERT OR IGNORE INTO permissions (
+            codigo,
+            descripcion
+        )
+        VALUES (?, ?)
+        """,
+        permissions,
+    )
+
+    # ------------------------------------------------------------------
+    # Permisos iniciales de los roles
+    #
+    # Se conserva exactamente el comportamiento que KLP SYSTEM
+    # tenía anteriormente en authorization.py.
+    # ------------------------------------------------------------------
+    role_permissions = {
+        "Administrador": {
+            "manage_products",
+            "manage_customers",
+            "manage_company",
+            "manage_users",
+            "manage_cash",
+            "view_reports",
+            "create_invoices",
+        },
+        "Vendedor": {
+            "create_invoices",
+            "manage_customers",
+        },
+        "Cajero": {
+            "create_invoices",
+            "manage_cash",
+        },
+        "Contador": {
+            "view_reports",
+        },
+    }
+
+    for role_name, permission_codes in role_permissions.items():
+        role_row = connection.execute(
+            """
+            SELECT id
+            FROM roles
+            WHERE nombre = ?
+            """,
+            (role_name,),
+        ).fetchone()
+
+        if not role_row:
+            continue
+
+        role_id = role_row[0]
+
+        for permission_code in permission_codes:
+            permission_row = connection.execute(
+                """
+                SELECT id
+                FROM permissions
+                WHERE codigo = ?
+                """,
+                (permission_code,),
+            ).fetchone()
+
+            if not permission_row:
+                continue
+
+            permission_id = permission_row[0]
+
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO role_permissions (
+                    role_id,
+                    permission_id
+                )
+                VALUES (?, ?)
+                """,
+                (role_id, permission_id),
+            )
     connection.executemany(
         "INSERT OR IGNORE INTO payment_methods (nombre) VALUES (?)",
         [("EFECTIVO",), ("TARJETA",), ("TRANSFERENCIA",), ("CREDITO",), ("OTRO",)],

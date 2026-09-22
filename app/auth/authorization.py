@@ -1,20 +1,56 @@
-PERMISSIONS = {
-    "manage_products": "Gestionar productos e inventario",
-    "manage_customers": "Gestionar clientes",
-    "manage_company": "Modificar la configuración de empresa",
-    "manage_users": "Gestionar usuarios y roles",
-    "manage_cash": "Gestionar caja y movimientos de efectivo",
-    "view_reports": "Consultar reportes y auditoría",
-    "create_invoices": "Crear y confirmar facturas",
-}
-
-ROLE_PERMISSIONS = {
-    "Administrador": set(PERMISSIONS),
-    "Vendedor": {"create_invoices", "manage_customers"},
-    "Cajero": {"create_invoices", "manage_cash"},
-    "Contador": {"view_reports"},
-}
+import sqlite3
 
 
-def can(role: str | None, permission: str) -> bool:
-    return permission in ROLE_PERMISSIONS.get(role or "", set())
+def list_permissions(
+    connection: sqlite3.Connection,
+) -> list[tuple]:
+    """Devuelve todos los permisos disponibles."""
+    return connection.execute(
+        """
+        SELECT
+            id,
+            codigo,
+            descripcion
+        FROM permissions
+        ORDER BY id
+        """
+    ).fetchall()
+
+
+def permissions_for_role(
+    connection: sqlite3.Connection,
+    role: str | None,
+) -> set[str]:
+    """Devuelve los códigos de permisos asignados a un rol."""
+
+    if not role:
+        return set()
+
+    rows = connection.execute(
+        """
+        SELECT p.codigo
+        FROM role_permissions rp
+        INNER JOIN roles r
+            ON r.id = rp.role_id
+        INNER JOIN permissions p
+            ON p.id = rp.permission_id
+        WHERE r.nombre = ?
+          AND r.activo = 1
+        """,
+        (role,),
+    ).fetchall()
+
+    return {row[0] for row in rows}
+
+
+def can(
+    connection: sqlite3.Connection,
+    role: str | None,
+    permission: str,
+) -> bool:
+    """Comprueba si un rol tiene un permiso."""
+
+    return permission in permissions_for_role(
+        connection,
+        role,
+    )
