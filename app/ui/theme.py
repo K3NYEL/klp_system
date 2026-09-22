@@ -24,7 +24,7 @@ CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"
 APP_VERSION = "1.1"
 
-FONT_FAMILY = "Arial"
+FONT_FAMILY = "Roboto"
 
 
 # ============================================================
@@ -840,7 +840,7 @@ def _normalize_geometry(
 # ============================================================
 
 def prepare_toplevel(
-    parent,
+    window,
     title="",
     geometry=None,
     base_path=None,
@@ -848,12 +848,14 @@ def prepare_toplevel(
     modal=False,
 ):
     """
-    Crea y configura una ventana secundaria.
+    Configura una ventana secundaria CTkToplevel existente.
 
-    Compatible con:
+    La ventana debe crearse previamente:
 
-        prepare_toplevel(
-            parent,
+        window = ctk.CTkToplevel(parent)
+
+        theme.prepare_toplevel(
+            window,
             "Mi empresa",
             (640, 470),
             base_path,
@@ -861,23 +863,18 @@ def prepare_toplevel(
         )
     """
 
-    window = ctk.CTkToplevel(
-        parent,
-    )
-
     if title:
         window.title(title)
 
-    normalized = _normalize_geometry(
-        geometry
-    )
+    normalized = _normalize_geometry(geometry)
 
     if normalized:
-        window.geometry(
-            normalized
-        )
+        window.geometry(normalized)
 
-    # Compatibilidad con llamadas existentes
+    # --------------------------------------------------------
+    # Icono
+    # --------------------------------------------------------
+
     if base_path is not None:
         try:
             set_app_icon(
@@ -887,31 +884,55 @@ def prepare_toplevel(
         except Exception:
             pass
 
-    if isinstance(
-        resizable,
-        tuple,
-    ):
-        window.resizable(
-            *resizable
-        )
+    # --------------------------------------------------------
+    # Redimensionamiento
+    # --------------------------------------------------------
 
-    elif isinstance(
-        resizable,
-        bool,
-    ):
+    try:
         window.resizable(
-            resizable,
-            resizable,
+            *resizable,
         )
+    except Exception:
+        pass
+
+    # --------------------------------------------------------
+    # Centrar ventana
+    # --------------------------------------------------------
+
+    try:
+        center_window(
+            window,
+            geometry,
+        )
+    except Exception:
+        pass
+
+    # --------------------------------------------------------
+    # Modal
+    # --------------------------------------------------------
 
     if modal:
         try:
-            window.transient(parent)
-            window.grab_set()
-        except tk.TclError:
+            window.transient(
+                window.master,
+            )
+        except Exception:
             pass
 
-    center_window(window)
+        try:
+            window.grab_set()
+        except Exception:
+            pass
+
+    # --------------------------------------------------------
+    # Enfocar
+    # --------------------------------------------------------
+
+    try:
+        window.lift()
+        window.focus_force()
+    except Exception:
+        pass
 
     return window
 

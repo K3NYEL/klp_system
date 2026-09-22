@@ -16,7 +16,7 @@ from app.auth.register_window import RegisterWindow
 
 from app.ui.styles import Colors, Fonts
 from app.ui.components.buttons import AppButton
-from app.ui.components import iputs
+from app.ui.components import inputs
 
 
 class LoginWindow:
@@ -393,7 +393,7 @@ class LoginWindow:
             padx=36,
         )
 
-        self.username_entry = iputs.make_entry(
+        self.username_entry = inputs.make_entry(
             login_frame,
             textvariable=self.username_var,
             width=328,
@@ -425,7 +425,7 @@ class LoginWindow:
             padx=36,
         )
 
-        self.password_entry = iputs.make_entry(
+        self.password_entry = inputs.make_entry(
             login_frame,
             textvariable=self.password_var,
             width=328,
@@ -456,7 +456,7 @@ class LoginWindow:
             pady=(0, 10),
         )
 
-        iputs.make_checkbutton(
+        inputs.make_checkbutton(
             options_frame,
             text="Mostrar contraseña",
             variable=self.show_password_var,
@@ -466,7 +466,7 @@ class LoginWindow:
             side="left"
         )
 
-        iputs.make_checkbutton(
+        inputs.make_checkbutton(
             options_frame,
             text="Recordar usuario",
             variable=self.remember_var,

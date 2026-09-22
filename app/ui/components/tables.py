@@ -20,7 +20,6 @@ import customtkinter as ctk
 from app.ui import theme
 from app.ui.styles import Colors, Fonts
 
-
 # ================================================================
 # CONFIGURACIÓN
 # ================================================================
@@ -64,8 +63,41 @@ STATE_TAGS = {
 
 
 # ================================================================
+# TONOS (usados por el parámetro ``state_tags`` de DataTable)
+# ================================================================
+#
+# Permiten que quien crea la tabla defina sus propios nombres de
+# tag (p. ej. "VENTA", "INGRESO") y les asigne un tono semántico
+# genérico, sin tener que conocer los colores exactos de KLP SYSTEM.
+
+TONE_COLORS = {
+    "info": {
+        "background": "#122F3D",
+        "foreground": "#64B5F6",
+    },
+    "ok": {
+        "background": "#17351F",
+        "foreground": "#81C784",
+    },
+    "warn": {
+        "background": "#3A3016",
+        "foreground": "#FFD54F",
+    },
+    "danger": {
+        "background": "#35191A",
+        "foreground": "#EF9A9A",
+    },
+    "neutral": {
+        "background": "#26282B",
+        "foreground": "#CFCFCF",
+    },
+}
+
+
+# ================================================================
 # UTILIDADES
 # ================================================================
+
 
 def _as_map(value: Any) -> Mapping[str, Any]:
     """
@@ -82,6 +114,7 @@ def _as_map(value: Any) -> Mapping[str, Any]:
 # DATA TABLE
 # ================================================================
 
+
 class DataTable(ctk.CTkFrame):
     """
     Tabla reutilizable para KLP SYSTEM.
@@ -91,7 +124,7 @@ class DataTable(ctk.CTkFrame):
         DataTable (CTkFrame)
         ├── ttk.Treeview
         ├── ctk.CTkScrollbar vertical
-        └── ctk.CTkScrollbar horizontal
+        └── ctk.CTkScrollbar horizontal (opcional, ver ``hscroll``)
 
     El Treeview continúa siendo ttk porque CustomTkinter no dispone
     de un componente de tabla nativo.
@@ -105,34 +138,29 @@ class DataTable(ctk.CTkFrame):
         *,
         height: int = 8,
         width: Optional[int] = None,
-
         # Compatibilidad con la versión anterior
-        widths: Optional[
-            Mapping[str, int] | Sequence[int]
-        ] = None,
-
-        anchors: Optional[
-            Mapping[str, str] | Sequence[str]
-        ] = None,
-
+        widths: Optional[Mapping[str, int] | Sequence[int]] = None,
+        anchors: Optional[Mapping[str, str] | Sequence[str]] = None,
         background: Optional[str] = None,
-
         selectmode: str = "browse",
         show: str = "headings",
-
         # Alias moderno
-        column_widths: Optional[
-            Mapping[str, int]
-        ] = None,
-
+        column_widths: Optional[Mapping[str, int]] = None,
         stretch_columns: bool = True,
-
         row_height: int = TABLE_ROW_HEIGHT,
         heading_height: int = TABLE_HEADING_HEIGHT,
-
         corner_radius: int = TABLE_CORNER_RADIUS,
         border_width: int = TABLE_BORDER_WIDTH,
-
+        # Controla si se crea la barra de scroll horizontal.
+        # Antes no existía como parámetro propio y terminaba
+        # colándose en **kwargs hacia CTkFrame, que no lo acepta.
+        hscroll: bool = True,
+        # Permite definir tags de fila propios (p. ej. tipos de
+        # movimiento) mapeando un nombre de tag a un tono genérico
+        # ("info", "ok", "warn", "danger", "neutral"). Igual que
+        # hscroll, antes no era un parámetro propio y se colaba en
+        # **kwargs hacia CTkFrame.
+        state_tags: Optional[Mapping[str, str]] = None,
         **kwargs,
     ):
         # ============================================================
@@ -141,16 +169,19 @@ class DataTable(ctk.CTkFrame):
 
         self.columns = tuple(columns)
 
-        self.headings = (
-            tuple(headings)
-            if headings is not None
-            else self.columns
-        )
+        self.headings = tuple(headings) if headings is not None else self.columns
 
         self.stretch_columns = stretch_columns
 
         self.row_height = row_height
         self.heading_height = heading_height
+
+        # Guardamos la preferencia de scroll horizontal para
+        # usarla más abajo, al construir las barras de scroll.
+        self.hscroll = hscroll
+
+        # Tags de fila personalizados (nombre de tag -> tono).
+        self.custom_state_tags = dict(state_tags) if state_tags else {}
 
         # ============================================================
         # WIDTHS
@@ -160,30 +191,22 @@ class DataTable(ctk.CTkFrame):
 
         # column_widths tiene prioridad.
         if column_widths is not None:
-            self.column_widths.update(
-                column_widths
-            )
+            self.column_widths.update(column_widths)
 
         # Compatibilidad con widths.
         if widths is not None:
 
             if isinstance(widths, Mapping):
 
-                self.column_widths.update(
-                    widths
-                )
+                self.column_widths.update(widths)
 
             else:
 
-                for index, column in enumerate(
-                    self.columns
-                ):
+                for index, column in enumerate(self.columns):
 
                     if index < len(widths):
 
-                        self.column_widths[
-                            column
-                        ] = widths[index]
+                        self.column_widths[column] = widths[index]
 
         # ============================================================
         # ANCHORS
@@ -195,40 +218,28 @@ class DataTable(ctk.CTkFrame):
 
             if isinstance(anchors, Mapping):
 
-                self.column_anchors.update(
-                    anchors
-                )
+                self.column_anchors.update(anchors)
 
             else:
 
-                for index, column in enumerate(
-                    self.columns
-                ):
+                for index, column in enumerate(self.columns):
 
                     if index < len(anchors):
 
-                        self.column_anchors[
-                            column
-                        ] = anchors[index]
+                        self.column_anchors[column] = anchors[index]
 
         # ============================================================
         # BACKGROUND
         # ============================================================
 
-        self.table_background = (
-            background
-            or Colors.SURFACE
-        )
+        self.table_background = background or Colors.SURFACE
 
         # ============================================================
         # FRAME EXTERNO
         # ============================================================
 
         frame_kwargs = {
-            "height": (
-                (height * row_height)
-                + heading_height
-            ),
+            "height": ((height * row_height) + heading_height),
             "fg_color": self.table_background,
             "corner_radius": corner_radius,
             "border_width": border_width,
@@ -341,30 +352,34 @@ class DataTable(ctk.CTkFrame):
             sticky="ns",
         )
 
-        self.tree.configure(
-            yscrollcommand=self.vertical_scrollbar.set
-        )
+        self.tree.configure(yscrollcommand=self.vertical_scrollbar.set)
 
         # ============================================================
         # SCROLLBAR HORIZONTAL
         # ============================================================
 
-        self.horizontal_scrollbar = ctk.CTkScrollbar(
-            self.table_frame,
-            orientation="horizontal",
-            command=self.tree.xview,
-            height=12,
-        )
+        # Solo se crea y se conecta al Treeview cuando se solicita
+        # explícitamente (hscroll=True, el valor por defecto).
+        if self.hscroll:
 
-        self.horizontal_scrollbar.grid(
-            row=1,
-            column=0,
-            sticky="ew",
-        )
+            self.horizontal_scrollbar = ctk.CTkScrollbar(
+                self.table_frame,
+                orientation="horizontal",
+                command=self.tree.xview,
+                height=12,
+            )
 
-        self.tree.configure(
-            xscrollcommand=self.horizontal_scrollbar.set
-        )
+            self.horizontal_scrollbar.grid(
+                row=1,
+                column=0,
+                sticky="ew",
+            )
+
+            self.tree.configure(xscrollcommand=self.horizontal_scrollbar.set)
+
+        else:
+
+            self.horizontal_scrollbar = None
 
         # ============================================================
         # COLUMNAS
@@ -557,6 +572,28 @@ class DataTable(ctk.CTkFrame):
                 foreground=state_colors["foreground"],
             )
 
+        # ============================================================
+        # ESTADOS PERSONALIZADOS (parámetro state_tags)
+        # ============================================================
+        #
+        # A diferencia de STATE_TAGS (que usa el prefijo "state_"),
+        # estos tags se registran con el nombre exacto que definió
+        # quien creó la tabla (p. ej. "VENTA", "INGRESO"), porque así
+        # es como se referencian luego en add_row(tags=(...)).
+
+        for tag_name, tone in self.custom_state_tags.items():
+
+            tone_colors = TONE_COLORS.get(
+                tone,
+                TONE_COLORS["neutral"],
+            )
+
+            self.tree.tag_configure(
+                tag_name,
+                background=tone_colors["background"],
+                foreground=tone_colors["foreground"],
+            )
+
     # ================================================================
     # COLUMNAS
     # ================================================================
@@ -566,9 +603,7 @@ class DataTable(ctk.CTkFrame):
         Configura encabezados, tamaños y alineación.
         """
 
-        for index, column in enumerate(
-            self.columns
-        ):
+        for index, column in enumerate(self.columns):
 
             if index < len(self.headings):
 
@@ -627,25 +662,35 @@ class DataTable(ctk.CTkFrame):
         *,
         tags: Optional[Iterable[str]] = None,
         iid: Optional[str] = None,
+        state: Optional[str] = None,
     ):
         """
         Agrega una fila a la tabla.
+
+        ``state`` permite colorear la fila según un estado, sin que
+        quien llama tenga que conocer el nombre interno del tag.
+        Acepta tanto los estados fijos de STATE_TAGS (p. ej.
+        "activo", "pendiente") como los nombres personalizados que
+        se hayan definido con el parámetro ``state_tags`` del
+        constructor (p. ej. "VENTA", "INGRESO").
         """
 
-        current_count = len(
-            self.tree.get_children()
-        )
+        current_count = len(self.tree.get_children())
 
-        zebra_tag = (
-            "even"
-            if current_count % 2 == 0
-            else "odd"
-        )
+        zebra_tag = "even" if current_count % 2 == 0 else "odd"
 
         final_tags = [zebra_tag]
 
         if tags:
             final_tags.extend(tags)
+
+        if state is not None:
+
+            state_tag = self._resolve_state_tag(state)
+
+            if state_tag is not None:
+
+                final_tags.append(state_tag)
 
         insert_kwargs = {
             "values": tuple(values),
@@ -665,22 +710,67 @@ class DataTable(ctk.CTkFrame):
         return item
 
     # ================================================================
+    # RESOLVER TAG DE ESTADO
+    # ================================================================
+
+    def _resolve_state_tag(self, state: str) -> Optional[str]:
+        """
+        Traduce un valor de ``state`` al nombre de tag ya
+        configurado en el Treeview.
+
+        Prioridad:
+        1. Coincidencia exacta con un tag personalizado, definido
+           vía ``state_tags`` (p. ej. "VENTA" -> tag "VENTA").
+        2. Coincidencia (sin distinguir mayúsculas/minúsculas) con
+           un estado fijo de STATE_TAGS, usando el prefijo
+           "state_" (p. ej. "activo" -> tag "state_activo").
+        3. Si no hay coincidencia, no se aplica ningún tag de color
+           (la fila conserva solo el rayado zebra).
+        """
+
+        if state in self.custom_state_tags:
+
+            return state
+
+        normalized = str(state).lower()
+
+        if normalized in STATE_TAGS:
+
+            return f"state_{normalized}"
+
+        return None
+
+    # ================================================================
     # SET ROWS
     # ================================================================
 
     def set_rows(
         self,
-        rows: Iterable[Sequence[Any]],
-    ):
-        """
-        Reemplaza todas las filas.
-        """
+        rows: Sequence[Sequence[Any]],
+        formats: Optional[Mapping[int, str]] = None,
+    ) -> None:
 
         self.clear()
 
-        for row in rows:
+        formats = formats or {}
 
-            self.add_row(row)
+        for row in rows:
+            formatted_row = []
+
+            for index, value in enumerate(row):
+                if index in formats:
+                    try:
+                        value = formats[index].format(value)
+                    except (ValueError, TypeError):
+                        # Si no se puede aplicar el formato,
+                        # conservamos el valor original.
+                        pass
+
+                formatted_row.append(value)
+
+            self.add_row(formatted_row)
+
+        self.restripe()
 
     # ================================================================
     # RESTRIPE
@@ -705,17 +795,14 @@ class DataTable(ctk.CTkFrame):
             tags = [
                 tag
                 for tag in tags
-                if tag not in (
+                if tag
+                not in (
                     "even",
                     "odd",
                 )
             ]
 
-            zebra_tag = (
-                "even"
-                if index % 2 == 0
-                else "odd"
-            )
+            zebra_tag = "even" if index % 2 == 0 else "odd"
 
             tags.insert(
                 0,
@@ -787,9 +874,7 @@ class DataTable(ctk.CTkFrame):
         Devuelve la cantidad de filas.
         """
 
-        return len(
-            self.tree.get_children()
-        )
+        return len(self.tree.get_children())
 
     # ================================================================
     # SELECT FIRST
@@ -808,17 +893,11 @@ class DataTable(ctk.CTkFrame):
 
         first = children[0]
 
-        self.tree.selection_set(
-            first
-        )
+        self.tree.selection_set(first)
 
-        self.tree.focus(
-            first
-        )
+        self.tree.focus(first)
 
-        self.tree.see(
-            first
-        )
+        self.tree.see(first)
 
         return first
 
@@ -856,9 +935,7 @@ class DataTable(ctk.CTkFrame):
         Detecta la fila debajo del cursor.
         """
 
-        item = self.tree.identify_row(
-            event.y
-        )
+        item = self.tree.identify_row(event.y)
 
         if item == self._hover_item:
 
@@ -867,15 +944,9 @@ class DataTable(ctk.CTkFrame):
         # Restaurar fila anterior.
         if self._hover_item:
 
-            self._restore_row_tags(
-                self._hover_item
-            )
+            self._restore_row_tags(self._hover_item)
 
-        self._hover_item = (
-            item
-            if item
-            else None
-        )
+        self._hover_item = item if item else None
 
         if not item:
 
@@ -890,9 +961,7 @@ class DataTable(ctk.CTkFrame):
 
         if "hover" not in current_tags:
 
-            current_tags.append(
-                "hover"
-            )
+            current_tags.append("hover")
 
         self.tree.item(
             item,
@@ -908,9 +977,7 @@ class DataTable(ctk.CTkFrame):
 
         if self._hover_item:
 
-            self._restore_row_tags(
-                self._hover_item
-            )
+            self._restore_row_tags(self._hover_item)
 
         self._hover_item = None
 
@@ -936,18 +1003,11 @@ class DataTable(ctk.CTkFrame):
 
             return
 
-        current_tags = [
-            tag
-            for tag in current_tags
-            if tag != "hover"
-        ]
+        current_tags = [tag for tag in current_tags if tag != "hover"]
 
         # Si perdió el tag zebra,
         # lo reconstruimos.
-        if (
-            "even" not in current_tags
-            and "odd" not in current_tags
-        ):
+        if "even" not in current_tags and "odd" not in current_tags:
 
             children = self.tree.get_children()
 
@@ -959,11 +1019,7 @@ class DataTable(ctk.CTkFrame):
 
                 index = 0
 
-            zebra_tag = (
-                "even"
-                if index % 2 == 0
-                else "odd"
-            )
+            zebra_tag = "even" if index % 2 == 0 else "odd"
 
             current_tags.insert(
                 0,
@@ -1031,9 +1087,7 @@ class DataTable(ctk.CTkFrame):
         Proxy compatible con Treeview.delete().
         """
 
-        result = self.tree.delete(
-            *items
-        )
+        result = self.tree.delete(*items)
 
         self.restripe()
 
@@ -1048,6 +1102,4 @@ class DataTable(ctk.CTkFrame):
         el Treeview interno.
         """
 
-        self.tree.configure(
-            **kwargs
-        )
+        self.tree.configure(**kwargs)

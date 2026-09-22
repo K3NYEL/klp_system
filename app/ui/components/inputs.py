@@ -9,7 +9,7 @@ Componentes reutilizables construidos con CustomTkinter:
 - CTkFrame
 - AppButton
 
-Se mantiene el nombre histórico ``iputs.py`` para evitar tener que modificar
+Se mantiene el nombre histórico ``inputs.py`` para evitar tener que modificar
 todos los imports existentes del proyecto.
 """
 
@@ -38,14 +38,22 @@ def make_entry(
     state: str = "normal",
     font_role: str = "body",
     tooltip: Optional[str] = None,
+    expand: bool = False,
     **kwargs: Any,
 ) -> ctk.CTkEntry:
     """
     Crea un campo de entrada CustomTkinter.
 
-    Mantiene la misma interfaz que la antigua función ``make_entry`` para
-    conservar compatibilidad con el resto de la aplicación.
+    Args:
+        width:
+            Ancho inicial/preferido del campo.
+
+        expand:
+            Indica que el campo está pensado para expandirse dentro
+            de su contenedor mediante grid sticky="ew".
     """
+    if "placeholder" in kwargs and "placeholder_text" not in kwargs:
+        kwargs["placeholder_text"] = kwargs.pop("placeholder")
 
     entry_kwargs: dict[str, Any] = {
         "height": kwargs.pop("height", 36),
@@ -56,30 +64,22 @@ def make_entry(
         "text_color": kwargs.pop("text_color", Colors.TEXT),
         "placeholder_text": kwargs.pop("placeholder_text", None),
         "justify": justify,
+        "font": theme.font(font_role),
     }
 
-    # CTkEntry utiliza width en píxeles.
     if width is not None:
         entry_kwargs["width"] = width
 
-    # Mostrar/ocultar contraseña.
     if show is not None:
         entry_kwargs["show"] = show
 
-    # Estado del campo.
     if state == "disabled":
         entry_kwargs["state"] = "disabled"
     elif state == "readonly":
-        # CTkEntry no tiene readonly nativo como ttk.Entry.
-        # Lo tratamos como disabled para evitar modificaciones.
         entry_kwargs["state"] = "disabled"
     else:
         entry_kwargs["state"] = state
 
-    # Fuente.
-    entry_kwargs["font"] = theme.font(font_role)
-
-    # Permitir personalización adicional.
     entry_kwargs.update(kwargs)
 
     entry = ctk.CTkEntry(
@@ -87,17 +87,14 @@ def make_entry(
         **entry_kwargs,
     )
 
-    # Vincular StringVar / Variable después de crear el widget.
     if textvariable is not None:
         try:
             entry.configure(
                 textvariable=textvariable,
             )
         except Exception:
-            # Compatibilidad con algunas versiones de CustomTkinter.
             entry._textvariable = textvariable  # type: ignore[attr-defined]
 
-    # Registrar para el sistema de temas.
     theme.remember(
         entry,
         "entry",
@@ -109,6 +106,55 @@ def make_entry(
 
     return entry
 
+# ============================================================================
+# SEARCH ENTRY
+# ============================================================================
+
+def make_search_entry(
+    parent: Any,
+    textvariable: Optional[tk.Variable] = None,
+    placeholder_text: Optional[str] = "Buscar...",
+    row: Optional[int] = None,
+    column: Optional[int] = None,
+    width: Optional[int] = None,
+    padx: int = 0,
+    pady: int = 0,
+    **kwargs: Any,
+) -> ctk.CTkEntry:
+    """
+    Crea un campo de búsqueda adaptable.
+
+    Está pensado para barras de búsqueda y filtros que deben
+    aprovechar el espacio disponible del contenedor.
+    """
+
+    entry = make_entry(
+        parent,
+        textvariable=textvariable,
+        width=width,
+        placeholder_text=placeholder_text,
+        **kwargs,
+    )
+
+    if row is not None and column is not None:
+
+        try:
+            parent.grid_columnconfigure(
+                column,
+                weight=1,
+            )
+        except (AttributeError, tk.TclError):
+            pass
+
+        entry.grid(
+            row=row,
+            column=column,
+            sticky="ew",
+            padx=padx,
+            pady=pady,
+        )
+
+    return entry
 
 # ============================================================================
 # LABEL
@@ -186,13 +232,13 @@ def labeled_entry(
     padx: int = 8,
     pady: int = 5,
     background: str = "surface",
+    expand: bool = True,
     **kwargs: Any,
 ) -> Tuple[ctk.CTkLabel, ctk.CTkEntry]:
     """
     Crea una etiqueta y un campo de entrada en una misma fila.
 
-    Devuelve:
-        (label, entry)
+    Por defecto, el campo ocupa el espacio horizontal disponible.
     """
 
     caption_column = (
@@ -207,6 +253,29 @@ def labeled_entry(
         else entry_column
     )
 
+    # ------------------------------------------------------------
+    # Configuración de columnas
+    # ------------------------------------------------------------
+
+    try:
+        # La columna del label mantiene su tamaño natural.
+        parent.grid_columnconfigure(
+            caption_column,
+            weight=0,
+        )
+
+        # La columna del input absorbe el espacio disponible.
+        parent.grid_columnconfigure(
+            field_column,
+            weight=1 if expand else 0,
+        )
+    except (AttributeError, tk.TclError):
+        pass
+
+    # ------------------------------------------------------------
+    # Label
+    # ------------------------------------------------------------
+
     caption = _caption(
         parent,
         text,
@@ -218,18 +287,23 @@ def labeled_entry(
         pady,
     )
 
+    # ------------------------------------------------------------
+    # Entry
+    # ------------------------------------------------------------
+
     entry = make_entry(
         parent,
         textvariable=textvariable,
         width=width,
         show=show,
+        expand=expand,
         **kwargs,
     )
 
     entry.grid(
         row=row,
         column=field_column,
-        sticky=entry_sticky,
+        sticky="ew" if expand else entry_sticky,
         padx=(0, padx),
         pady=pady,
     )
@@ -254,7 +328,7 @@ def labeled_combobox(
     label_column: Optional[int] = None,
     entry_column: Optional[int] = None,
     label_sticky: str = "e",
-    entry_sticky: str = "w",
+    entry_sticky: str = "ew",
     padx: int = 8,
     pady: int = 5,
     background: str = "surface",

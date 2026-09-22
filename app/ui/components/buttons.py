@@ -2,7 +2,6 @@
 Botones reutilizables de KLP SYSTEM.
 
 Todos los botones utilizan CustomTkinter.
-
 No se utiliza tk.Button.
 """
 
@@ -12,7 +11,8 @@ from typing import Callable
 
 import customtkinter as ctk
 
-from app.ui.styles import Colors, Fonts, ButtonSizes
+from app.ui import theme
+
 
 # ============================================================
 # TOOLTIP
@@ -54,16 +54,15 @@ class ButtonTooltip:
 
             self.tip_window.overrideredirect(True)
             self.tip_window.attributes("-topmost", True)
-
             self.tip_window.geometry(f"+{x}+{y}")
 
             label = ctk.CTkLabel(
                 self.tip_window,
                 text=self.text,
-                fg_color=Colors.CARD,
-                text_color=Colors.TEXT_SECONDARY,
+                fg_color=theme.color("card"),
+                text_color=theme.color("text_muted"),
                 corner_radius=6,
-                font=Fonts.SMALL,
+                font=theme.font("small"),
                 padx=8,
                 pady=5,
             )
@@ -93,7 +92,6 @@ class AppButton(ctk.CTkButton):
     Botón estándar de KLP SYSTEM.
 
     Variantes:
-
         primary
         secondary
         neutral
@@ -105,83 +103,133 @@ class AppButton(ctk.CTkButton):
         ghost
 
     Tamaños:
-
         small
         medium
         large
         full
     """
 
-    # ========================================================
-    # VARIANTES
-    # ========================================================
-
     VARIANTS = {
-        "primary": {
-            "fg_color": Colors.PRIMARY,
-            "hover_color": Colors.PRIMARY_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 0,
-            "border_color": Colors.PRIMARY,
+        "primary",
+        "secondary",
+        "neutral",
+        "success",
+        "danger",
+        "warning",
+        "info",
+        "outline",
+        "ghost",
+    }
+
+    SIZES = {
+        "small": {
+            "width": 100,
+            "height": 32,
+            "corner_radius": 7,
         },
-        "secondary": {
-            "fg_color": Colors.SECONDARY,
-            "hover_color": Colors.SECONDARY_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 0,
-            "border_color": Colors.SECONDARY,
+        "medium": {
+            "width": 130,
+            "height": 38,
+            "corner_radius": 8,
         },
-        # Alias visual para el código antiguo.
-        "neutral": {
-            "fg_color": Colors.SECONDARY,
-            "hover_color": Colors.SECONDARY_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 0,
-            "border_color": Colors.SECONDARY,
+        "large": {
+            "width": 160,
+            "height": 44,
+            "corner_radius": 9,
         },
-        "success": {
-            "fg_color": Colors.SUCCESS,
-            "hover_color": Colors.SUCCESS_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 0,
-            "border_color": Colors.SUCCESS,
-        },
-        "danger": {
-            "fg_color": Colors.DANGER,
-            "hover_color": Colors.DANGER_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 0,
-            "border_color": Colors.DANGER,
-        },
-        "warning": {
-            "fg_color": Colors.WARNING,
-            "hover_color": Colors.WARNING_HOVER,
-            "text_color": "#111111",
-            "border_width": 0,
-            "border_color": Colors.WARNING,
-        },
-        "info": {
-            "fg_color": Colors.INFO,
-            "hover_color": Colors.INFO_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 0,
-            "border_color": Colors.INFO,
-        },
-        "outline": {
-            "fg_color": Colors.TRANSPARENT,
-            "hover_color": Colors.SURFACE_HOVER,
-            "text_color": Colors.TEXT,
-            "border_width": 1,
-            "border_color": Colors.BORDER_LIGHT,
-        },
-        "ghost": {
-            "fg_color": Colors.TRANSPARENT,
-            "hover_color": Colors.SURFACE_HOVER,
-            "text_color": Colors.TEXT_SECONDARY,
-            "border_width": 0,
-            "border_color": Colors.BORDER,
+        "full": {
+            "height": 42,
+            "corner_radius": 8,
         },
     }
+
+    # ========================================================
+    # VARIANT CONFIG
+    # ========================================================
+
+    @staticmethod
+    def _variant_config(variant: str) -> dict:
+        """
+        Obtiene la configuración visual de una variante
+        utilizando exclusivamente el sistema dinámico de theme.py.
+        """
+
+        if variant == "primary":
+            return {
+                "fg_color": theme.color("accent"),
+                "hover_color": theme.color("accent_hover"),
+                "text_color": theme.color("text_on_accent"),
+                "border_width": 0,
+                "border_color": theme.color("accent"),
+            }
+
+        if variant in {"secondary", "neutral"}:
+            return {
+                "fg_color": theme.color("neutral"),
+                "hover_color": theme.color("neutral_dark"),
+                "text_color": theme.color("text"),
+                "border_width": 0,
+                "border_color": theme.color("neutral"),
+            }
+
+        if variant == "success":
+            return {
+                "fg_color": theme.color("success"),
+                "hover_color": theme.color("success_dark"),
+                "text_color": theme.color("text_on_accent"),
+                "border_width": 0,
+                "border_color": theme.color("success"),
+            }
+
+        if variant == "danger":
+            return {
+                "fg_color": theme.color("danger"),
+                "hover_color": theme.color("danger_dark"),
+                "text_color": theme.color("text_on_accent"),
+                "border_width": 0,
+                "border_color": theme.color("danger"),
+            }
+
+        if variant == "warning":
+            return {
+                "fg_color": theme.color("warning"),
+                "hover_color": theme.color("warning_dark"),
+                "text_color": theme.color("text_on_accent"),
+                "border_width": 0,
+                "border_color": theme.color("warning"),
+            }
+
+        if variant == "info":
+            return {
+                "fg_color": theme.color("info"),
+                "hover_color": theme.color("info_dark"),
+                "text_color": theme.color("text_on_accent"),
+                "border_width": 0,
+                "border_color": theme.color("info"),
+            }
+
+        if variant == "outline":
+            return {
+                "fg_color": "transparent",
+                "hover_color": theme.color("surface_alt"),
+                "text_color": theme.color("text"),
+                "border_width": 1,
+                "border_color": theme.color("border_light"),
+            }
+
+        if variant == "ghost":
+            return {
+                "fg_color": "transparent",
+                "hover_color": theme.color("surface_alt"),
+                "text_color": theme.color("text_muted"),
+                "border_width": 0,
+                "border_color": theme.color("border"),
+            }
+
+        raise ValueError(
+            f"Variante desconocida: '{variant}'. "
+            f"Disponibles: {', '.join(sorted(AppButton.VARIANTS))}"
+        )
 
     # ========================================================
     # CONSTRUCTOR
@@ -203,36 +251,6 @@ class AppButton(ctk.CTkButton):
     ):
         """
         Crea un botón reutilizable de KLP SYSTEM.
-
-        Args:
-            master:
-                Widget padre.
-
-            text:
-                Texto del botón.
-
-            command:
-                Función ejecutada al pulsar.
-
-            variant:
-                primary, secondary, neutral, success,
-                danger, warning, info, outline o ghost.
-
-            size:
-                small, medium, large o full.
-
-            icon:
-                Emoji o texto corto antes del texto.
-
-            font_role:
-                Nombre de una fuente definida en Fonts.
-
-            tooltip:
-                Texto mostrado al mantener el cursor sobre
-                el botón.
-
-            padx / pady:
-                Compatibilidad con el código anterior.
         """
 
         # ----------------------------------------------------
@@ -244,7 +262,7 @@ class AppButton(ctk.CTkButton):
         if variant not in self.VARIANTS:
             raise ValueError(
                 f"Variante desconocida: '{variant}'. "
-                f"Disponibles: {', '.join(self.VARIANTS)}"
+                f"Disponibles: {', '.join(sorted(self.VARIANTS))}"
             )
 
         # ----------------------------------------------------
@@ -253,50 +271,22 @@ class AppButton(ctk.CTkButton):
 
         size = size.lower()
 
-        valid_sizes = {
-            "small",
-            "medium",
-            "large",
-            "full",
-        }
-
-        if size not in valid_sizes:
+        if size not in self.SIZES:
             raise ValueError(
                 f"Tamaño desconocido: '{size}'. "
-                f"Disponibles: {', '.join(sorted(valid_sizes))}"
+                f"Disponibles: {', '.join(sorted(self.SIZES))}"
             )
 
-        # ----------------------------------------------------
-        # Configuración del tamaño
-        # ----------------------------------------------------
-
-        size_config = getattr(
-            ButtonSizes,
-            size.upper(),
-        )
+        size_config = self.SIZES[size]
 
         # ----------------------------------------------------
         # Fuente
         # ----------------------------------------------------
 
         if font_role:
-
-            font = getattr(
-                Fonts,
-                font_role.upper(),
-                Fonts.BUTTON,
-            )
-
+            font = theme.font(font_role)
         else:
-
-            if size == "small":
-                font = Fonts.BUTTON_SMALL
-
-            elif size == "large":
-                font = Fonts.BUTTON_LARGE
-
-            else:
-                font = Fonts.BUTTON
+            font = theme.font("button")
 
         # ----------------------------------------------------
         # Icono
@@ -306,27 +296,31 @@ class AppButton(ctk.CTkButton):
             text = f"{icon}  {text}"
 
         # ----------------------------------------------------
-        # Configuración base
+        # Variante
         # ----------------------------------------------------
 
-        variant_config = self.VARIANTS[variant]
+        variant_config = self._variant_config(variant)
+
+        # ----------------------------------------------------
+        # Configuración base
+        # ----------------------------------------------------
 
         config = {
             "text": text,
             "command": command,
-            # Colores
+
             "fg_color": variant_config["fg_color"],
             "hover_color": variant_config["hover_color"],
             "text_color": variant_config["text_color"],
-            # Borde
+
             "border_width": variant_config["border_width"],
             "border_color": variant_config["border_color"],
-            # Fuente
+
             "font": font,
-            # Tamaño
+
             "height": size_config["height"],
             "corner_radius": size_config["corner_radius"],
-            # Cursor
+
             "cursor": "hand2",
         }
 
@@ -338,10 +332,9 @@ class AppButton(ctk.CTkButton):
             config["width"] = size_config["width"]
 
         # ----------------------------------------------------
-        # Compatibilidad con width personalizado
+        # kwargs tiene prioridad
         # ----------------------------------------------------
 
-        # kwargs tiene prioridad sobre el tamaño estándar.
         config.update(kwargs)
 
         # ----------------------------------------------------
@@ -355,14 +348,6 @@ class AppButton(ctk.CTkButton):
 
         # ----------------------------------------------------
         # Padding
-        # ----------------------------------------------------
-        #
-        # CTkButton no utiliza padx/pady como padding interno
-        # de la misma forma que tk.Button.
-        #
-        # Los aceptamos para mantener compatibilidad con
-        # llamadas antiguas, pero el espacio alrededor del
-        # botón debe controlarse preferentemente con pack/grid.
         # ----------------------------------------------------
 
         self._button_padx = padx
@@ -399,17 +384,14 @@ class AppButton(ctk.CTkButton):
         """
 
         if enabled:
-
             self.configure(
                 state="normal",
-                text_color=Colors.TEXT,
+                text_color=theme.color("text_on_accent"),
             )
-
         else:
-
             self.configure(
                 state="disabled",
-                text_color=Colors.TEXT_DISABLED,
+                text_color=theme.color("text_disabled"),
             )
 
     # ========================================================
@@ -426,11 +408,7 @@ class AppButton(ctk.CTkButton):
         """
 
         if loading:
-
-            if not hasattr(
-                self,
-                "_normal_text",
-            ):
+            if not hasattr(self, "_normal_text"):
                 self._normal_text = self.cget("text")
 
             self.configure(
@@ -439,7 +417,6 @@ class AppButton(ctk.CTkButton):
             )
 
         else:
-
             original_text = getattr(
                 self,
                 "_normal_text",
