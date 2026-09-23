@@ -9,11 +9,11 @@ echo                 KLP SYSTEM - BUILD WINDOWS
 echo ============================================================
 echo.
 
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
 :: 1. Comprobar entorno
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
 
-echo [1/4] Comprobando entorno...
+echo [1/5] Comprobando entorno...
 
 if not exist ".venv\Scripts\python.exe" (
     echo.
@@ -38,11 +38,11 @@ if not exist ".venv\Scripts\pyinstaller.exe" (
 echo Entorno encontrado correctamente.
 echo.
 
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
 :: 2. Limpiar compilacion anterior
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
 
-echo [2/4] Limpiando compilacion anterior...
+echo [2/5] Limpiando compilacion anterior...
 
 if exist "build\klp_system" (
     rmdir /s /q "build\klp_system"
@@ -51,6 +51,12 @@ if exist "build\klp_system" (
 if exist "dist\klp_system.exe" (
     del /q "dist\klp_system.exe"
 )
+
+if exist "releases\Windows" (
+    rmdir /s /q "releases\Windows"
+)
+
+mkdir "releases\Windows"
 
 :: Nunca empaquetar la base de datos de desarrollo.
 
@@ -69,11 +75,11 @@ if exist "dist\facturacion.db-shm" (
 echo Limpieza completada.
 echo.
 
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
 :: 3. PyInstaller
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
 
-echo [3/4] Generando ejecutable Windows...
+echo [3/5] Generando ejecutable Windows...
 
 ".venv\Scripts\pyinstaller.exe" --clean --noconfirm "klp_system.spec"
 
@@ -99,22 +105,48 @@ if not exist "dist\klp_system.exe" (
 echo Compilacion completada correctamente.
 echo.
 
-:: ---------------------------------------------------------------------------
-:: 4. Resultado
-:: ---------------------------------------------------------------------------
+:: -----------------------------------------------------------------------
+:: 4. Preparar ejecutable final
+:: -----------------------------------------------------------------------
 
-echo [4/4] Verificando resultado...
+echo [4/5] Preparando ejecutable final...
+
+copy /Y "dist\klp_system.exe" "releases\Windows\klp_system.exe" > nul
+
+if errorlevel 1 (
+    echo.
+    echo [ERROR] No se pudo copiar el ejecutable final.
+    echo.
+    goto error
+)
+
+if not exist "releases\Windows\klp_system.exe" (
+    echo.
+    echo [ERROR] No se encontro el ejecutable final.
+    echo.
+    goto error
+)
+
+echo Ejecutable final preparado correctamente.
+echo.
+
+:: -----------------------------------------------------------------------
+:: 5. Resultado
+:: -----------------------------------------------------------------------
+
+echo [5/5] Verificando resultado...
 echo.
 
 echo ============================================================
 echo             KLP SYSTEM - BUILD COMPLETADO
 echo ============================================================
 echo.
+
 echo Ejecutable Windows:
-echo   %CD%\dist\klp_system.exe
+echo   %CD%\releases\Windows\klp_system.exe
 echo.
 
-for %%A in ("dist\klp_system.exe") do (
+for %%A in ("releases\Windows\klp_system.exe") do (
     echo Tamano:
     echo   %%~zA bytes
 )

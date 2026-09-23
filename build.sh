@@ -20,54 +20,60 @@ if [[ -z "$PYINSTALLER" ]]; then
     exit 1
 fi
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Configuración
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 APPDIR="AppDir"
-APPIMAGE="dist/KLP-System-x86_64.AppImage"
 
-# appimagetool extraído para evitar problemas con FUSE
+RELEASE_DIR="releases/Linux"
+APPIMAGE="$RELEASE_DIR/KLP-System-x86_64.AppImage"
+
 APPIMAGETOOL="$HOME/.local/bin/squashfs-root/AppRun"
 
-# ---------------------------------------------------------------------------
-# 1. Limpiar
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# 1. Limpiar compilación anterior
+# ------------------------------------------------------------------------
 
-echo "[1/5] Limpiando la compilación anterior..."
+echo "[1/5] Limpiando compilación anterior..."
 
 rm -rf \
     build/klp_system \
-    dist/klp_system \
+    "$APPDIR" \
     "$APPIMAGE"
 
-rm -f \
-    dist/facturacion.db \
-    dist/facturacion.db-wal \
-    dist/facturacion.db-shm
+# Limpiar únicamente artefactos anteriores del AppImage.
+# El ejecutable dist/klp_system se conserva.
 
-# ---------------------------------------------------------------------------
+mkdir -p "$RELEASE_DIR"
+
+# ------------------------------------------------------------------------
 # 2. PyInstaller
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 echo "[2/5] Generando ejecutable Linux..."
 
-"$PYINSTALLER" --clean --noconfirm klp_system.spec
+"$PYINSTALLER" \
+    --clean \
+    --noconfirm \
+    klp_system.spec
 
-if [[ ! -x dist/klp_system ]]; then
-    echo "Error: no se generó dist/klp_system"
+if [[ ! -x "dist/klp_system" ]]; then
+    echo ""
+    echo "Error: no se generó:"
+    echo "  dist/klp_system"
+    echo ""
     exit 1
 fi
 
-echo "Ejecutable generado correctamente."
+echo "Ejecutable generado:"
+echo "  $(pwd)/dist/klp_system"
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # 3. Preparar AppDir
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 echo "[3/5] Preparando AppDir..."
-
-rm -rf "$APPDIR"
 
 mkdir -p \
     "$APPDIR/usr/bin" \
@@ -81,9 +87,9 @@ cp \
 chmod +x \
     "$APPDIR/usr/bin/klp_system"
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Desktop Entry
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 cat > "$APPDIR/usr/share/applications/klp_system.desktop" <<'EOF'
 [Desktop Entry]
@@ -96,14 +102,13 @@ Terminal=false
 Categories=Office;Finance;
 EOF
 
-# AppImage necesita el desktop entry también en la raíz
 cp \
     "$APPDIR/usr/share/applications/klp_system.desktop" \
     "$APPDIR/klp_system.desktop"
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Icono
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 ICON_FOUND=""
 
@@ -119,6 +124,7 @@ do
 done
 
 if [[ -n "$ICON_FOUND" ]]; then
+
     cp \
         "$ICON_FOUND" \
         "$APPDIR/usr/share/icons/hicolor/256x256/apps/klp_system.png"
@@ -128,13 +134,16 @@ if [[ -n "$ICON_FOUND" ]]; then
         "$APPDIR/klp_system.png"
 
     echo "Icono encontrado: $ICON_FOUND"
+
 else
+
     echo "Aviso: no se encontró un icono PNG para el AppImage."
+
 fi
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # AppRun
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/usr/bin/env bash
@@ -146,27 +155,29 @@ EOF
 
 chmod +x "$APPDIR/AppRun"
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # 4. Comprobar appimagetool
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 
 echo "[4/5] Comprobando appimagetool..."
 
 if [[ ! -x "$APPIMAGETOOL" ]]; then
+
     echo ""
-    echo "Error: no se encontró el AppRun de appimagetool."
+    echo "Error: no se encontró appimagetool."
     echo ""
     echo "Ruta esperada:"
     echo "  $APPIMAGETOOL"
     echo ""
+
     exit 1
 fi
 
 "$APPIMAGETOOL" --version
 
-# ---------------------------------------------------------------------------
-# 5. Crear AppImage
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# 5. Generar AppImage
+# ------------------------------------------------------------------------
 
 echo "[5/5] Generando AppImage..."
 
@@ -175,8 +186,11 @@ echo "[5/5] Generando AppImage..."
     "$APPIMAGE"
 
 if [[ ! -f "$APPIMAGE" ]]; then
+
+    echo ""
     echo "Error: no se generó el AppImage."
     exit 1
+
 fi
 
 chmod +x "$APPIMAGE"
@@ -187,17 +201,12 @@ echo "       KLP SYSTEM - BUILD COMPLETADO"
 echo "=============================================="
 echo ""
 
-echo "Ejecutable:"
+echo "Ejecutable Linux:"
 echo "  $(pwd)/dist/klp_system"
 
 echo ""
 
 echo "AppImage:"
 echo "  $(pwd)/$APPIMAGE"
-
-echo ""
-
-echo "Ejecutar AppImage:"
-echo "  ./$APPIMAGE"
 
 echo ""

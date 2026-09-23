@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configurar Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: "pip"
@@ -48,16 +48,17 @@ jobs:
       - name: Verificar ejecutable
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist\klp_system.exe")) {
-            Write-Error "No se encontró dist\klp_system.exe"
+          if (-not (Test-Path "releases\Windows\klp_system.exe")) {
+            Write-Error "No se encontró releases\Windows\klp_system.exe"
             exit 1
           }
 
-          Get-Item "dist\klp_system.exe" | Format-List Name,Length,FullName
+          Get-Item "releases\Windows\klp_system.exe" |
+            Format-List Name,Length,FullName
 
       - name: Publicar ejecutable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: KLP-System-Windows
-          path: dist/klp_system.exe
+          path: releases/Windows/klp_system.exe
           if-no-files-found: error
