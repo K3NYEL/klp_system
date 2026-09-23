@@ -676,13 +676,6 @@ class SistemaFacturacion:
         opciones.add_separator()
 
         opciones.add_command(
-            label="Alternar tema claro / oscuro",
-            command=self.alternar_tema,
-        )
-
-        opciones.add_separator()
-
-        opciones.add_command(
             label="Acerca de",
             command=self.mostrar_acerca_de,
         )
@@ -838,23 +831,6 @@ class SistemaFacturacion:
             padx=3,
         )
 
-        self.theme_button = AppButton(
-            actions,
-            text="Tema oscuro",
-            command=self.alternar_tema,
-            variant="neutral",
-            size="small",
-            width=12,
-            tooltip=(
-                "Alternar entre tema claro y oscuro"
-            ),
-        )
-
-        self.theme_button.pack(
-            side="left",
-            padx=3,
-        )
-
         AppButton(
             actions,
             text="Cerrar sesión",
@@ -934,6 +910,7 @@ class SistemaFacturacion:
             None,
         ) is not None:
             self.status_var.set(message)
+            
     # ========================================================
     # DASHBOARD + CAJA
     # ========================================================
@@ -973,46 +950,6 @@ class SistemaFacturacion:
 
         self.tabs["dashboard"] = tab
 
-    # ========================================================
-    # TEMA
-    # ========================================================
-
-    def cambiar_tema(self, name):
-        """Aplica un tema concreto."""
-
-        selected = self.theme_manager.apply(
-            name
-        )
-
-        self._actualizar_boton_tema(
-            selected
-        )
-
-    def alternar_tema(self):
-        """Alterna entre tema claro y oscuro."""
-
-        self._actualizar_boton_tema(
-            self.theme_manager.toggle()
-        )
-
-    def _actualizar_boton_tema(self, selected):
-        if getattr(
-            self,
-            "theme_button",
-            None,
-        ) is not None:
-
-            self.theme_button.configure(
-                text=(
-                    "Tema claro"
-                    if selected == "oscuro"
-                    else "Tema oscuro"
-                )
-            )
-
-        self.set_status(
-            f"Tema {selected} aplicado."
-        )
 
     # ========================================================
     # ATAJOS

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import subprocess
 import tkinter as tk
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -13,6 +12,9 @@ from tkinter import ttk
 # ============================================================
 # KLP SYSTEM
 # Sistema de tema global basado en CustomTkinter
+#
+# KLP SYSTEM utiliza exclusivamente un tema oscuro.
+# El tema de Kali/XFCE/GTK no afecta la aplicación.
 # ============================================================
 
 
@@ -23,7 +25,6 @@ from tkinter import ttk
 CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"
 APP_VERSION = "1.1"
-
 FONT_FAMILY = "Roboto"
 
 
@@ -38,18 +39,15 @@ def resource_path(*parts: str) -> str:
     Funciona tanto ejecutando Python directamente como
     ejecutando una versión empaquetada con PyInstaller.
     """
+    import sys
 
-    if getattr(__import__("sys"), "frozen", False):
-        base = getattr(__import__("sys"), "_MEIPASS", None)
+    if getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS", None)
 
         if not base:
-            base = os.path.dirname(
-                __import__("sys").executable
-            )
+            base = os.path.dirname(sys.executable)
     else:
-        base = str(
-            Path(__file__).resolve().parents[2]
-        )
+        base = str(Path(__file__).resolve().parents[2])
 
     return os.path.join(base, *parts)
 
@@ -76,6 +74,8 @@ ICON_FILES = {
 }
 
 
+# Mantiene vivas las imágenes PhotoImage mientras
+# la ventana correspondiente exista.
 ICON_IMAGES: Dict[str, Any] = {}
 
 
@@ -139,156 +139,35 @@ FONTS = {
 
 
 # ============================================================
-# DETECCIÓN DEL TEMA DEL SISTEMA
+# TEMA FIJO
 # ============================================================
 
-def _detect_from_gsettings() -> Optional[str]:
-    """
-    Intenta detectar el tema mediante gsettings.
-    """
-
-    try:
-        result = subprocess.run(
-            [
-                "gsettings",
-                "get",
-                "org.gnome.desktop.interface",
-                "color-scheme",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=1,
-            check=False,
-        )
-
-        value = result.stdout.strip().lower()
-
-        if "prefer-dark" in value:
-            return "oscuro"
-
-        if "prefer-light" in value:
-            return "claro"
-
-    except Exception:
-        pass
-
-    return None
-
-
-def _detect_from_xfconf() -> Optional[str]:
-    """
-    Intenta detectar el tema desde XFCE.
-    """
-
-    try:
-        result = subprocess.run(
-            [
-                "xfconf-query",
-                "-c",
-                "xsettings",
-                "-p",
-                "/Net/ThemeName",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=1,
-            check=False,
-        )
-
-        theme = result.stdout.strip().lower()
-
-        if any(
-            word in theme
-            for word in (
-                "dark",
-                "black",
-                "night",
-            )
-        ):
-            return "oscuro"
-
-        if any(
-            word in theme
-            for word in (
-                "light",
-                "white",
-            )
-        ):
-            return "claro"
-
-    except Exception:
-        pass
-
-    return None
-
-
-def detect_system_theme() -> str:
-    """
-    Detecta automáticamente claro u oscuro.
-
-    Prioridad:
-        1. gsettings
-        2. xfconf
-        3. GTK_THEME
-        4. claro
-    """
-
-    detected = _detect_from_gsettings()
-
-    if detected:
-        return detected
-
-    detected = _detect_from_xfconf()
-
-    if detected:
-        return detected
-
-    gtk_theme = os.environ.get(
-        "GTK_THEME",
-        "",
-    ).lower()
-
-    if "dark" in gtk_theme:
-        return "oscuro"
-
-    if "light" in gtk_theme:
-        return "claro"
-
-    return "claro"
-
-
-DEFAULT_THEME = detect_system_theme()
+DEFAULT_THEME = "oscuro"
+_current_theme = "oscuro"
 
 
 # ============================================================
-# PALETAS KLP SYSTEM
+# PALETA KLP SYSTEM
 # ============================================================
 
 THEMES = {
-
-    # ========================================================
-    # TEMA OSCURO
-    # ========================================================
-
     "oscuro": {
-
+        # ----------------------------------------------------
+        # SUPERFICIES
+        # ----------------------------------------------------
         "window": "#090B10",
         "surface": "#11141B",
         "surface_alt": "#171B23",
-
         "card": "#131720",
         "card_hover": "#191E28",
-
         "border": "#252B36",
         "border_light": "#303744",
-
         "header": "#0D1016",
         "header_text": "#F5F7FA",
 
-        # --------------------------------------------
+        # ----------------------------------------------------
         # ROJO KLP
-        # --------------------------------------------
-
+        # ----------------------------------------------------
         "accent": "#E53935",
         "accent_dark": "#C62828",
         "accent_hover": "#EF5350",
@@ -299,10 +178,9 @@ THEMES = {
         "text_disabled": "#5C6470",
         "text_on_accent": "#FFFFFF",
 
-        # --------------------------------------------
+        # ----------------------------------------------------
         # ESTADOS
-        # --------------------------------------------
-
+        # ----------------------------------------------------
         "success": "#35C779",
         "success_dark": "#249C5C",
         "success_soft": "#13281D",
@@ -323,116 +201,28 @@ THEMES = {
         "neutral_dark": "#697482",
         "neutral_soft": "#202631",
 
-        # --------------------------------------------
+        # ----------------------------------------------------
         # TABLAS
-        # --------------------------------------------
-
+        # ----------------------------------------------------
         "row_alt": "#151A22",
         "row_hover": "#202632",
         "selection": "#B72D2A",
         "selection_text": "#FFFFFF",
 
-        # --------------------------------------------
+        # ----------------------------------------------------
         # INPUTS
-        # --------------------------------------------
-
+        # ----------------------------------------------------
         "entry_bg": "#151922",
         "entry_border": "#303744",
         "entry_focus": "#E53935",
         "entry_disabled": "#10131A",
 
-        # --------------------------------------------
+        # ----------------------------------------------------
         # SCROLL
-        # --------------------------------------------
-
+        # ----------------------------------------------------
         "scroll_trough": "#10131A",
         "scroll_thumb": "#343B48",
         "scroll_hover": "#454E5D",
-    },
-
-
-    # ========================================================
-    # TEMA CLARO
-    # ========================================================
-
-    "claro": {
-
-        "window": "#F4F5F7",
-        "surface": "#FFFFFF",
-        "surface_alt": "#F8F9FB",
-
-        "card": "#FFFFFF",
-        "card_hover": "#F9FAFB",
-
-        "border": "#E1E5EA",
-        "border_light": "#EDF0F3",
-
-        "header": "#FFFFFF",
-        "header_text": "#171A1F",
-
-        # --------------------------------------------
-        # ROJO KLP
-        # --------------------------------------------
-
-        "accent": "#D9342B",
-        "accent_dark": "#B72822",
-        "accent_hover": "#E54840",
-        "accent_soft": "#FDEDEC",
-
-        "text": "#20242A",
-        "text_muted": "#68717D",
-        "text_disabled": "#A0A7B0",
-        "text_on_accent": "#FFFFFF",
-
-        # --------------------------------------------
-        # ESTADOS
-        # --------------------------------------------
-
-        "success": "#229A5B",
-        "success_dark": "#177644",
-        "success_soft": "#E7F6EE",
-
-        "danger": "#D93636",
-        "danger_dark": "#AE2727",
-        "danger_soft": "#FDECEC",
-
-        "warning": "#C98500",
-        "warning_dark": "#A56800",
-        "warning_soft": "#FFF5DD",
-
-        "info": "#2679D8",
-        "info_dark": "#1D5EA8",
-        "info_soft": "#EAF3FF",
-
-        "neutral": "#737D89",
-        "neutral_dark": "#59636E",
-        "neutral_soft": "#EEF1F4",
-
-        # --------------------------------------------
-        # TABLAS
-        # --------------------------------------------
-
-        "row_alt": "#F8F9FA",
-        "row_hover": "#F2F4F7",
-        "selection": "#D9342B",
-        "selection_text": "#FFFFFF",
-
-        # --------------------------------------------
-        # INPUTS
-        # --------------------------------------------
-
-        "entry_bg": "#FFFFFF",
-        "entry_border": "#D6DBE1",
-        "entry_focus": "#D9342B",
-        "entry_disabled": "#F0F2F4",
-
-        # --------------------------------------------
-        # SCROLL
-        # --------------------------------------------
-
-        "scroll_trough": "#F0F2F4",
-        "scroll_thumb": "#C8CED6",
-        "scroll_hover": "#B3BBC5",
     },
 }
 
@@ -446,52 +236,42 @@ ROLES = {
         "fg": "text",
         "bg": "window",
     },
-
     "surface": {
         "fg": "text",
         "bg": "surface",
     },
-
     "card": {
         "fg": "text",
         "bg": "card",
     },
-
     "muted": {
         "fg": "text_muted",
         "bg": "window",
     },
-
     "header": {
         "fg": "header_text",
         "bg": "header",
     },
-
     "accent": {
         "fg": "text_on_accent",
         "bg": "accent",
     },
-
     "success": {
         "fg": "success",
         "bg": "success_soft",
     },
-
     "danger": {
         "fg": "danger",
         "bg": "danger_soft",
     },
-
     "warning": {
         "fg": "warning",
         "bg": "warning_soft",
     },
-
     "info": {
         "fg": "info",
         "bg": "info_soft",
     },
-
     "neutral": {
         "fg": "neutral",
         "bg": "neutral_soft",
@@ -504,43 +284,36 @@ ROLES = {
 # ============================================================
 
 BUTTON_VARIANTS = {
-
     "primary": {
         "fg": "text_on_accent",
         "bg": "accent",
         "hover": "accent_hover",
     },
-
     "secondary": {
         "fg": "text",
         "bg": "surface_alt",
         "hover": "card_hover",
     },
-
     "success": {
         "fg": "text_on_accent",
         "bg": "success",
         "hover": "success_dark",
     },
-
     "danger": {
         "fg": "text_on_accent",
         "bg": "danger",
         "hover": "danger_dark",
     },
-
     "warning": {
         "fg": "text_on_accent",
         "bg": "warning",
         "hover": "warning_dark",
     },
-
     "ghost": {
         "fg": "text",
         "bg": "transparent",
         "hover": "surface_alt",
     },
-
     "outline": {
         "fg": "accent",
         "bg": "transparent",
@@ -556,17 +329,12 @@ BUTTON_VARIANTS = {
 TONE_ALIASES = {
     "ok": "success",
     "success": "success",
-
     "error": "danger",
     "danger": "danger",
-
     "info": "info",
-
     "accent": "accent",
-
     "warning": "warning",
     "warn": "warning",
-
     "neutral": "neutral",
     "muted": "neutral",
 }
@@ -576,10 +344,7 @@ TONE_ALIASES = {
 # ESTADO GLOBAL
 # ============================================================
 
-_current_theme = DEFAULT_THEME
-
 _REGISTRY: Dict[Any, Tuple[str, Dict[str, Any]]] = {}
-
 _manager = None
 
 
@@ -588,8 +353,8 @@ _manager = None
 # ============================================================
 
 INPUT_STYLE = {
-    "fg_color": "#FFFFFF",
-    "border_color": "#D6DBE1",
+    "fg_color": "#151922",
+    "border_color": "#303744",
     "border_width": 1,
     "corner_radius": 8,
     "height": 38,
@@ -601,26 +366,28 @@ INPUT_STYLE = {
 # ============================================================
 
 def theme_name() -> str:
-    return _current_theme
+    """Devuelve siempre el nombre del tema de KLP SYSTEM."""
+    return "oscuro"
 
 
 def is_dark() -> bool:
-    return _current_theme == "oscuro"
+    """KLP SYSTEM utiliza siempre el tema oscuro."""
+    return True
 
 
 # Compatibilidad:
 # theme.colors["accent"]
-colors = THEMES[_current_theme]
+colors = THEMES["oscuro"]
 
 
 def _refresh_colors_reference():
     global colors
-    colors = THEMES[_current_theme]
+    colors = THEMES["oscuro"]
 
 
 def color(name: str) -> str:
     """
-    Obtiene un color del tema actual.
+    Obtiene un color del tema oscuro actual.
 
     Soporta:
         accent
@@ -630,7 +397,6 @@ def color(name: str) -> str:
         success_soft
         etc.
     """
-
     if not isinstance(name, str):
         return name
 
@@ -653,14 +419,10 @@ def color(name: str) -> str:
             base = name[:-len(suffix)]
 
             if base in aliases:
-                name = (
-                    aliases[base]
-                    + suffix
-                )
+                name = aliases[base] + suffix
+                break
 
-            break
-
-    palette = THEMES[_current_theme]
+    palette = THEMES["oscuro"]
 
     return palette.get(
         name,
@@ -675,7 +437,9 @@ def font(role: str = "default"):
     )
 
 
-def role_colors(role: str = "plain") -> Dict[str, str]:
+def role_colors(
+    role: str = "plain",
+) -> Dict[str, str]:
     spec = ROLES.get(
         role,
         ROLES["plain"],
@@ -690,7 +454,6 @@ def role_colors(role: str = "plain") -> Dict[str, str]:
 def button_palette(
     variant: str = "primary",
 ) -> Dict[str, str]:
-
     spec = BUTTON_VARIANTS.get(
         variant,
         BUTTON_VARIANTS["primary"],
@@ -713,9 +476,8 @@ def remember(
 ):
     """
     Registra un widget para que pueda recibir
-    cambios globales de tema.
+    repintado global.
     """
-
     if widget is None:
         return widget
 
@@ -738,14 +500,15 @@ def forget(widget):
 # APLICAR CONFIGURACIÓN SEGURA
 # ============================================================
 
-def _safe_configure(widget, **kwargs):
+def _safe_configure(
+    widget,
+    **kwargs,
+):
     """
     Configura propiedades individualmente para evitar
     que una propiedad no compatible rompa todo el repaint.
     """
-
     for key, value in kwargs.items():
-
         if value is None:
             continue
 
@@ -772,7 +535,6 @@ def center_window(
     """
     Centra una ventana en la pantalla.
     """
-
     if width is not None and height is not None:
         window.geometry(
             f"{width}x{height}"
@@ -812,7 +574,6 @@ def center_window(
 def _normalize_geometry(
     geometry,
 ) -> Optional[str]:
-
     if geometry is None:
         return None
 
@@ -844,24 +605,13 @@ def prepare_toplevel(
 ):
     """
     Configura una ventana secundaria CTkToplevel existente.
-
-    La ventana debe crearse previamente:
-
-        window = ctk.CTkToplevel(parent)
-
-        theme.prepare_toplevel(
-            window,
-            "Mi empresa",
-            (640, 470),
-            base_path,
-            modal=True,
-        )
     """
-
     if title:
         window.title(title)
 
-    normalized = _normalize_geometry(geometry)
+    normalized = _normalize_geometry(
+        geometry
+    )
 
     if normalized:
         window.geometry(normalized)
@@ -895,10 +645,17 @@ def prepare_toplevel(
     # --------------------------------------------------------
 
     try:
-        center_window(
-            window,
+        if isinstance(
             geometry,
-        )
+            (tuple, list),
+        ) and len(geometry) >= 2:
+            center_window(
+                window,
+                int(geometry[0]),
+                int(geometry[1]),
+            )
+        else:
+            center_window(window)
     except Exception:
         pass
 
@@ -954,7 +711,6 @@ def separator(
     Los parámetros de geometría como padx, pady, fill,
     side y expand se consumen antes de crear el widget.
     """
-
     padx = kwargs.pop(
         "padx",
         0,
@@ -987,7 +743,6 @@ def separator(
     )
 
     if orient_value == "horizontal":
-
         widget = ctk.CTkFrame(
             parent,
             height=1,
@@ -999,7 +754,6 @@ def separator(
         default_fill = "x"
 
     else:
-
         widget = ctk.CTkFrame(
             parent,
             width=1,
@@ -1037,45 +791,21 @@ def paint(
     spec: Dict[str, Any],
 ):
     """
-    Reaplica el tema a un widget registrado.
+    Reaplica el tema oscuro a un widget registrado.
     """
 
     if widget is None:
         return
 
     try:
-
         # ----------------------------------------------------
-        # CUSTOMTKINTER
+        # CUSTOMTKINTER - LABEL
         # ----------------------------------------------------
-
-        if isinstance(
-            widget,
-            ctk.CTkFrame,
-        ):
-
-            bg = spec.get(
-                "bg",
-                "surface",
-            )
-
-            if bg == "transparent":
-                fg = "transparent"
-            else:
-                fg = color(bg)
-
-            _safe_configure(
-                widget,
-                fg_color=fg,
-            )
-
-            return
 
         if isinstance(
             widget,
             ctk.CTkLabel,
         ):
-
             bg = spec.get(
                 "bg",
                 "surface",
@@ -1099,11 +829,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - BUTTON
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkButton,
         ):
-
             variant = spec.get(
                 "variant",
                 "primary",
@@ -1122,11 +855,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - ENTRY
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkEntry,
         ):
-
             _safe_configure(
                 widget,
                 fg_color=color(
@@ -1154,11 +890,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - COMBOBOX
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkComboBox,
         ):
-
             _safe_configure(
                 widget,
                 fg_color=color(
@@ -1180,11 +919,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - CHECKBOX
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkCheckBox,
         ):
-
             _safe_configure(
                 widget,
                 fg_color=color(
@@ -1203,11 +945,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - SWITCH
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkSwitch,
         ):
-
             _safe_configure(
                 widget,
                 progress_color=color(
@@ -1226,11 +971,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - SLIDER
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkSlider,
         ):
-
             _safe_configure(
                 widget,
                 progress_color=color(
@@ -1249,11 +997,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - PROGRESS BAR
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkProgressBar,
         ):
-
             _safe_configure(
                 widget,
                 progress_color=color(
@@ -1266,11 +1017,14 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - SCROLLBAR
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkScrollbar,
         ):
-
             _safe_configure(
                 widget,
                 fg_color=color(
@@ -1286,18 +1040,29 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - TABVIEW
+        #
+        # El Tabview utiliza el mismo lenguaje visual
+        # que las Cards de KLP SYSTEM.
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkTabview,
         ):
-
             _safe_configure(
                 widget,
                 fg_color=color(
-                    "surface"
+                    "card"
                 ),
+                border_width=1,
+                border_color=color(
+                    "border"
+                ),
+                corner_radius=14,
                 segmented_button_fg_color=color(
-                    "surface_alt"
+                    "card"
                 ),
                 segmented_button_selected_color=color(
                     "accent"
@@ -1318,16 +1083,60 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - SCROLLABLE FRAME
+        #
+        # IMPORTANTE:
+        # Este bloque debe estar ANTES del CTkFrame genérico,
+        # porque CTkScrollableFrame hereda de CTkFrame.
+        # ----------------------------------------------------
+
         if isinstance(
             widget,
             ctk.CTkScrollableFrame,
         ):
+            bg = spec.get(
+                "bg",
+                "surface",
+            )
+
+            if bg == "transparent":
+                fg = "transparent"
+            else:
+                fg = color(bg)
 
             _safe_configure(
                 widget,
-                fg_color=color(
-                    "surface"
-                ),
+                fg_color=fg,
+            )
+
+            return
+
+        # ----------------------------------------------------
+        # CUSTOMTKINTER - FRAME
+        #
+        # Este debe ser el último widget CTkFrame,
+        # porque muchos componentes de CustomTkinter
+        # heredan de CTkFrame.
+        # ----------------------------------------------------
+
+        if isinstance(
+            widget,
+            ctk.CTkFrame,
+        ):
+            bg = spec.get(
+                "bg",
+                "surface",
+            )
+
+            if bg == "transparent":
+                fg = "transparent"
+            else:
+                fg = color(bg)
+
+            _safe_configure(
+                widget,
+                fg_color=fg,
             )
 
             return
@@ -1337,7 +1146,6 @@ def paint(
         # ----------------------------------------------------
 
         if kind == "separator":
-
             _safe_configure(
                 widget,
                 fg_color=color(
@@ -1347,8 +1155,11 @@ def paint(
 
             return
 
-        if kind == "badge":
+        # ----------------------------------------------------
+        # BADGE
+        # ----------------------------------------------------
 
+        if kind == "badge":
             _safe_configure(
                 widget,
                 bg=color(
@@ -1373,8 +1184,11 @@ def paint(
 
             return
 
-        if kind == "card":
+        # ----------------------------------------------------
+        # CARD TKINTER
+        # ----------------------------------------------------
 
+        if kind == "card":
             _safe_configure(
                 widget,
                 bg=color(
@@ -1393,6 +1207,10 @@ def paint(
 
             return
 
+        # ----------------------------------------------------
+        # ROLES TKINTER
+        # ----------------------------------------------------
+
         if kind in {
             "plain",
             "surface",
@@ -1406,7 +1224,6 @@ def paint(
             "info",
             "neutral",
         }:
-
             bg_name = spec.get(
                 "bg",
                 kind,
@@ -1441,8 +1258,11 @@ def paint(
 
             return
 
-        if kind == "treeview":
+        # ----------------------------------------------------
+        # TREEVIEW
+        # ----------------------------------------------------
 
+        if kind == "treeview":
             _safe_configure(
                 widget,
                 background=color(
@@ -1474,17 +1294,17 @@ def configure_app_style():
     Configura estilos TTK para las partes de la aplicación
     que todavía utilizan widgets Tkinter clásicos.
     """
-
     try:
-
         style = ttk.Style()
 
         try:
-            style.theme_use(
-                "clam"
-            )
+            style.theme_use("clam")
         except tk.TclError:
             pass
+
+        # ----------------------------------------------------
+        # TREEVIEW
+        # ----------------------------------------------------
 
         style.configure(
             "KLP.Treeview",
@@ -1519,6 +1339,10 @@ def configure_app_style():
             ],
         )
 
+        # ----------------------------------------------------
+        # TREEVIEW HEADING
+        # ----------------------------------------------------
+
         style.configure(
             "KLP.Treeview.Heading",
             background=color(
@@ -1542,12 +1366,23 @@ def configure_app_style():
             ],
         )
 
+        # ----------------------------------------------------
+        # SEPARATOR
+        # ----------------------------------------------------
+
         style.configure(
             "KLP.TSeparator",
             background=color(
                 "border"
             ),
         )
+
+        # ----------------------------------------------------
+        # NOTEBOOK CLÁSICO
+        #
+        # Se conserva por compatibilidad con cualquier parte
+        # antigua de la aplicación.
+        # ----------------------------------------------------
 
         style.configure(
             "KLP.TNotebook",
@@ -1599,7 +1434,6 @@ def configure_app_style():
 # ============================================================
 
 def _update_input_style():
-
     INPUT_STYLE.update(
         {
             "fg_color": color(
@@ -1620,13 +1454,11 @@ def _update_input_style():
 # ============================================================
 
 def repaint_all():
-
     dead = []
 
     for widget, data in list(
         _REGISTRY.items()
     ):
-
         try:
             if not widget.winfo_exists():
                 dead.append(widget)
@@ -1662,34 +1494,22 @@ def restyle(
     **changes,
 ) -> None:
     """
-    Actualiza propiedades de un widget y reaplica el tema.
-
-    Ejemplo:
-
-        theme.restyle(
-            badge,
-            text="CAJA ABIERTA",
-        )
+    Actualiza propiedades de un widget y reaplica
+    el tema oscuro.
     """
-
     if root is not None and changes:
-
         try:
             root.configure(
                 **changes
             )
-
         except tk.TclError:
-
             for key, value in changes.items():
-
                 try:
                     root.configure(
                         **{
                             key: value
                         }
                     )
-
                 except tk.TclError:
                     pass
 
@@ -1699,36 +1519,27 @@ def restyle(
 
 
 # ============================================================
-# CAMBIAR TEMA
+# APLICAR TEMA
 # ============================================================
 
-def apply_theme(
-    name: str,
-):
+def apply_theme(name: str = "oscuro"):
     """
-    Cambia entre claro y oscuro.
-    """
+    Aplica el único tema disponible de KLP SYSTEM.
 
+    El argumento ``name`` se mantiene únicamente por
+    compatibilidad con código existente.
+
+    La aplicación siempre utiliza el tema oscuro.
+    """
     global _current_theme
 
-    if name not in THEMES:
-        name = DEFAULT_THEME
-
-    _current_theme = name
+    _current_theme = "oscuro"
 
     _refresh_colors_reference()
-
     _update_input_style()
 
-    # CustomTkinter
-    if name == "oscuro":
-        ctk.set_appearance_mode(
-            "Dark"
-        )
-    else:
-        ctk.set_appearance_mode(
-            "Light"
-        )
+    # Fuerza CustomTkinter a utilizar Dark.
+    ctk.set_appearance_mode("Dark")
 
     configure_app_style()
     repaint_all()
@@ -1740,7 +1551,9 @@ def apply_theme(
 
 class ThemeManager:
     """
-    Administrador sencillo del tema global.
+    Administrador del tema global de KLP SYSTEM.
+
+    KLP SYSTEM utiliza exclusivamente el tema oscuro.
     """
 
     def __init__(
@@ -1748,49 +1561,42 @@ class ThemeManager:
         root=None,
         theme: Optional[str] = None,
     ):
-
         global _manager
 
         self.root = root
-
-        self.theme = (
-            theme
-            or DEFAULT_THEME
-        )
+        self.theme = "oscuro"
 
         _manager = self
 
-        apply_theme(
-            self.theme
-        )
+        apply_theme("oscuro")
 
     def set_theme(
         self,
-        name: str,
+        name: str = "oscuro",
     ):
-        if name not in THEMES:
-            return
+        """
+        Mantiene KLP SYSTEM en tema oscuro.
 
-        self.theme = name
-
-        apply_theme(
-            name
-        )
+        ``name`` se acepta por compatibilidad, pero
+        cualquier valor termina usando ``oscuro``.
+        """
+        self.theme = "oscuro"
+        apply_theme("oscuro")
 
     def toggle(self):
-        self.set_theme(
-            "claro"
-            if self.theme == "oscuro"
-            else "oscuro"
-        )
+        """
+        Mantiene el tema oscuro.
+
+        No existe un segundo tema para alternar.
+        """
+        self.theme = "oscuro"
+        apply_theme("oscuro")
 
     def is_dark(self):
-        return self.theme == "oscuro"
+        return True
 
     def colors(self):
-        return THEMES[
-            self.theme
-        ]
+        return THEMES["oscuro"]
 
 
 # ============================================================
@@ -1806,12 +1612,13 @@ def set_app_icon(
 
     Primero intenta PNG para CustomTkinter/Tkinter
     y luego ICO.
-    """
 
+    Las imágenes PNG quedan retenidas mientras la
+    ventana existe y se liberan cuando se destruye.
+    """
     candidates = []
 
     if base_path:
-
         candidates.extend(
             [
                 os.path.join(
@@ -1839,39 +1646,56 @@ def set_app_icon(
     )
 
     for path in candidates:
-
         if not os.path.exists(path):
             continue
 
         try:
+            # ------------------------------------------------
+            # PNG
+            # ------------------------------------------------
 
-            if path.lower().endswith(
-                ".png"
-            ):
-
+            if path.lower().endswith(".png"):
                 image = tk.PhotoImage(
                     file=path
                 )
 
-                ICON_IMAGES[
-                    str(window)
-                ] = image
+                window_key = str(window)
+
+                ICON_IMAGES[window_key] = image
 
                 window.iconphoto(
                     True,
                     image,
                 )
 
+                def _release_icon(
+                    key=window_key,
+                ):
+                    ICON_IMAGES.pop(
+                        key,
+                        None,
+                    )
+
+                try:
+                    window.bind(
+                        "<Destroy>",
+                        lambda event: _release_icon(),
+                        add="+",
+                    )
+                except (
+                    tk.TclError,
+                    AttributeError,
+                ):
+                    pass
+
                 return
 
-            if path.lower().endswith(
-                ".ico"
-            ):
+            # ------------------------------------------------
+            # ICO
+            # ------------------------------------------------
 
-                window.iconbitmap(
-                    path
-                )
-
+            if path.lower().endswith(".ico"):
+                window.iconbitmap(path)
                 return
 
         except (
@@ -1896,7 +1720,6 @@ class Tooltip:
         text,
         delay=500,
     ):
-
         self.widget = widget
         self.text = text
         self.delay = delay
@@ -1923,7 +1746,6 @@ class Tooltip:
         )
 
     def _schedule(self, _event=None):
-
         self._hide()
 
         try:
@@ -1933,16 +1755,13 @@ class Tooltip:
                     self._show,
                 )
             )
-
         except tk.TclError:
             pass
 
     def _show(self):
-
         self.after_id = None
 
         try:
-
             if not self.widget.winfo_exists():
                 return
 
@@ -1987,9 +1806,7 @@ class Tooltip:
             self.tipwindow = None
 
     def _hide(self, _event=None):
-
         if self.after_id:
-
             try:
                 self.widget.after_cancel(
                     self.after_id
@@ -2000,7 +1817,6 @@ class Tooltip:
             self.after_id = None
 
         if self.tipwindow:
-
             try:
                 self.tipwindow.destroy()
             except tk.TclError:
@@ -2009,7 +1825,6 @@ class Tooltip:
             self.tipwindow = None
 
     def destroy(self):
-
         self._hide()
 
         try:
@@ -2038,23 +1853,32 @@ class Tooltip:
 
 
 # ============================================================
-# INFORMACIÓN DEL TEMA
+# COMPATIBILIDAD CON CÓDIGO ANTIGUO
 # ============================================================
 
+def detect_system_theme() -> str:
+    """
+    Compatibilidad con código anterior.
+
+    KLP SYSTEM ya no detecta el tema del sistema.
+    Siempre devuelve ``oscuro``.
+    """
+    return "oscuro"
+
+
 def system_theme_info():
+    """
+    Devuelve información del tema actual.
 
-    detected = detect_system_theme()
-
+    Se conserva por compatibilidad, pero ya no consulta
+    el tema de Kali, XFCE, GTK ni ninguna configuración
+    externa.
+    """
     return {
-        "detected": detected,
-        "current": _current_theme,
-        "available": list(
-            THEMES.keys()
-        ),
-        "is_dark": (
-            _current_theme
-            == "oscuro"
-        ),
+        "detected": "oscuro",
+        "current": "oscuro",
+        "available": ["oscuro"],
+        "is_dark": True,
     }
 
 
@@ -2062,6 +1886,10 @@ def system_theme_info():
 # CONFIGURACIÓN INICIAL
 # ============================================================
 
+# Fuerza CustomTkinter a utilizar siempre el modo oscuro.
+ctk.set_appearance_mode("Dark")
+
+_refresh_colors_reference()
 _update_input_style()
 
 
@@ -2073,23 +1901,17 @@ __all__ = [
     "APP_NAME",
     "APP_VERSION",
     "CREATOR_URL",
-
     "FONTS",
     "FONT_FAMILY",
-
     "ICON_FILES",
     "ICON_IMAGES",
-
     "INPUT_STYLE",
-
     "THEMES",
     "ROLES",
     "BUTTON_VARIANTS",
     "TONE_ALIASES",
-
     "ThemeManager",
     "Tooltip",
-
     "apply_theme",
     "button_palette",
     "center_window",
