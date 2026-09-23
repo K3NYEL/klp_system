@@ -608,11 +608,6 @@ def is_dark() -> bool:
     return _current_theme == "oscuro"
 
 
-@property
-def colors():
-    return THEMES[_current_theme]
-
-
 # Compatibilidad:
 # theme.colors["accent"]
 colors = THEMES[_current_theme]

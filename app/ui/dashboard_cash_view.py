@@ -935,13 +935,19 @@ class DashboardCajaView:
         self.refresh_movements_table()
 
     def _close_movements_window(self) -> None:
-        """Cierra la ventana de movimientos y libera su referencia."""
+        """Cierra la ventana de movimientos y libera sus referencias."""
 
-        if self.movements_window is not None and self.movements_window.winfo_exists():
-            self.movements_window.destroy()
-
-        self.movements_window = None
-        self.movements_table = None
+        try:
+            if (
+                self.movements_window is not None
+                and self.movements_window.winfo_exists()
+            ):
+                self.movements_window.destroy()
+        except tk.TclError:
+            pass
+        finally:
+            self.movements_window = None
+            self.movements_table = None
 
     def close_cash(self) -> None:
         """Delega el cierre de caja en la ventana principal."""

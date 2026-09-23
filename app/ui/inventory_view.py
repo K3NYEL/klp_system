@@ -50,9 +50,13 @@ class InventoryMovementView:
 
         self.window.bind(
             "<Escape>",
-            lambda event: self.window.destroy(),
+            lambda event: self.close(),
         )
-        
+
+        self.window.protocol(
+            "WM_DELETE_WINDOW",
+            self.close,
+        )
 
         self.product = tk.StringVar()
         self.kind = tk.StringVar(value="ENTRADA")
@@ -399,5 +403,14 @@ class InventoryMovementView:
 
         try:
             self.product_combo.focus_set()
+        except tk.TclError:
+            pass
+
+    def close(self) -> None:
+        """Cierra la ventana de movimientos de inventario."""
+
+        try:
+            if self.window.winfo_exists():
+                self.window.destroy()
         except tk.TclError:
             pass

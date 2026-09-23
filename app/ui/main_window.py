@@ -65,10 +65,11 @@ class SistemaFacturacion:
             "invoice": "Facturación",
             "products": "Inventario",
             "customers": "Clientes",
-            "admin": "Empresa",
+            "company": "Empresa",
             "history": "Facturas guardadas",
             "dashboard": "Caja y Dashboard",
         }
+
         self.base_path = self.get_base_path()
 
         self.items_factura = []
@@ -923,6 +924,16 @@ class SistemaFacturacion:
             padx=14,
         )
 
+
+    def set_status(self, message):
+        """Muestra un mensaje en la barra de estado."""
+
+        if getattr(
+            self,
+            "status_var",
+            None,
+        ) is not None:
+            self.status_var.set(message)
     # ========================================================
     # DASHBOARD + CAJA
     # ========================================================
@@ -961,20 +972,6 @@ class SistemaFacturacion:
         )
 
         self.tabs["dashboard"] = tab
-
-        # ========================================================
-        # ESTADO
-        # ========================================================
-
-        def set_status(self, message):
-            """Muestra un mensaje en la barra de estado."""
-
-            if getattr(
-                self,
-                "status_var",
-                None,
-            ) is not None:
-                self.status_var.set(message)
 
     # ========================================================
     # TEMA
@@ -1069,12 +1066,12 @@ class SistemaFacturacion:
     def seleccionar_seccion(self, name):
         """Activa una pestaña y refresca sus datos."""
 
-        tab = self.tabs.get(name)
+        tab_name = self.tab_names.get(name)
 
-        if tab is None:
+        if tab_name is None:
             return
 
-        self.notebook.set(tab)
+        self.notebook.set(tab_name)
 
         if (
             name == "dashboard"
@@ -1088,7 +1085,7 @@ class SistemaFacturacion:
         elif name == "customers":
             self.cargar_clientes()
 
-        def _registrar_atajos(self):
+    def _registrar_atajos(self):
             """Registra los atajos globales."""
 
             shortcuts = {
@@ -1452,7 +1449,11 @@ class SistemaFacturacion:
 
         window.after(
             100,
-            self.quick_code_entry.focus_set,
+            lambda: (
+                self.quick_code_entry.focus_set()
+                if self.quick_code_entry.winfo_exists()
+                else None
+            ),
         )
 
     # ========================================================
@@ -2069,7 +2070,7 @@ class SistemaFacturacion:
             return
 
         self.seleccionar_seccion("dashboard")
-        self.notebook.select(self.tabs["dashboard"])
+        self.notebook.set("Caja y Dashboard")
 
         self.dashboard_caja.focus_movement_form()
 
@@ -2351,7 +2352,11 @@ class SistemaFacturacion:
         about.attributes("-topmost", True)
         about.after(
             150,
-            lambda: about.attributes("-topmost", False),
+            lambda: (
+                about.attributes("-topmost", False)
+                if about.winfo_exists()
+                else None
+            ),
         )
 
         about.focus_force()
