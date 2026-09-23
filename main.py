@@ -94,4 +94,4 @@ def start_main_app(user=None) -> None:
 
 
 if __name__ == "__main__":
-    start_login()
+    start_application()

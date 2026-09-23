@@ -15,7 +15,7 @@ if exist dist\facturacion.db del /q dist\facturacion.db
 if exist dist\facturacion.db-wal del /q dist\facturacion.db-wal
 if exist dist\facturacion.db-shm del /q dist\facturacion.db-shm
 
-pyinstaller --clean --noconfirm facturacion_completa.spec
+pyinstaller --clean --noconfirm klp_system.spec
 
 :: --- 2. CONTROL DE ERRORES ---
 
