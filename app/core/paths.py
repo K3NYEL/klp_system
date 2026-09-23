@@ -3,23 +3,51 @@ import sys
 from pathlib import Path
 
 
-def application_path():
-    """Returns the writable data directory for source and frozen runs.
+APP_DATA_DIR = "KLPSystem"
 
-    Frozen builds keep mutable data outside the executable directory so a clean
-    build cannot accidentally reuse the developer database.
+
+def application_path() -> str:
     """
+    Devuelve el directorio de datos escribible de KLP SYSTEM.
+
+    En desarrollo:
+        utiliza la raíz del proyecto.
+
+    En una aplicación compilada:
+        utiliza el directorio de datos del usuario.
+    """
+
     if not getattr(sys, "frozen", False):
-        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.abspath(__file__)
+                )
+            )
+        )
 
     if os.name == "nt":
-        parent = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+        parent = (
+            os.environ.get("LOCALAPPDATA")
+            or os.environ.get("APPDATA")
+        )
     else:
-        parent = os.environ.get("XDG_DATA_HOME")
+        parent = os.environ.get(
+            "XDG_DATA_HOME"
+        )
 
     if not parent:
-        parent = os.path.join(os.path.expanduser("~"), ".local", "share")
+        parent = os.path.join(
+            os.path.expanduser("~"),
+            ".local",
+            "share",
+        )
 
-    data_path = Path(parent) / "FacturacionApp"
-    data_path.mkdir(parents=True, exist_ok=True)
+    data_path = Path(parent) / APP_DATA_DIR
+
+    data_path.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     return str(data_path)

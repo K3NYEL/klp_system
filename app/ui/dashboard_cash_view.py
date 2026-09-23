@@ -1,9 +1,23 @@
-"""Panel unificado de caja y dashboard.
+"""Dashboard principal de KLP SYSTEM.
 
-Antes existían dos pantallas separadas (DashboardView y
-CashMovementView); ahora son una sola pestaña: los indicadores del negocio,
-el estado de la caja, el registro de movimientos de efectivo, los productos
-más vendidos y las cuentas por cobrar.
+El dashboard muestra únicamente la información más importante del negocio.
+Los listados detallados se abren en ventanas independientes.
+
+Información visible:
+    - Ventas del período.
+    - Cantidad de facturas.
+    - ITBIS.
+    - Cuentas por cobrar.
+    - Efectivo esperado.
+    - Estado de caja.
+    - Ingresos y egresos.
+    - Resumen de cuentas por cobrar.
+    - Actividad reciente.
+
+Información detallada:
+    - Movimientos de caja.
+    - Productos más vendidos.
+    - Cuentas por cobrar.
 """
 
 from __future__ import annotations
@@ -21,15 +35,39 @@ from app.ui import theme
 from app.ui.components import cards, inputs, tables
 from app.ui.components.buttons import AppButton
 
-# Tonos usados al pintar el estado de la caja.
-CASH_TONES = {
-    "ABIERTA": "ok",
-    "CERRADA": "muted",
+
+# ---------------------------------------------------------------------------
+# Configuración
+# ---------------------------------------------------------------------------
+
+DEFAULT_MOVEMENT_KINDS: tuple[str, ...] = (
+    "GASTO",
+    "RETIRO",
+    "INGRESO",
+)
+
+DEFAULT_PAYMENT_METHODS: tuple[str, ...] = (
+    "EFECTIVO",
+    "TARJETA",
+    "TRANSFERENCIA",
+    "OTRO",
+)
+
+MOVEMENT_STATE_TAGS = {
+    "VENTA": "info",
+    "INGRESO": "ok",
+    "RETIRO": "warn",
+    "GASTO": "danger",
 }
 
 
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+
 class DashboardCajaView:
-    """Dashboard de indicadores + control de caja en una sola vista."""
+    """Dashboard principal y control de caja."""
 
     def __init__(
         self,
@@ -41,15 +79,18 @@ class DashboardCajaView:
         can_manage_cash: bool = False,
         on_change: Optional[Callable[[], Any]] = None,
     ) -> None:
+
         self.parent = parent
         self.connection = connection
         self.actor_id = actor_id
+
         self.on_open_cash = on_open_cash
         self.on_close_cash = on_close_cash
         self.can_manage_cash = can_manage_cash
         self.on_change = on_change
 
         self.frame = ctk.CTkFrame(parent)
+
         theme.remember(
             self.frame,
             "plain",
@@ -62,113 +103,142 @@ class DashboardCajaView:
             expand=True,
         )
 
-        self.start_date = tk.StringVar(value=date.today().replace(day=1).isoformat())
-        self.end_date = tk.StringVar(value=date.today().isoformat())
+        # ------------------------------------------------------------------
+        # Variables
+        # ------------------------------------------------------------------
+
+        self.start_date = tk.StringVar(
+            value=date.today().replace(day=1).isoformat()
+        )
+
+        self.end_date = tk.StringVar(
+            value=date.today().isoformat()
+        )
 
         self.kind = tk.StringVar(value="GASTO")
         self.amount = tk.StringVar()
         self.method = tk.StringVar(value="EFECTIVO")
         self.reference = tk.StringVar()
 
-        self.movements_window = None
-        self.movements_table = None
+        self.cash_info_var = tk.StringVar(
+            value="No hay una caja abierta."
+        )
+
+        self.receivables_info_var = tk.StringVar(
+            value="No hay facturas pendientes."
+        )
+
+        # ------------------------------------------------------------------
+        # Métricas
+        # ------------------------------------------------------------------
+
+        self.metrics: dict[str, Any] = {}
+
+        # ------------------------------------------------------------------
+        # Ventanas secundarias
+        # ------------------------------------------------------------------
+
+        self.movements_window: Optional[ctk.CTkToplevel] = None
+        self.movements_table: Optional[tables.DataTable] = None
+
+        self.products_window: Optional[ctk.CTkToplevel] = None
+        self.products_table: Optional[tables.DataTable] = None
+
+        self.receivables_window: Optional[ctk.CTkToplevel] = None
+        self.receivables_table: Optional[tables.DataTable] = None
+
+        # ------------------------------------------------------------------
+        # Datos almacenados
+        # ------------------------------------------------------------------
+
+        self._products_rows: list[tuple[Any, ...]] = []
+        self._receivables_rows: list[tuple[Any, ...]] = []
+
+        self._recent_activity_rows: list[tuple[Any, ...]] = []
+
+        # ------------------------------------------------------------------
+        # Construcción
+        # ------------------------------------------------------------------
 
         self._build()
         self.refresh()
 
-    # ------------------------------------------------------------------
-    # Construcción de la interfaz
-    # ------------------------------------------------------------------
+    # =======================================================================
+    # CONSTRUCCIÓN
+    # =======================================================================
 
     def _build(self) -> None:
-        self._build_toolbar()
+        self._build_header()
         self._build_metrics()
+        self._build_main_content()
 
-        content = ctk.CTkFrame(self.frame)
-        theme.remember(
-            content,
-            "plain",
-            bg="window",
-            fg="text",
-        )
+    # -----------------------------------------------------------------------
+    # Header
+    # -----------------------------------------------------------------------
 
-        content.pack(
-            fill=tk.BOTH,
-            expand=True,
-            padx=16,
-            pady=(0, 14),
-        )
-
-        content.columnconfigure(
-            0,
-            weight=3,
-            uniform="panel",
-        )
-        content.columnconfigure(
-            1,
-            weight=2,
-            uniform="panel",
-        )
-        content.rowconfigure(0, weight=1)
-
-        self._build_cash_panel(content)
-        self._build_side_panels(content)
-
-    def _build_toolbar(self) -> None:
-        toolbar = cards.Toolbar(
+    def _build_header(self) -> None:
+        header = cards.Toolbar(
             self.frame,
             padding=12,
         )
 
-        toolbar.pack(
-            fill=tk.X,
+        header.pack(
+            fill="x",
             padx=16,
             pady=(14, 10),
         )
 
-        left = toolbar.left
-        right = toolbar.right
+        left = header.left
+        right = header.right
 
-        cards.label(
+        dashboard_label = ctk.CTkLabel(
             left,
-            "Rango de análisis",
-            font_role="body_bold",
-            background="surface_alt",
-        ).pack(
-            side=tk.LEFT,
-            padx=(0, 10),
+            text="Dashboard",
+            font=theme.font("body_bold"),
+            anchor="w",
         )
 
+        dashboard_label.pack(
+            side="left",
+            padx=(0, 18),
+        )
+
+        # Fecha inicial
         cards.label(
             left,
             "Desde",
             font_role="small",
             background="surface_alt",
-        ).pack(side=tk.LEFT)
+        ).pack(
+            side="left",
+        )
 
         inputs.make_entry(
             left,
             textvariable=self.start_date,
             width=12,
         ).pack(
-            side=tk.LEFT,
-            padx=(6, 12),
+            side="left",
+            padx=(6, 8),
         )
 
+        # Fecha final
         cards.label(
             left,
             "Hasta",
             font_role="small",
             background="surface_alt",
-        ).pack(side=tk.LEFT)
+        ).pack(
+            side="left",
+        )
 
         inputs.make_entry(
             left,
             textvariable=self.end_date,
             width=12,
         ).pack(
-            side=tk.LEFT,
-            padx=(6, 12),
+            side="left",
+            padx=(6, 8),
         )
 
         AppButton(
@@ -176,17 +246,21 @@ class DashboardCajaView:
             "Actualizar",
             command=self.refresh,
             variant="primary",
-            tooltip="Vuelve a calcular los indicadores del rango indicado",
-        ).pack(side=tk.LEFT)
+            tooltip="Actualizar información del dashboard",
+        ).pack(
+            side="left",
+        )
 
+        # Estado de caja
         self.cash_badge = cards.Badge(
             right,
-            text="CAJA SIN ABRIR",
-            tone="warn",
+            text="CAJA CERRADA",
+            tone="muted",
         )
+
         self.cash_badge.pack(
-            side=tk.LEFT,
-            padx=(0, 10),
+            side="left",
+            padx=(0, 8),
         )
 
         self.open_cash_button = AppButton(
@@ -194,11 +268,12 @@ class DashboardCajaView:
             "Abrir caja",
             command=self.open_cash,
             variant="success",
-            tooltip="Registra el monto inicial de la caja",
+            tooltip="Abrir caja",
         )
+
         self.open_cash_button.pack(
-            side=tk.LEFT,
-            padx=4,
+            side="left",
+            padx=3,
         )
 
         self.close_cash_button = AppButton(
@@ -206,15 +281,21 @@ class DashboardCajaView:
             "Cerrar caja",
             command=self.close_cash,
             variant="danger",
-            tooltip="Cuadra el efectivo y cierra el turno",
+            tooltip="Cerrar caja",
         )
+
         self.close_cash_button.pack(
-            side=tk.LEFT,
-            padx=4,
+            side="left",
+            padx=3,
         )
+
+    # -----------------------------------------------------------------------
+    # Métricas
+    # -----------------------------------------------------------------------
 
     def _build_metrics(self) -> None:
         row = ctk.CTkFrame(self.frame)
+
         theme.remember(
             row,
             "plain",
@@ -223,15 +304,15 @@ class DashboardCajaView:
         )
 
         row.pack(
-            fill=tk.X,
-            padx=12,
+            fill="x",
+            padx=16,
             pady=(0, 12),
         )
 
         self.metrics = {
             "sales": cards.MetricCard(
                 row,
-                "Ventas del rango",
+                "Ventas",
                 tone="accent",
             ),
             "invoices": cards.MetricCard(
@@ -241,7 +322,7 @@ class DashboardCajaView:
             ),
             "taxes": cards.MetricCard(
                 row,
-                "Impuestos (ITBIS)",
+                "ITBIS",
                 tone="warning",
             ),
             "receivables": cards.MetricCard(
@@ -251,23 +332,109 @@ class DashboardCajaView:
             ),
             "cash": cards.MetricCard(
                 row,
-                "Efectivo en caja",
+                "Efectivo",
                 tone="success",
             ),
         }
 
         for metric in self.metrics.values():
             metric.pack(
-                side=tk.LEFT,
-                fill=tk.BOTH,
+                side="left",
+                fill="both",
                 expand=True,
                 padx=4,
             )
 
-    def _build_cash_panel(self, content: tk.Misc) -> None:
-        card = cards.Card(
+    # -----------------------------------------------------------------------
+    # Contenido principal
+    # -----------------------------------------------------------------------
+
+    def _build_main_content(self) -> None:
+        content = ctk.CTkFrame(self.frame)
+
+        theme.remember(
             content,
-            title="Caja y movimientos de efectivo",
+            "plain",
+            bg="window",
+            fg="text",
+        )
+
+        content.pack(
+            fill="both",
+            expand=True,
+            padx=16,
+            pady=(0, 14),
+        )
+
+        content.columnconfigure(
+            0,
+            weight=3,
+            uniform="dashboard",
+        )
+
+        content.columnconfigure(
+            1,
+            weight=2,
+            uniform="dashboard",
+        )
+
+        content.rowconfigure(
+            0,
+            weight=1,
+        )
+
+        # Izquierda
+        self._build_cash_panel(content)
+
+        # Derecha
+        right_column = ctk.CTkFrame(content)
+
+        theme.remember(
+            right_column,
+            "plain",
+            bg="window",
+            fg="text",
+        )
+
+        right_column.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(8, 0),
+        )
+
+        right_column.columnconfigure(
+            0,
+            weight=1,
+        )
+
+        right_column.rowconfigure(
+            0,
+            weight=1,
+        )
+
+        right_column.rowconfigure(
+            1,
+            weight=1,
+        )
+
+        self._build_quick_actions(
+            right_column,
+        )
+
+        self._build_activity_panel(
+            right_column,
+        )
+
+    # =======================================================================
+    # PANEL DE CAJA
+    # =======================================================================
+
+    def _build_cash_panel(self, parent: tk.Misc) -> None:
+        card = cards.Card(
+            parent,
+            title="Control de Caja",
+            subtitle="Estado actual de la caja",
             padding=14,
         )
 
@@ -280,30 +447,111 @@ class DashboardCajaView:
 
         body = card.body
 
-        self.cash_info_var = tk.StringVar(value="No hay una caja abierta.")
+        # ------------------------------------------------------------------
+        # Estado
+        # ------------------------------------------------------------------
 
-        info = tk.Label(
-            body,
-            textvariable=self.cash_info_var,
-            anchor="w",
-            justify=tk.LEFT,
-            wraplength=520,
-            font=theme.font("body"),
-        )
+        status = ctk.CTkFrame(body)
 
         theme.remember(
-            info,
-            "label",
+            status,
+            "plain",
             bg="surface",
             fg="text",
         )
 
-        info.pack(
-            fill=tk.X,
+        status.pack(
+            fill="x",
+            pady=(0, 12),
+        )
+
+        self.cash_info_label = ctk.CTkLabel(
+            status,
+            textvariable=self.cash_info_var,
+            anchor="w",
+            justify="left",
+            wraplength=620,
+            font=theme.font("body"),
+        )
+
+        self.cash_info_label.pack(
+            fill="x",
+            padx=4,
+            pady=6,
+        )
+
+        # ------------------------------------------------------------------
+        # Resumen financiero de caja
+        # ------------------------------------------------------------------
+
+        summary = ctk.CTkFrame(body)
+
+        theme.remember(
+            summary,
+            "plain",
+            bg="surface",
+            fg="text",
+        )
+
+        summary.pack(
+            fill="x",
+            pady=(0, 14),
+        )
+
+        summary.columnconfigure(
+            0,
+            weight=1,
+        )
+
+        summary.columnconfigure(
+            1,
+            weight=1,
+        )
+
+        summary.columnconfigure(
+            2,
+            weight=1,
+        )
+
+        self.cash_initial_label = self._create_cash_summary(
+            summary,
+            "Inicial",
+            "RD$ 0.00",
+            0,
+        )
+
+        self.cash_income_label = self._create_cash_summary(
+            summary,
+            "Ingresos",
+            "RD$ 0.00",
+            1,
+        )
+
+        self.cash_expenses_label = self._create_cash_summary(
+            summary,
+            "Egresos",
+            "RD$ 0.00",
+            2,
+        )
+
+        # ------------------------------------------------------------------
+        # Registro rápido
+        # ------------------------------------------------------------------
+
+        section_title = ctk.CTkLabel(
+            body,
+            text="Registrar movimiento",
+            anchor="w",
+            font=theme.font("body_bold"),
+        )
+
+        section_title.pack(
+            fill="x",
             pady=(0, 8),
         )
 
         form = ctk.CTkFrame(body)
+
         theme.remember(
             form,
             "plain",
@@ -311,15 +559,25 @@ class DashboardCajaView:
             fg="text",
         )
 
-        form.pack(fill=tk.X)
+        form.pack(
+            fill="x",
+            pady=(0, 8),
+        )
 
-        form.columnconfigure(1, weight=1)
-        form.columnconfigure(3, weight=1)
+        form.columnconfigure(
+            1,
+            weight=1,
+        )
+
+        form.columnconfigure(
+            3,
+            weight=1,
+        )
 
         _, self.kind_combo = inputs.labeled_combobox(
             form,
             "Tipo",
-            values=("GASTO", "RETIRO", "INGRESO"),
+            values=DEFAULT_MOVEMENT_KINDS,
             textvariable=self.kind,
             width=14,
             row=0,
@@ -343,12 +601,7 @@ class DashboardCajaView:
         _, self.method_combo = inputs.labeled_combobox(
             form,
             "Método",
-            values=(
-                "EFECTIVO",
-                "TARJETA",
-                "TRANSFERENCIA",
-                "OTRO",
-            ),
+            values=DEFAULT_PAYMENT_METHODS,
             textvariable=self.method,
             width=14,
             row=1,
@@ -366,9 +619,15 @@ class DashboardCajaView:
             column=2,
             label_column=2,
             entry_column=3,
+            entry_sticky="ew",
         )
 
+        # ------------------------------------------------------------------
+        # Botones
+        # ------------------------------------------------------------------
+
         actions = ctk.CTkFrame(body)
+
         theme.remember(
             actions,
             "plain",
@@ -377,8 +636,8 @@ class DashboardCajaView:
         )
 
         actions.pack(
-            fill=tk.X,
-            pady=(8, 10),
+            fill="x",
+            pady=(4, 8),
         )
 
         self.save_button = AppButton(
@@ -386,10 +645,12 @@ class DashboardCajaView:
             "Guardar movimiento",
             command=self.save_movement,
             variant="success",
-            tooltip="Registra el movimiento en la caja abierta",
+            tooltip="Guardar movimiento",
         )
 
-        self.save_button.pack(side=tk.LEFT)
+        self.save_button.pack(
+            side="left",
+        )
 
         AppButton(
             actions,
@@ -397,151 +658,340 @@ class DashboardCajaView:
             command=self.clear_form,
             variant="neutral",
         ).pack(
-            side=tk.LEFT,
+            side="left",
             padx=6,
         )
 
-        self.totals_badge = cards.Badge(
-            actions,
-            text="Ingresos RD$ 0.00  |  Egresos RD$ 0.00",
-            tone="neutral",
-        )
-
-        self.totals_badge.pack(side=tk.RIGHT)
-
-        self.movements_button = AppButton(
+        AppButton(
             actions,
             "Ver movimientos",
             command=self.open_movements,
             variant="primary",
-            tooltip="Abre el listado completo de movimientos de caja",
+            tooltip="Abrir historial completo",
+        ).pack(
+            side="right",
         )
 
-        self.movements_button.pack(
-            side=tk.RIGHT,
-            padx=6,
+        # ------------------------------------------------------------------
+        # Estado inferior
+        # ------------------------------------------------------------------
+
+        self.totals_badge = cards.Badge(
+            body,
+            text="Ingresos RD$ 0.00  |  Egresos RD$ 0.00",
+            tone="neutral",
         )
 
-    def _build_side_panels(self, content: tk.Misc) -> None:
-        column = ctk.CTkFrame(content)
+        self.totals_badge.pack(
+            anchor="w",
+            pady=(4, 0),
+        )
+
+    def _create_cash_summary(
+        self,
+        parent: tk.Misc,
+        title: str,
+        value: str,
+        column: int,
+    ) -> ctk.CTkLabel:
+
+        box = ctk.CTkFrame(parent)
+
         theme.remember(
-            column,
+            box,
             "plain",
-            bg="window",
+            bg="surface",
             fg="text",
         )
 
-        column.grid(
+        box.grid(
             row=0,
-            column=1,
-            sticky="nsew",
-            padx=(8, 0),
+            column=column,
+            sticky="ew",
+            padx=4,
+            pady=4,
         )
 
-        column.rowconfigure(0, weight=1)
-        column.rowconfigure(1, weight=1)
-        column.columnconfigure(0, weight=1)
+        label = ctk.CTkLabel(
+            box,
+            text=title,
+            anchor="w",
+            font=theme.font("small"),
+        )
 
-        products_card = cards.Card(
-            column,
-            title="Productos más vendidos",
+        label.pack(
+            fill="x",
+            padx=8,
+            pady=(7, 0),
+        )
+
+        value_label = ctk.CTkLabel(
+            box,
+            text=value,
+            anchor="w",
+            font=theme.font("body_bold"),
+        )
+
+        value_label.pack(
+            fill="x",
+            padx=8,
+            pady=(2, 7),
+        )
+
+        return value_label
+
+    # =======================================================================
+    # ACCIONES RÁPIDAS
+    # =======================================================================
+
+    def _build_quick_actions(self, parent: tk.Misc) -> None:
+        card = cards.Card(
+            parent,
+            title="Acciones rápidas",
+            subtitle="Accede a la información detallada",
             padding=12,
         )
 
-        products_card.grid(
+        card.grid(
             row=0,
             column=0,
             sticky="nsew",
             pady=(0, 8),
         )
 
-        self.products_table = tables.DataTable(
-            products_card.body,
-            columns=(
-                "Código",
-                "Producto",
-                "Unidades",
-                "Ventas",
-            ),
-            widths=(
-                100,
-                220,
-                90,
-                120,
-            ),
-            anchors=(
-                "w",
-                "w",
-                "e",
-                "e",
-            ),
-            height=5,
+        body = card.body
+
+        body.columnconfigure(
+            0,
+            weight=1,
         )
 
-        self.products_table.pack(
-            fill=tk.BOTH,
-            expand=True,
+        body.columnconfigure(
+            1,
+            weight=1,
         )
 
-        receivables_card = cards.Card(
-            column,
-            title="Cuentas por cobrar",
+        AppButton(
+            body,
+            "Movimientos de caja",
+            command=self.open_movements,
+            variant="primary",
+        ).grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=(0, 5),
+            pady=(0, 8),
+        )
+
+        AppButton(
+            body,
+            "Productos más vendidos",
+            command=self.open_products,
+            variant="neutral",
+        ).grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=(5, 0),
+            pady=(0, 8),
+        )
+
+        AppButton(
+            body,
+            "Cuentas por cobrar",
+            command=self.open_receivables,
+            variant="danger",
+        ).grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+        )
+
+    # =======================================================================
+    # ACTIVIDAD RECIENTE
+    # =======================================================================
+
+    def _build_activity_panel(self, parent: tk.Misc) -> None:
+        card = cards.Card(
+            parent,
+            title="Actividad reciente",
+            subtitle="Últimos movimientos registrados",
             padding=12,
         )
 
-        receivables_card.grid(
+        card.grid(
             row=1,
             column=0,
             sticky="nsew",
         )
 
-        self.receivables_table = tables.DataTable(
-            receivables_card.body,
-            columns=(
-                "Factura",
-                "Cliente",
-                "Total",
-                "Saldo",
-            ),
-            widths=(
-                110,
-                200,
-                110,
-                110,
-            ),
-            anchors=(
-                "w",
-                "w",
-                "e",
-                "e",
-            ),
-            height=5,
+        body = card.body
+
+        self.activity_container = ctk.CTkFrame(body)
+
+        theme.remember(
+            self.activity_container,
+            "plain",
+            bg="surface",
+            fg="text",
         )
 
-        self.receivables_table.pack(
-            fill=tk.BOTH,
+        self.activity_container.pack(
+            fill="both",
             expand=True,
         )
 
-    # ------------------------------------------------------------------
-    # Carga de datos
-    # ------------------------------------------------------------------
+        AppButton(
+            body,
+            "Ver todos los movimientos",
+            command=self.open_movements,
+            variant="neutral",
+        ).pack(
+            fill="x",
+            pady=(8, 0),
+        )
+
+    def _refresh_activity(self) -> None:
+        """Actualiza las últimas actividades visibles."""
+
+        for widget in self.activity_container.winfo_children():
+            widget.destroy()
+
+        if not self._recent_activity_rows:
+            empty = ctk.CTkLabel(
+                self.activity_container,
+                text="No hay actividad reciente.",
+                anchor="w",
+                font=theme.font("small"),
+            )
+
+            empty.pack(
+                fill="x",
+                padx=8,
+                pady=12,
+            )
+
+            return
+
+        for row in self._recent_activity_rows[:5]:
+            fecha, tipo, monto, referencia = row
+
+            item = ctk.CTkFrame(
+                self.activity_container,
+                height=34,
+            )
+
+            theme.remember(
+                item,
+                "plain",
+                bg="surface",
+                fg="text",
+            )
+
+            item.pack(
+                fill="x",
+                padx=4,
+                pady=2,
+            )
+
+            item.grid_propagate(False)
+
+            icon_text = {
+                "VENTA": "●",
+                "INGRESO": "●",
+                "GASTO": "●",
+                "RETIRO": "●",
+            }.get(
+                tipo,
+                "●",
+            )
+
+            icon = ctk.CTkLabel(
+                item,
+                text=icon_text,
+                width=20,
+                anchor="w",
+            )
+
+            icon.grid(
+                row=0,
+                column=0,
+                padx=(6, 2),
+                sticky="w",
+            )
+
+            type_label = ctk.CTkLabel(
+                item,
+                text=tipo,
+                width=70,
+                anchor="w",
+                font=theme.font("small_bold"),
+            )
+
+            type_label.grid(
+                row=0,
+                column=1,
+                padx=4,
+                sticky="w",
+            )
+
+            ref_label = ctk.CTkLabel(
+                item,
+                text=referencia or "Sin referencia",
+                anchor="w",
+                font=theme.font("small"),
+            )
+
+            ref_label.grid(
+                row=0,
+                column=2,
+                padx=4,
+                sticky="ew",
+            )
+
+            amount_label = ctk.CTkLabel(
+                item,
+                text=f"RD$ {float(monto):.2f}",
+                anchor="e",
+                font=theme.font("small_bold"),
+            )
+
+            amount_label.grid(
+                row=0,
+                column=3,
+                padx=(4, 8),
+                sticky="e",
+            )
+
+            item.columnconfigure(
+                2,
+                weight=1,
+            )
+
+    # =======================================================================
+    # REFRESH GENERAL
+    # =======================================================================
 
     def refresh(self) -> None:
-        """Recarga indicadores, estado de caja y listados."""
-
         try:
             self.refresh_metrics()
             self.refresh_cash()
             self.refresh_products()
             self.refresh_receivables()
+            self.refresh_activity()
 
         except sqlite3.Error as exc:
             messagebox.showerror(
                 "Dashboard",
-                f"No se pudieron cargar los indicadores del negocio:\n{exc}",
+                f"No se pudieron cargar los datos:\n{exc}",
                 parent=self.frame,
             )
+
+    # =======================================================================
+    # MÉTRICAS
+    # =======================================================================
 
     def refresh_metrics(self) -> None:
         summary = sales_summary(
@@ -550,23 +1000,40 @@ class DashboardCajaView:
             self.end_date.get(),
         )
 
-        self.metrics["sales"].set_value(f"RD$ {summary['total']:.2f}")
+        self.metrics["sales"].set_value(
+            f"RD$ {summary['total']:.2f}"
+        )
 
-        self.metrics["invoices"].set_value(str(summary["facturas"]))
+        self.metrics["invoices"].set_value(
+            str(summary["facturas"])
+        )
 
-        self.metrics["taxes"].set_value(f"RD$ {summary['impuestos']:.2f}")
+        self.metrics["taxes"].set_value(
+            f"RD$ {summary['impuestos']:.2f}"
+        )
 
-        pending = receivables(self.connection)
+        pending = receivables(
+            self.connection
+        )
 
-        pending_total = sum(float(row[5] or 0) for row in pending)
+        pending_total = sum(
+            float(row[5] or 0)
+            for row in pending
+        )
 
-        self.metrics["receivables"].set_value(f"RD$ {pending_total:.2f}")
+        self.metrics["receivables"].set_value(
+            f"RD$ {pending_total:.2f}"
+        )
 
         self.metrics["receivables"].set_hint(
             "Sin facturas pendientes"
             if not pending
-            else f"{len(pending)} factura(s) con saldo"
+            else f"{len(pending)} factura(s) pendiente(s)"
         )
+
+    # =======================================================================
+    # PRODUCTOS
+    # =======================================================================
 
     def refresh_products(self) -> None:
         rows = top_products(
@@ -575,40 +1042,104 @@ class DashboardCajaView:
             self.end_date.get(),
         )
 
-        self.products_table.set_rows(
-            rows,
-            formats={
-                3: "RD$ {:.2f}",
-            },
-        )
+        self._products_rows = [
+            tuple(row)
+            for row in rows
+        ]
+
+        if (
+            self.products_table is not None
+            and self.products_window is not None
+            and self.products_window.winfo_exists()
+        ):
+            self.products_table.set_rows(
+                self._products_rows,
+                formats={
+                    3: "RD$ {:.2f}",
+                },
+            )
+
+    # =======================================================================
+    # CUENTAS POR COBRAR
+    # =======================================================================
 
     def refresh_receivables(self) -> None:
-        rows = receivables(self.connection)
-
-        self.receivables_table.set_rows(
-            [
-                (
-                    row[1],
-                    row[2],
-                    row[3],
-                    row[5],
-                )
-                for row in rows
-            ],
-            formats={
-                2: "RD$ {:.2f}",
-                3: "RD$ {:.2f}",
-            },
+        rows = receivables(
+            self.connection
         )
 
-    # ------------------------------------------------------------------
-    # Caja
-    # ------------------------------------------------------------------
+        self._receivables_rows = [
+            (
+                row[1],
+                row[2],
+                row[3],
+                row[5],
+            )
+            for row in rows
+        ]
+
+        total = sum(
+            float(row[3] or 0)
+            for row in self._receivables_rows
+        )
+
+        self.receivables_info_var.set(
+            "No hay facturas pendientes."
+            if not self._receivables_rows
+            else (
+                f"{len(self._receivables_rows)} "
+                "factura(s) pendiente(s) de cobro."
+            )
+        )
+
+        if (
+            self.receivables_table is not None
+            and self.receivables_window is not None
+            and self.receivables_window.winfo_exists()
+        ):
+            self.receivables_table.set_rows(
+                self._receivables_rows,
+                formats={
+                    2: "RD$ {:.2f}",
+                    3: "RD$ {:.2f}",
+                },
+            )
+
+        # Guardamos el total para que la tarjeta se actualice.
+        self._receivables_total = total
+
+    # =======================================================================
+    # ACTIVIDAD RECIENTE
+    # =======================================================================
+
+    def refresh_activity(self) -> None:
+        rows = self.connection.execute(
+            """
+            SELECT
+                fecha,
+                tipo,
+                monto,
+                COALESCE(referencia, '')
+            FROM cash_movements
+            ORDER BY id DESC
+            LIMIT 5
+            """
+        ).fetchall()
+
+        self._recent_activity_rows = [
+            tuple(row)
+            for row in rows
+        ]
+
+        self._refresh_activity()
+
+    # =======================================================================
+    # CAJA
+    # =======================================================================
 
     def open_cash_register(self):
-        """Devuelve la caja abierta."""
-
-        return self.connection.execute("""
+        return self.connection.execute(
+            """
             SELECT
                 id,
                 fecha_apertura,
@@ -617,14 +1148,14 @@ class DashboardCajaView:
             WHERE estado = 'ABIERTA'
             ORDER BY id DESC
             LIMIT 1
-            """).fetchone()
+            """
+        ).fetchone()
 
     def expected_cash(
         self,
         cash_id: int,
         initial: float,
     ) -> float:
-        """Calcula el efectivo esperado de la caja."""
 
         row = self.connection.execute(
             """
@@ -667,17 +1198,35 @@ class DashboardCajaView:
                 "registrar ventas y movimientos de efectivo."
             )
 
-            self.metrics["cash"].set_value("RD$ 0.00")
+            self.metrics["cash"].set_value(
+                "RD$ 0.00"
+            )
 
-            self.metrics["cash"].set_hint("Caja cerrada")
+            self.metrics["cash"].set_hint(
+                "Caja cerrada"
+            )
+
+            self.cash_initial_label.configure(
+                text="RD$ 0.00"
+            )
+
+            self.cash_income_label.configure(
+                text="RD$ 0.00"
+            )
+
+            self.cash_expenses_label.configure(
+                text="RD$ 0.00"
+            )
 
             self.totals_badge.set(
                 "Sin movimientos de caja",
                 "neutral",
             )
-            
-            self.refresh_movements_table()
+
             self._set_form_enabled(False)
+
+            self._refresh_open_windows()
+
             return
 
         cash_id = int(cash[0])
@@ -688,21 +1237,6 @@ class DashboardCajaView:
             cash_id,
             initial,
         )
-
-        self.cash_badge.set(
-            f"CAJA ABIERTA · #{cash_id}",
-            "ok",
-        )
-
-        self.cash_info_var.set(
-            f"Caja #{cash_id} abierta el {opened_at} · "
-            f"Inicial RD$ {initial:.2f} · "
-            f"Efectivo esperado RD$ {expected:.2f}"
-        )
-
-        self.metrics["cash"].set_value(f"RD$ {expected:.2f}")
-
-        self.metrics["cash"].set_hint(f"Apertura RD$ {initial:.2f} · Caja #{cash_id}")
 
         totals = self.connection.execute(
             """
@@ -733,18 +1267,170 @@ class DashboardCajaView:
             (cash_id,),
         ).fetchone()
 
+        income = float(
+            totals[0] or 0
+        )
+
+        expenses = float(
+            totals[1] or 0
+        )
+
+        self.cash_badge.set(
+            f"CAJA ABIERTA · #{cash_id}",
+            "ok",
+        )
+
+        self.cash_info_var.set(
+            f"Caja #{cash_id} abierta el {opened_at} · "
+            f"Inicial RD$ {initial:.2f} · "
+            f"Efectivo esperado RD$ {expected:.2f}"
+        )
+
+        self.metrics["cash"].set_value(
+            f"RD$ {expected:.2f}"
+        )
+
+        self.metrics["cash"].set_hint(
+            f"Apertura RD$ {initial:.2f}"
+        )
+
+        self.cash_initial_label.configure(
+            text=f"RD$ {initial:.2f}"
+        )
+
+        self.cash_income_label.configure(
+            text=f"RD$ {income:.2f}"
+        )
+
+        self.cash_expenses_label.configure(
+            text=f"RD$ {expenses:.2f}"
+        )
+
         self.totals_badge.set(
-            f"Ingresos RD$ {float(totals[0] or 0):.2f}  |  "
-            f"Egresos RD$ {float(totals[1] or 0):.2f}",
+            f"Ingresos RD$ {income:.2f}  |  "
+            f"Egresos RD$ {expenses:.2f}",
             "info",
         )
 
-        self.refresh_movements_table()
-        self._set_form_enabled(self.can_manage_cash)
-        
-    def refresh_movements_table(self) -> None:
-        """Recarga los movimientos en la ventana independiente."""
+        self._set_form_enabled(
+            self.can_manage_cash
+        )
 
+        self._refresh_open_windows()
+
+    # =======================================================================
+    # VENTANA DE MOVIMIENTOS
+    # =======================================================================
+
+    def open_movements(self) -> None:
+        if (
+            self.movements_window is not None
+            and self.movements_window.winfo_exists()
+        ):
+            self.movements_window.focus_force()
+            self.movements_window.lift()
+            self.refresh_movements_table()
+            return
+
+        window = ctk.CTkToplevel(
+            self.frame
+        )
+
+        self.movements_window = window
+
+        window.title(
+            "KLP SYSTEM · Movimientos de caja"
+        )
+
+        window.geometry(
+            "950x560"
+        )
+
+        window.minsize(
+            760,
+            420,
+        )
+
+        theme.remember(
+            window,
+            "plain",
+            bg="window",
+            fg="text",
+        )
+
+        window.protocol(
+            "WM_DELETE_WINDOW",
+            self._close_movements_window,
+        )
+
+        container = ctk.CTkFrame(
+            window
+        )
+
+        theme.remember(
+            container,
+            "plain",
+            bg="window",
+            fg="text",
+        )
+
+        container.pack(
+            fill="both",
+            expand=True,
+            padx=16,
+            pady=16,
+        )
+
+        card = cards.Card(
+            container,
+            title="Movimientos de caja",
+            subtitle=(
+                "Historial completo de ingresos, "
+                "gastos, retiros y ventas"
+            ),
+            padding=14,
+        )
+
+        card.pack(
+            fill="both",
+            expand=True,
+        )
+
+        self.movements_table = tables.DataTable(
+            card.body,
+            columns=(
+                "Fecha",
+                "Tipo",
+                "Monto",
+                "Método",
+                "Referencia",
+            ),
+            widths=(
+                150,
+                100,
+                120,
+                140,
+                300,
+            ),
+            anchors=(
+                "w",
+                "w",
+                "e",
+                "w",
+                "w",
+            ),
+            height=18,
+            state_tags=MOVEMENT_STATE_TAGS,
+        )
+
+        self.movements_table.pack(
+            fill="both",
+            expand=True,
+        )
+
+        self.refresh_movements_table()
+
+    def refresh_movements_table(self) -> None:
         if self.movements_table is None:
             return
 
@@ -768,10 +1454,13 @@ class DashboardCajaView:
                     "No hay una caja abierta.",
                 )
             )
+
             self.movements_table.restripe()
             return
 
-        cash_id = int(cash[0])
+        cash_id = int(
+            cash[0]
+        )
 
         rows = self.connection.execute(
             """
@@ -803,58 +1492,53 @@ class DashboardCajaView:
 
         self.movements_table.restripe()
 
-    def _set_form_enabled(
-        self,
-        enabled: bool,
-    ) -> None:
-        """Habilita o deshabilita el formulario."""
+    def _close_movements_window(self) -> None:
+        try:
+            if (
+                self.movements_window is not None
+                and self.movements_window.winfo_exists()
+            ):
+                self.movements_window.destroy()
 
-        state = "normal" if enabled else "disabled"
+        except tk.TclError:
+            pass
 
-        self.amount_entry.configure(state=state)
+        finally:
+            self.movements_window = None
+            self.movements_table = None
 
-        self.reference_entry.configure(state=state)
+    # =======================================================================
+    # VENTANA DE PRODUCTOS
+    # =======================================================================
 
-        self.kind_combo.configure(state=state)
-
-        self.method_combo.configure(state=state)
-
-        self.save_button.configure(state=state)
-
-    # ------------------------------------------------------------------
-    # Acciones
-    # ------------------------------------------------------------------
-
-    def open_cash(self) -> None:
-        """Delega la apertura de caja en la ventana principal."""
-
-        if self.on_open_cash is None:
-            messagebox.showinfo(
-                "Caja",
-                "La apertura de caja no está disponible " "en esta vista.",
-                parent=self.frame,
-            )
+    def open_products(self) -> None:
+        if (
+            self.products_window is not None
+            and self.products_window.winfo_exists()
+        ):
+            self.products_window.focus_force()
+            self.products_window.lift()
+            self.refresh_products()
             return
 
-        self.on_open_cash()
-        self.refresh()
+        window = ctk.CTkToplevel(
+            self.frame
+        )
 
-    def open_movements(self) -> None:
-        """Abre el listado completo de movimientos de la caja."""
+        self.products_window = window
 
-        if self.movements_window is not None and self.movements_window.winfo_exists():
-            self.movements_window.focus_force()
-            self.movements_window.lift()
-            self.refresh_movements_table()
-            return
+        window.title(
+            "KLP SYSTEM · Productos más vendidos"
+        )
 
-        window = ctk.CTkToplevel(self.frame)
+        window.geometry(
+            "820x520"
+        )
 
-        self.movements_window = window
-
-        window.title("Movimientos de caja")
-        window.geometry("950x560")
-        window.minsize(760, 420)
+        window.minsize(
+            640,
+            360,
+        )
 
         theme.remember(
             window,
@@ -865,10 +1549,13 @@ class DashboardCajaView:
 
         window.protocol(
             "WM_DELETE_WINDOW",
-            self._close_movements_window,
+            self._close_products_window,
         )
 
-        container = ctk.CTkFrame(window)
+        container = ctk.CTkFrame(
+            window
+        )
+
         theme.remember(
             container,
             "plain",
@@ -877,7 +1564,7 @@ class DashboardCajaView:
         )
 
         container.pack(
-            fill=tk.BOTH,
+            fill="both",
             expand=True,
             padx=16,
             pady=16,
@@ -885,77 +1572,254 @@ class DashboardCajaView:
 
         card = cards.Card(
             container,
-            title="Movimientos de caja",
-            subtitle="Historial de ingresos, gastos, retiros y ventas",
+            title="Productos más vendidos",
+            subtitle=(
+                f"Desde {self.start_date.get()} "
+                f"hasta {self.end_date.get()}"
+            ),
             padding=14,
         )
 
         card.pack(
-            fill=tk.BOTH,
+            fill="both",
             expand=True,
         )
 
-        self.movements_table = tables.DataTable(
+        self.products_table = tables.DataTable(
             card.body,
             columns=(
-                "Fecha",
-                "Tipo",
-                "Monto",
-                "Método",
-                "Referencia",
+                "Código",
+                "Producto",
+                "Unidades",
+                "Ventas",
             ),
             widths=(
-                150,
-                100,
                 120,
+                280,
+                110,
                 140,
-                300,
             ),
             anchors=(
                 "w",
                 "w",
                 "e",
-                "w",
-                "w",
+                "e",
             ),
-            height=18,
-            state_tags={
-                "VENTA": "info",
-                "INGRESO": "ok",
-                "RETIRO": "warn",
-                "GASTO": "danger",
-            },
+            height=16,
         )
 
-        self.movements_table.pack(
-            fill=tk.BOTH,
+        self.products_table.pack(
+            fill="both",
             expand=True,
         )
 
-        self.refresh_movements_table()
+        self.products_table.set_rows(
+            self._products_rows,
+            formats={
+                3: "RD$ {:.2f}",
+            },
+        )
 
-    def _close_movements_window(self) -> None:
-        """Cierra la ventana de movimientos y libera sus referencias."""
-
+    def _close_products_window(self) -> None:
         try:
             if (
-                self.movements_window is not None
-                and self.movements_window.winfo_exists()
+                self.products_window is not None
+                and self.products_window.winfo_exists()
             ):
-                self.movements_window.destroy()
+                self.products_window.destroy()
+
         except tk.TclError:
             pass
+
         finally:
-            self.movements_window = None
-            self.movements_table = None
+            self.products_window = None
+            self.products_table = None
+
+    # =======================================================================
+    # VENTANA DE CUENTAS POR COBRAR
+    # =======================================================================
+
+    def open_receivables(self) -> None:
+        if (
+            self.receivables_window is not None
+            and self.receivables_window.winfo_exists()
+        ):
+            self.receivables_window.focus_force()
+            self.receivables_window.lift()
+            self.refresh_receivables()
+            return
+
+        window = ctk.CTkToplevel(
+            self.frame
+        )
+
+        self.receivables_window = window
+
+        window.title(
+            "KLP SYSTEM · Cuentas por cobrar"
+        )
+
+        window.geometry(
+            "820x520"
+        )
+
+        window.minsize(
+            640,
+            360,
+        )
+
+        theme.remember(
+            window,
+            "plain",
+            bg="window",
+            fg="text",
+        )
+
+        window.protocol(
+            "WM_DELETE_WINDOW",
+            self._close_receivables_window,
+        )
+
+        container = ctk.CTkFrame(
+            window
+        )
+
+        theme.remember(
+            container,
+            "plain",
+            bg="window",
+            fg="text",
+        )
+
+        container.pack(
+            fill="both",
+            expand=True,
+            padx=16,
+            pady=16,
+        )
+
+        card = cards.Card(
+            container,
+            title="Cuentas por cobrar",
+            subtitle="Facturas con saldo pendiente",
+            padding=14,
+        )
+
+        card.pack(
+            fill="both",
+            expand=True,
+        )
+
+        self.receivables_table = tables.DataTable(
+            card.body,
+            columns=(
+                "Factura",
+                "Cliente",
+                "Total",
+                "Saldo",
+            ),
+            widths=(
+                120,
+                260,
+                130,
+                130,
+            ),
+            anchors=(
+                "w",
+                "w",
+                "e",
+                "e",
+            ),
+            height=16,
+        )
+
+        self.receivables_table.pack(
+            fill="both",
+            expand=True,
+        )
+
+        self.receivables_table.set_rows(
+            self._receivables_rows,
+            formats={
+                2: "RD$ {:.2f}",
+                3: "RD$ {:.2f}",
+            },
+        )
+
+    def _close_receivables_window(self) -> None:
+        try:
+            if (
+                self.receivables_window is not None
+                and self.receivables_window.winfo_exists()
+            ):
+                self.receivables_window.destroy()
+
+        except tk.TclError:
+            pass
+
+        finally:
+            self.receivables_window = None
+            self.receivables_table = None
+
+    # =======================================================================
+    # VENTANAS ABIERTAS
+    # =======================================================================
+
+    def _refresh_open_windows(self) -> None:
+        if (
+            self.movements_window is not None
+            and self.movements_window.winfo_exists()
+        ):
+            self.refresh_movements_table()
+
+        if (
+            self.products_window is not None
+            and self.products_window.winfo_exists()
+            and self.products_table is not None
+        ):
+            self.products_table.set_rows(
+                self._products_rows,
+                formats={
+                    3: "RD$ {:.2f}",
+                },
+            )
+
+        if (
+            self.receivables_window is not None
+            and self.receivables_window.winfo_exists()
+            and self.receivables_table is not None
+        ):
+            self.receivables_table.set_rows(
+                self._receivables_rows,
+                formats={
+                    2: "RD$ {:.2f}",
+                    3: "RD$ {:.2f}",
+                },
+            )
+
+    # =======================================================================
+    # ACCIONES DE CAJA
+    # =======================================================================
+
+    def open_cash(self) -> None:
+        if self.on_open_cash is None:
+            messagebox.showinfo(
+                "Caja",
+                "La apertura de caja no está disponible "
+                "en esta vista.",
+                parent=self.frame,
+            )
+            return
+
+        self.on_open_cash()
+        self.refresh()
 
     def close_cash(self) -> None:
-        """Delega el cierre de caja en la ventana principal."""
-
         if self.on_close_cash is None:
             messagebox.showinfo(
                 "Caja",
-                "El cierre de caja no está disponible " "en esta vista.",
+                "El cierre de caja no está disponible "
+                "en esta vista.",
                 parent=self.frame,
             )
             return
@@ -963,23 +1827,60 @@ class DashboardCajaView:
         self.on_close_cash()
         self.refresh()
 
+    # =======================================================================
+    # FORMULARIO
+    # =======================================================================
+
     def clear_form(self) -> None:
         self.amount.set("")
         self.reference.set("")
 
     def focus_movement_form(self) -> None:
-        """Coloca el foco en el monto."""
-
         try:
             self.amount_entry.focus_set()
         except tk.TclError:
             pass
 
-    def save_movement(self) -> None:
-        """Registra un movimiento manual en la caja abierta."""
+    def _set_form_enabled(
+        self,
+        enabled: bool,
+    ) -> None:
 
+        state = (
+            "normal"
+            if enabled
+            else "disabled"
+        )
+
+        self.amount_entry.configure(
+            state=state
+        )
+
+        self.reference_entry.configure(
+            state=state
+        )
+
+        self.kind_combo.configure(
+            state=state
+        )
+
+        self.method_combo.configure(
+            state=state
+        )
+
+        self.save_button.configure(
+            state=state
+        )
+
+    def save_movement(self) -> None:
         try:
-            amount = float(self.amount.get().replace(",", "."))
+            amount = float(
+                self.amount.get().replace(
+                    ",",
+                    ".",
+                )
+            )
+
         except ValueError:
             messagebox.showerror(
                 "Caja",
@@ -1001,7 +1902,8 @@ class DashboardCajaView:
         if not cash:
             messagebox.showwarning(
                 "Caja",
-                "Debe abrir una caja antes de registrar movimientos.",
+                "Debe abrir una caja antes de registrar "
+                "movimientos.",
                 parent=self.frame,
             )
             return

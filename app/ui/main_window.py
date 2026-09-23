@@ -5,6 +5,7 @@ import sys
 import tkinter as tk
 import webbrowser
 import customtkinter as ctk
+import time
 
 from datetime import datetime
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -39,7 +40,6 @@ from app.ui.components.buttons import AppButton
 from app.ui.dashboard_cash_view import DashboardCajaView
 from app.ui.inventory_view import InventoryMovementView
 from app.ui.user_management_view import UserManagementView
-
 
 # ``inch`` es la unidad fija de ReportLab (72 puntos).
 inch = 72
@@ -79,9 +79,7 @@ class SistemaFacturacion:
         # CONFIGURACIÓN DE LA VENTANA
         # ----------------------------------------------------
 
-        self.root.title(
-            f"{theme.APP_NAME} · Sistema de Facturación"
-        )
+        self.root.title(f"{theme.APP_NAME} · Sistema de Facturación")
 
         self.root.geometry("1240x740")
         self.root.minsize(1020, 640)
@@ -178,17 +176,11 @@ class SistemaFacturacion:
 
         window.update_idletasks()
 
-        x = (
-            window.winfo_screenwidth() - width
-        ) // 2
+        x = (window.winfo_screenwidth() - width) // 2
 
-        y = (
-            window.winfo_screenheight() - height
-        ) // 2
+        y = (window.winfo_screenheight() - height) // 2
 
-        window.geometry(
-            f"{width}x{height}+{x}+{y}"
-        )
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     # ========================================================
     # PESTAÑA EMPRESA
@@ -197,13 +189,9 @@ class SistemaFacturacion:
     def crear_pestaña_admin(self):
         """Crea la pestaña de configuración de la empresa."""
 
-        self.notebook.add(
-            "Empresa"
-        )
+        self.notebook.add("Empresa")
 
-        tab = self.notebook.tab(
-            "Empresa"
-        )
+        tab = self.notebook.tab("Empresa")
 
         self.tabs["company"] = tab
 
@@ -223,8 +211,7 @@ class SistemaFacturacion:
             wrapper,
             title="Datos de la empresa",
             subtitle=(
-                "Esta información aparece en el "
-                "encabezado de las facturas PDF"
+                "Esta información aparece en el " "encabezado de las facturas PDF"
             ),
             padding=18,
         )
@@ -329,10 +316,7 @@ class SistemaFacturacion:
             text="Guardar cambios",
             command=self.guardar_empresa,
             variant="primary",
-            tooltip=(
-                "Guarda los datos que se imprimen "
-                "en las facturas"
-            ),
+            tooltip=("Guarda los datos que se imprimen " "en las facturas"),
         ).pack(
             side="left",
         )
@@ -342,18 +326,14 @@ class SistemaFacturacion:
             text="Abrir en ventana",
             command=self.ir_mi_empresa,
             variant="ghost",
-            tooltip=(
-                "Edita los datos de la empresa "
-                "en una ventana aparte"
-            ),
+            tooltip=("Edita los datos de la empresa " "en una ventana aparte"),
         ).pack(
             side="left",
             padx=6,
         )
 
     def cargar_empresa(self):
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT
                 nombre,
                 rnc,
@@ -363,30 +343,17 @@ class SistemaFacturacion:
                 website
             FROM empresa
             WHERE id = 1
-            """
-        )
+            """)
 
         row = self.cursor.fetchone()
 
         if row:
-            self.empresa_nombre_var.set(
-                row[0] or ""
-            )
-            self.empresa_rnc_var.set(
-                row[1] or ""
-            )
-            self.empresa_direccion_var.set(
-                row[2] or ""
-            )
-            self.empresa_telefono_var.set(
-                row[3] or ""
-            )
-            self.empresa_email_var.set(
-                row[4] or ""
-            )
-            self.empresa_website_var.set(
-                row[5] or ""
-            )
+            self.empresa_nombre_var.set(row[0] or "")
+            self.empresa_rnc_var.set(row[1] or "")
+            self.empresa_direccion_var.set(row[2] or "")
+            self.empresa_telefono_var.set(row[3] or "")
+            self.empresa_email_var.set(row[4] or "")
+            self.empresa_website_var.set(row[5] or "")
         else:
             self.empresa_nombre_var.set("")
             self.empresa_rnc_var.set("")
@@ -396,9 +363,7 @@ class SistemaFacturacion:
             self.empresa_website_var.set("")
 
     def guardar_empresa(self):
-        if not self.require_permission(
-            "manage_company"
-        ):
+        if not self.require_permission("manage_company"):
             return
 
         nombre = self.empresa_nombre_var.get().strip()
@@ -408,9 +373,7 @@ class SistemaFacturacion:
         email = self.empresa_email_var.get().strip()
         website = self.empresa_website_var.get().strip()
 
-        self.cursor.execute(
-            "SELECT id FROM empresa WHERE id = 1"
-        )
+        self.cursor.execute("SELECT id FROM empresa WHERE id = 1")
 
         if self.cursor.fetchone():
             self.cursor.execute(
@@ -462,14 +425,11 @@ class SistemaFacturacion:
 
         self.conn.commit()
 
-        self.set_status(
-            "Datos de la empresa guardados."
-        )
+        self.set_status("Datos de la empresa guardados.")
 
         messagebox.showinfo(
             "Éxito",
-            "Información de la empresa "
-            "guardada correctamente",
+            "Información de la empresa " "guardada correctamente",
         )
 
     # ========================================================
@@ -509,12 +469,60 @@ class SistemaFacturacion:
             pady=(10, 4),
         )
 
+        inicio = time.perf_counter()
+
         self.crear_pestaña_facturacion()
+        print(
+            f"[PERF] Facturación: "
+            f"{time.perf_counter() - inicio:.3f}s"
+        )
+
+        inicio = time.perf_counter()
+
         self.crear_pestaña_productos()
+        print(
+            f"[PERF] Inventario: "
+            f"{time.perf_counter() - inicio:.3f}s"
+        )
+
+        inicio = time.perf_counter()
+
         self.crear_pestaña_clientes()
+        print(
+            f"[PERF] Clientes: "
+            f"{time.perf_counter() - inicio:.3f}s"
+        )
+
+        inicio = time.perf_counter()
+
         self.crear_pestaña_admin()
+        print(
+            f"[PERF] Empresa: "
+            f"{time.perf_counter() - inicio:.3f}s"
+        )
+
+        inicio = time.perf_counter()
+
         self.crear_pestaña_historial()
+        print(
+            f"[PERF] Historial: "
+            f"{time.perf_counter() - inicio:.3f}s"
+        )
+
+        inicio = time.perf_counter()
+
         self._crear_pestaña_caja_dashboard()
+        print(
+            f"[PERF] Caja/Dashboard: "
+            f"{time.perf_counter() - inicio:.3f}s"
+        )
+
+        # self.crear_pestaña_facturacion()
+        # self.crear_pestaña_productos()
+        # self.crear_pestaña_clientes()
+        # self.crear_pestaña_admin()
+        # self.crear_pestaña_historial()
+        # self._crear_pestaña_caja_dashboard()
 
     # ========================================================
     # MENÚ
@@ -574,9 +582,7 @@ class SistemaFacturacion:
 
         caja.add_command(
             label="Ir a Caja y Dashboard",
-            command=lambda: self.seleccionar_seccion(
-                "dashboard"
-            ),
+            command=lambda: self.seleccionar_seccion("dashboard"),
         )
 
         caja.add_separator()
@@ -612,9 +618,7 @@ class SistemaFacturacion:
 
         opciones.add_command(
             label="Nueva factura",
-            command=lambda: self.seleccionar_seccion(
-                "invoice"
-            ),
+            command=lambda: self.seleccionar_seccion("invoice"),
             accelerator="Ctrl+N",
         )
 
@@ -626,33 +630,25 @@ class SistemaFacturacion:
 
         opciones.add_command(
             label="Caja y Dashboard",
-            command=lambda: self.seleccionar_seccion(
-                "dashboard"
-            ),
+            command=lambda: self.seleccionar_seccion("dashboard"),
             accelerator="Ctrl+D",
         )
 
         opciones.add_command(
             label="Inventario",
-            command=lambda: self.seleccionar_seccion(
-                "products"
-            ),
+            command=lambda: self.seleccionar_seccion("products"),
             accelerator="Ctrl+I",
         )
 
         opciones.add_command(
             label="Clientes",
-            command=lambda: self.seleccionar_seccion(
-                "customers"
-            ),
+            command=lambda: self.seleccionar_seccion("customers"),
             accelerator="Ctrl+L",
         )
 
         opciones.add_command(
             label="Facturas guardadas",
-            command=lambda: self.seleccionar_seccion(
-                "history"
-            ),
+            command=lambda: self.seleccionar_seccion("history"),
             accelerator="Ctrl+H",
         )
 
@@ -805,10 +801,7 @@ class SistemaFacturacion:
             command=self.abrir_facturacion_rapida,
             variant="primary",
             size="small",
-            tooltip=(
-                "Venta de mostrador con lector "
-                "de códigos (F2)"
-            ),
+            tooltip=("Venta de mostrador con lector " "de códigos (F2)"),
         ).pack(
             side="left",
             padx=3,
@@ -817,15 +810,10 @@ class SistemaFacturacion:
         AppButton(
             actions,
             text="Caja y Dashboard",
-            command=lambda: self.seleccionar_seccion(
-                "dashboard"
-            ),
+            command=lambda: self.seleccionar_seccion("dashboard"),
             variant="ghost",
             size="small",
-            tooltip=(
-                "Indicadores del negocio y "
-                "movimientos de caja"
-            ),
+            tooltip=("Indicadores del negocio y " "movimientos de caja"),
         ).pack(
             side="left",
             padx=3,
@@ -837,10 +825,7 @@ class SistemaFacturacion:
             command=self.cerrar_sesion,
             variant="danger",
             size="small",
-            tooltip=(
-                "Volver a la pantalla de inicio "
-                "de sesión"
-            ),
+            tooltip=("Volver a la pantalla de inicio " "de sesión"),
         ).pack(
             side="left",
             padx=3,
@@ -867,9 +852,7 @@ class SistemaFacturacion:
 
         bar.pack_propagate(False)
 
-        self.status_var = ctk.StringVar(
-            value="Listo."
-        )
+        self.status_var = ctk.StringVar(value="Listo.")
 
         ctk.CTkLabel(
             bar,
@@ -883,10 +866,7 @@ class SistemaFacturacion:
         )
 
         self.status_right_var = ctk.StringVar(
-            value=(
-                f"{theme.APP_NAME} "
-                f"v{theme.APP_VERSION} · base local"
-            )
+            value=(f"{theme.APP_NAME} " f"v{theme.APP_VERSION} · base local")
         )
 
         ctk.CTkLabel(
@@ -900,17 +880,19 @@ class SistemaFacturacion:
             padx=14,
         )
 
-
     def set_status(self, message):
         """Muestra un mensaje en la barra de estado."""
 
-        if getattr(
-            self,
-            "status_var",
-            None,
-        ) is not None:
+        if (
+            getattr(
+                self,
+                "status_var",
+                None,
+            )
+            is not None
+        ):
             self.status_var.set(message)
-            
+
     # ========================================================
     # DASHBOARD + CAJA
     # ========================================================
@@ -920,17 +902,11 @@ class SistemaFacturacion:
 
         tab_name = "Caja y Dashboard"
 
-        self.notebook.add(
-            tab_name
-        )
+        self.notebook.add(tab_name)
 
-        tab = self.notebook.tab(
-            tab_name
-        )
+        tab = self.notebook.tab(tab_name)
 
-        tab.configure(
-            fg_color=theme.color("window")
-        )
+        tab.configure(fg_color=theme.color("window"))
 
         self.dashboard_caja = DashboardCajaView(
             tab,
@@ -943,13 +919,10 @@ class SistemaFacturacion:
                 self.current_user.get("role"),
                 "manage_cash",
             ),
-            on_change=lambda: self.set_status(
-                "Movimiento de caja registrado."
-            ),
+            on_change=lambda: self.set_status("Movimiento de caja registrado."),
         )
 
         self.tabs["dashboard"] = tab
-
 
     # ========================================================
     # ATAJOS
@@ -988,14 +961,10 @@ class SistemaFacturacion:
         """Activa una pestaña por índice."""
 
         try:
-            tabs = self.notebook._segmented_button.cget(
-                "values"
-            )
+            tabs = self.notebook._segmented_button.cget("values")
 
             if 0 <= index < len(tabs):
-                self.notebook.set(
-                    tabs[index]
-                )
+                self.notebook.set(tabs[index])
 
         except (IndexError, TypeError, tk.TclError):
             pass
@@ -1010,10 +979,7 @@ class SistemaFacturacion:
 
         self.notebook.set(tab_name)
 
-        if (
-            name == "dashboard"
-            and hasattr(self, "dashboard_caja")
-        ):
+        if name == "dashboard" and hasattr(self, "dashboard_caja"):
             self.dashboard_caja.refresh()
 
         elif name == "products":
@@ -1023,39 +989,36 @@ class SistemaFacturacion:
             self.cargar_clientes()
 
     def _registrar_atajos(self):
-            """Registra los atajos globales."""
+        """Registra los atajos globales."""
 
-            shortcuts = {
-                "n": "invoice",
-                "d": "dashboard",
-                "i": "products",
-                "l": "customers",
-                "h": "history",
-            }
+        shortcuts = {
+            "n": "invoice",
+            "d": "dashboard",
+            "i": "products",
+            "l": "customers",
+            "h": "history",
+        }
 
-            for key, section in shortcuts.items():
-                self.root.bind_all(
-                    f"<Control-KeyPress-{key}>",
-                    lambda event, target=section:
-                        self._atajo_pestaña(
-                            event,
-                            target,
-                        ),
-                    add="+",
-                )
-
+        for key, section in shortcuts.items():
             self.root.bind_all(
-                "<F2>",
-                self._atajo_facturacion_rapida,
+                f"<Control-KeyPress-{key}>",
+                lambda event, target=section: self._atajo_pestaña(
+                    event,
+                    target,
+                ),
                 add="+",
             )
+
+        self.root.bind_all(
+            "<F2>",
+            self._atajo_facturacion_rapida,
+            add="+",
+        )
 
     def _atajo_pestaña(self, event, section):
         """Cambia de sección."""
 
-        self.seleccionar_seccion(
-            section
-        )
+        self.seleccionar_seccion(section)
 
         self.root.focus_set()
 
@@ -1073,9 +1036,7 @@ class SistemaFacturacion:
     def abrir_facturacion_rapida(self):
         """Abre una venta de mostrador."""
 
-        if not self.require_permission(
-            "create_invoices"
-        ):
+        if not self.require_permission("create_invoices"):
             return
 
         if (
@@ -1090,9 +1051,7 @@ class SistemaFacturacion:
             self.quick_code_entry.focus_set()
             return
 
-        window = ctk.CTkToplevel(
-            self.root
-        )
+        window = ctk.CTkToplevel(self.root)
 
         self.quick_window = window
 
@@ -1131,10 +1090,7 @@ class SistemaFacturacion:
 
         ctk.CTkLabel(
             header,
-            text=(
-                "Escanee el código, confirme "
-                "el pago y entregue el ticket"
-            ),
+            text=("Escanee el código, confirme " "el pago y entregue el ticket"),
             font=theme.font("small"),
             text_color=theme.color("text_on_accent"),
             anchor="w",
@@ -1202,8 +1158,7 @@ class SistemaFacturacion:
 
         self.quick_code_entry.bind(
             "<Return>",
-            lambda event:
-                self.agregar_item_rapido(),
+            lambda event: self.agregar_item_rapido(),
         )
 
         cards.label(
@@ -1216,9 +1171,7 @@ class SistemaFacturacion:
             padx=(14, 8),
         )
 
-        self.quick_quantity_var = (
-            ctk.StringVar(value="1")
-        )
+        self.quick_quantity_var = ctk.StringVar(value="1")
 
         inputs.make_entry(
             scan,
@@ -1233,10 +1186,7 @@ class SistemaFacturacion:
             text="Agregar",
             command=self.agregar_item_rapido,
             variant="success",
-            tooltip=(
-                "Agrega el producto escaneado "
-                "a la venta"
-            ),
+            tooltip=("Agrega el producto escaneado " "a la venta"),
         ).pack(
             side="left",
             padx=12,
@@ -1293,8 +1243,7 @@ class SistemaFacturacion:
 
         self.quick_tree.bind(
             "<Delete>",
-            lambda event:
-                self.eliminar_item_rapido(),
+            lambda event: self.eliminar_item_rapido(),
         )
 
         # ----------------------------------------------------
@@ -1312,9 +1261,7 @@ class SistemaFacturacion:
 
         footer = footer_card.body
 
-        self.quick_total_var = ctk.StringVar(
-            value="Total: RD$ 0.00"
-        )
+        self.quick_total_var = ctk.StringVar(value="Total: RD$ 0.00")
 
         ctk.CTkLabel(
             footer,
@@ -1326,9 +1273,7 @@ class SistemaFacturacion:
             side="left",
         )
 
-        self.quick_payment_var = (
-            ctk.StringVar(value="EFECTIVO")
-        )
+        self.quick_payment_var = ctk.StringVar(value="EFECTIVO")
 
         inputs.make_combobox(
             footer,
@@ -1350,10 +1295,7 @@ class SistemaFacturacion:
             text="Cobrar e imprimir ticket",
             command=self.confirmar_factura_rapida,
             variant="primary",
-            tooltip=(
-                "Guarda la venta y genera "
-                "el ticket en PDF"
-            ),
+            tooltip=("Guarda la venta y genera " "el ticket en PDF"),
         ).pack(
             side="right",
             padx=5,
@@ -1364,10 +1306,7 @@ class SistemaFacturacion:
             text="Quitar seleccionado",
             command=self.eliminar_item_rapido,
             variant="danger",
-            tooltip=(
-                "Quita el producto seleccionado "
-                "(Supr)"
-            ),
+            tooltip=("Quita el producto seleccionado " "(Supr)"),
         ).pack(
             side="right",
             padx=5,
@@ -1404,15 +1343,10 @@ class SistemaFacturacion:
             return
 
         try:
-            quantity = int(
-                self.quick_quantity_var.get()
-            )
+            quantity = int(self.quick_quantity_var.get())
 
             if quantity <= 0:
-                raise ValueError(
-                    "La cantidad debe ser mayor "
-                    "que cero"
-                )
+                raise ValueError("La cantidad debe ser mayor " "que cero")
 
             self.cursor.execute(
                 """
@@ -1437,45 +1371,25 @@ class SistemaFacturacion:
             if not product:
                 messagebox.showwarning(
                     "Producto no encontrado",
-                    (
-                        "No existe un producto "
-                        f"con código: {code}"
-                    ),
+                    ("No existe un producto " f"con código: {code}"),
                     parent=self.quick_window,
                 )
                 return
 
             existing = next(
-                (
-                    item
-                    for item in self.quick_items
-                    if item["codigo"] == product[0]
-                ),
+                (item for item in self.quick_items if item["codigo"] == product[0]),
                 None,
             )
 
-            current_quantity = (
-                existing["cantidad"]
-                if existing
-                else 0
-            )
+            current_quantity = existing["cantidad"] if existing else 0
 
-            if (
-                current_quantity + quantity
-                > product[3]
-            ):
-                raise ValueError(
-                    "Stock insuficiente. "
-                    f"Disponible: {product[3]}"
-                )
+            if current_quantity + quantity > product[3]:
+                raise ValueError("Stock insuficiente. " f"Disponible: {product[3]}")
 
             if existing:
                 existing["cantidad"] += quantity
 
-                existing["subtotal"] = (
-                    existing["cantidad"]
-                    * existing["precio"]
-                )
+                existing["subtotal"] = existing["cantidad"] * existing["precio"]
 
             else:
                 self.quick_items.append(
@@ -1484,10 +1398,7 @@ class SistemaFacturacion:
                         "nombre": product[1],
                         "precio": product[2],
                         "cantidad": quantity,
-                        "subtotal": (
-                            product[2]
-                            * quantity
-                        ),
+                        "subtotal": (product[2] * quantity),
                     }
                 )
 
@@ -1505,26 +1416,26 @@ class SistemaFacturacion:
                 parent=self.quick_window,
             )
 
-        def _refrescar_factura_rapida(self):
-            self.quick_table.clear()
+    def _refrescar_factura_rapida(self):
+        self.quick_table.clear()
 
-            total = 0
+        total = 0
 
-            for item in self.quick_items:
-                total += item["subtotal"]
+        for item in self.quick_items:
+            total += item["subtotal"]
 
-                self.quick_table.add_row(
-                    (
-                        item["codigo"],
-                        item["nombre"],
-                        item["cantidad"],
-                        f"RD$ {item['precio']:.2f}",
-                        f"RD$ {item['subtotal']:.2f}",
-                    )
+            self.quick_table.add_row(
+                (
+                    item["codigo"],
+                    item["nombre"],
+                    item["cantidad"],
+                    f"RD$ {item['precio']:.2f}",
+                    f"RD$ {item['subtotal']:.2f}",
                 )
+            )
+
         self.quick_table.restripe()
         self.quick_total_var.set(f"Total: RD$ {total:.2f}")
-
 
     def eliminar_item_rapido(self):
         index = self.quick_table.remove_selected()
@@ -1532,7 +1443,6 @@ class SistemaFacturacion:
         if index is not None:
             del self.quick_items[index]
             self._refrescar_factura_rapida()
-
 
     def confirmar_factura_rapida(self):
         if not self.quick_items:
@@ -1625,9 +1535,7 @@ class SistemaFacturacion:
                 product = self.cursor.fetchone()
 
                 if not product:
-                    raise ValueError(
-                        f"Producto no encontrado: {item['codigo']}"
-                    )
+                    raise ValueError(f"Producto no encontrado: {item['codigo']}")
 
                 product_id, stock = product
 
@@ -1646,9 +1554,7 @@ class SistemaFacturacion:
                 )
 
                 if self.cursor.rowcount != 1:
-                    raise ValueError(
-                        f"Stock insuficiente para {item['nombre']}"
-                    )
+                    raise ValueError(f"Stock insuficiente para {item['nombre']}")
 
                 self.cursor.execute(
                     """
@@ -1717,15 +1623,13 @@ class SistemaFacturacion:
                 ),
             )
 
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 SELECT id
                 FROM cash_registers
                 WHERE estado='ABIERTA'
                 ORDER BY id DESC
                 LIMIT 1
-                """
-            )
+                """)
 
             cash = self.cursor.fetchone()
 
@@ -1790,7 +1694,6 @@ class SistemaFacturacion:
                 str(exc),
                 parent=self.quick_window,
             )
-
 
     def require_permission(self, permission):
         if can(
@@ -1900,7 +1803,6 @@ class SistemaFacturacion:
         if entries:
             entries[0].focus_set()
 
-
     def _cerrar_conexion(self):
         """Cierra la base de datos ignorando errores de cierre repetido."""
 
@@ -1914,7 +1816,6 @@ class SistemaFacturacion:
         except sqlite3.Error:
             logging.exception("No se pudo cerrar la base de datos")
 
-
     def cerrar_sesion(self):
         if messagebox.askyesno(
             "Cerrar sesión",
@@ -1926,7 +1827,6 @@ class SistemaFacturacion:
             if self.on_logout:
                 self.on_logout()
 
-
     def salir(self):
         if messagebox.askyesno(
             "Salir",
@@ -1934,7 +1834,6 @@ class SistemaFacturacion:
         ):
             self._cerrar_conexion()
             self.root.destroy()
-
 
     def crear_backup(self):
         if not self.require_permission("manage_company"):
@@ -1981,7 +1880,6 @@ class SistemaFacturacion:
                 f"No se pudo crear la copia de seguridad:\n{exc}",
             )
 
-
     def abrir_usuarios(self):
         if self.require_permission("manage_users"):
             UserManagementView(
@@ -1990,7 +1888,6 @@ class SistemaFacturacion:
                 self.current_user.get("id"),
             )
 
-
     def abrir_movimientos_inventario(self):
         if self.require_permission("manage_products"):
             InventoryMovementView(
@@ -1998,7 +1895,6 @@ class SistemaFacturacion:
                 self.conn,
                 self.current_user.get("id"),
             )
-
 
     def abrir_movimiento_caja(self):
         """Lleva al usuario al panel de caja para registrar un movimiento manual."""
@@ -2011,10 +1907,7 @@ class SistemaFacturacion:
 
         self.dashboard_caja.focus_movement_form()
 
-        self.set_status(
-            "Registre el movimiento de caja en el formulario del panel."
-        )
-
+        self.set_status("Registre el movimiento de caja en el formulario del panel.")
 
     def restaurar_backup(self):
         if not self.require_permission("manage_company"):
@@ -2069,9 +1962,7 @@ class SistemaFacturacion:
             self.cargar_datos()
             self.dashboard_caja.refresh()
 
-            self.set_status(
-                "Copia de seguridad restaurada."
-            )
+            self.set_status("Copia de seguridad restaurada.")
 
             messagebox.showinfo(
                 "Restauración",
@@ -2094,24 +1985,18 @@ class SistemaFacturacion:
                 str(exc),
             )
 
-
     def _propagar_conexion(self):
         """Reparte la conexión activa entre las vistas que la conservan."""
 
-        for vista in (
-            getattr(self, "dashboard_caja", None),
-        ):
+        for vista in (getattr(self, "dashboard_caja", None),):
             if vista is not None and hasattr(vista, "conn"):
                 vista.conn = self.conn
-
 
     def abrir_caja(self):
         if not self.require_permission("manage_cash"):
             return
 
-        self.cursor.execute(
-            "SELECT id FROM cash_registers WHERE estado='ABIERTA'"
-        )
+        self.cursor.execute("SELECT id FROM cash_registers WHERE estado='ABIERTA'")
 
         if self.cursor.fetchone():
             messagebox.showwarning(
@@ -2165,20 +2050,17 @@ class SistemaFacturacion:
             "Caja abierta correctamente.",
         )
 
-
     def cerrar_caja(self):
         if not self.require_permission("manage_cash"):
             return
 
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT id, monto_inicial
             FROM cash_registers
             WHERE estado='ABIERTA'
             ORDER BY id DESC
             LIMIT 1
-            """
-        )
+            """)
 
         cash = self.cursor.fetchone()
 
@@ -2218,8 +2100,7 @@ class SistemaFacturacion:
 
         counted = simpledialog.askfloat(
             "Cerrar caja",
-            f"Efectivo esperado: RD$ {expected:.2f}\n"
-            "Monto contado:",
+            f"Efectivo esperado: RD$ {expected:.2f}\n" "Monto contado:",
             minvalue=0,
             parent=self.root,
         )
@@ -2263,15 +2144,12 @@ class SistemaFacturacion:
 
         self.dashboard_caja.refresh()
 
-        self.set_status(
-            f"Caja cerrada. Diferencia: RD$ {difference:.2f}"
-        )
+        self.set_status(f"Caja cerrada. Diferencia: RD$ {difference:.2f}")
 
         messagebox.showinfo(
             "Caja",
             f"Caja cerrada. Diferencia: RD$ {difference:.2f}",
         )
-
 
     def mostrar_acerca_de(self):
         """Ventana «Acerca de» con la versión, autor y enlace del proyecto."""
@@ -2290,9 +2168,7 @@ class SistemaFacturacion:
         about.after(
             150,
             lambda: (
-                about.attributes("-topmost", False)
-                if about.winfo_exists()
-                else None
+                about.attributes("-topmost", False) if about.winfo_exists() else None
             ),
         )
 
@@ -2329,10 +2205,7 @@ class SistemaFacturacion:
 
         version = ctk.CTkLabel(
             card.body,
-            text=(
-                f"Versión {theme.APP_VERSION} · "
-                "Desarrollado por K.A.R.M."
-            ),
+            text=(f"Versión {theme.APP_VERSION} · " "Desarrollado por K.A.R.M."),
             text_color=theme.color("text"),
         )
 
@@ -2358,9 +2231,7 @@ class SistemaFacturacion:
 
         link.bind(
             "<Button-1>",
-            lambda event: webbrowser.open_new_tab(
-                theme.CREATOR_URL
-            ),
+            lambda event: webbrowser.open_new_tab(theme.CREATOR_URL),
         )
 
         AppButton(
@@ -2376,17 +2247,12 @@ class SistemaFacturacion:
             lambda event: about.destroy(),
         )
 
-
     def crear_pestaña_facturacion(self):
         """Crea la pestaña de facturación."""
 
-        self.notebook.add(
-            "Facturación"
-        )
+        self.notebook.add("Facturación")
 
-        tab = self.notebook.tab(
-            "Facturación"
-        )
+        tab = self.notebook.tab("Facturación")
 
         self.tabs["invoice"] = tab
 
@@ -2432,7 +2298,6 @@ class SistemaFacturacion:
         self._build_invoice_form(columns)
         self._build_invoice_detail(columns)
 
-
     def _build_invoice_form(self, parent):
         """Columna izquierda de la factura."""
 
@@ -2466,9 +2331,7 @@ class SistemaFacturacion:
             weight=1,
         )
 
-        self.num_factura = tk.StringVar(
-            value=self.generar_numero_factura()
-        )
+        self.num_factura = tk.StringVar(value=self.generar_numero_factura())
 
         inputs.labeled_entry(
             head,
@@ -2479,9 +2342,7 @@ class SistemaFacturacion:
             background="surface",
         )
 
-        self.fecha_factura = tk.StringVar(
-            value=datetime.now().strftime("%d/%m/%Y")
-        )
+        self.fecha_factura = tk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
 
         inputs.labeled_entry(
             head,
@@ -2503,9 +2364,7 @@ class SistemaFacturacion:
             background="surface",
         )
 
-        self.metodo_pago_var = tk.StringVar(
-            value="EFECTIVO"
-        )
+        self.metodo_pago_var = tk.StringVar(value="EFECTIVO")
 
         _caption, self.combo_metodo_pago = inputs.labeled_combobox(
             head,
@@ -2576,9 +2435,7 @@ class SistemaFacturacion:
             background="surface",
         )
 
-        self.cantidad_var = tk.StringVar(
-            value="1"
-        )
+        self.cantidad_var = tk.StringVar(value="1")
 
         _caption, cantidad_entry = inputs.labeled_entry(
             form,
@@ -2705,7 +2562,6 @@ class SistemaFacturacion:
             "Doble clic sobre un producto para cargarlo en el formulario",
         )
 
-
     def _limpiar_busqueda_catalogo(self):
         self.invoice_search.delete(
             0,
@@ -2714,15 +2570,17 @@ class SistemaFacturacion:
 
         self.cargar_catalogo_factura()
 
-
     def cargar_catalogo_factura(self):
         """Refresca el catálogo auxiliar de la pestaña de facturación."""
 
-        if getattr(
-            self,
-            "catalogo_table",
-            None,
-        ) is None:
+        if (
+            getattr(
+                self,
+                "catalogo_table",
+                None,
+            )
+            is None
+        ):
             return
 
         termino = self.invoice_search.get().strip()
@@ -2752,15 +2610,13 @@ class SistemaFacturacion:
                 )
 
             else:
-                self.cursor.execute(
-                    """
+                self.cursor.execute("""
                     SELECT codigo, nombre, precio, stock
                     FROM productos
                     WHERE activo=1
                     ORDER BY nombre
                     LIMIT 200
-                    """
-                )
+                    """)
 
             for codigo, nombre, precio, stock in self.cursor.fetchall():
                 self.catalogo_table.add_row(
@@ -2775,10 +2631,7 @@ class SistemaFacturacion:
             self.catalogo_table.restripe()
 
         except sqlite3.Error:
-            logging.exception(
-                "No se pudo cargar el catálogo de la factura"
-            )
-
+            logging.exception("No se pudo cargar el catálogo de la factura")
 
     def seleccionar_producto_catalogo(self, event=None):
         """Carga en el formulario el producto elegido en el catálogo."""
@@ -2788,29 +2641,26 @@ class SistemaFacturacion:
         if not selected:
             return
 
-        valores = self.tree_catalogo.item(
-            selected[0]
-        )["values"]
+        valores = self.tree_catalogo.item(selected[0])["values"]
 
         if not valores:
             return
 
-        self.producto_var.set(
-            f"{valores[0]} - {valores[1]}"
-        )
+        self.producto_var.set(f"{valores[0]} - {valores[1]}")
 
-        precio = str(
-            valores[2]
-        ).replace(
-            "RD$",
-            "",
-        ).strip()
+        precio = (
+            str(valores[2])
+            .replace(
+                "RD$",
+                "",
+            )
+            .strip()
+        )
 
         self.precio_var.set(precio)
         self.cantidad_var.set("1")
 
         self.combo_producto.focus_set()
-
 
     def _build_invoice_detail(self, parent):
         """Columna derecha: detalle, totales y acciones."""
@@ -2886,17 +2736,11 @@ class SistemaFacturacion:
             pady=(14, 0),
         )
 
-        self.subtotal_var = tk.StringVar(
-            value="RD$ 0.00"
-        )
+        self.subtotal_var = tk.StringVar(value="RD$ 0.00")
 
-        self.itbis_var = tk.StringVar(
-            value="RD$ 0.00"
-        )
+        self.itbis_var = tk.StringVar(value="RD$ 0.00")
 
-        self.total_var = tk.StringVar(
-            value="RD$ 0.00"
-        )
+        self.total_var = tk.StringVar(value="RD$ 0.00")
 
         blocks = (
             (
@@ -3007,17 +2851,12 @@ class SistemaFacturacion:
             side="right",
         )
 
-
     def crear_pestaña_productos(self):
         """Crea la pestaña de gestión de productos."""
 
-        self.notebook.add(
-            "Inventario"
-        )
+        self.notebook.add("Inventario")
 
-        tab = self.notebook.tab(
-            "Inventario"
-        )
+        tab = self.notebook.tab("Inventario")
 
         self.tabs["products"] = tab
 
@@ -3036,9 +2875,7 @@ class SistemaFacturacion:
         card = cards.Card(
             wrapper,
             title="Productos",
-            subtitle=(
-                "Registre, actualice o desactive."
-            ),
+            subtitle=("Registre, actualice o desactive."),
             padding=14,
         )
 
@@ -3268,13 +3105,9 @@ class SistemaFacturacion:
     def crear_pestaña_clientes(self):
         """Crea la pestaña de gestión de clientes."""
 
-        self.notebook.add(
-            "Clientes"
-        )
+        self.notebook.add("Clientes")
 
-        tab = self.notebook.tab(
-            "Clientes"
-        )
+        tab = self.notebook.tab("Clientes")
 
         self.tabs["customers"] = tab
 
@@ -3526,17 +3359,12 @@ class SistemaFacturacion:
             "Seleccione una fila para cargarla en el formulario",
         )
 
-
     def crear_pestaña_historial(self):
         """Crea la pestaña de historial de facturas."""
 
-        self.notebook.add(
-            "Facturas guardadas"
-        )
+        self.notebook.add("Facturas guardadas")
 
-        tab = self.notebook.tab(
-            "Facturas guardadas"
-        )
+        tab = self.notebook.tab("Facturas guardadas")
 
         self.tabs["history"] = tab
 
@@ -3741,7 +3569,6 @@ class SistemaFacturacion:
             "Doble clic para ver el detalle de la factura",
         )
 
-
     def _limpiar_busqueda_historial(self):
         self.hist_buscar.delete(
             0,
@@ -3749,7 +3576,6 @@ class SistemaFacturacion:
         )
 
         self.cargar_historial()
-
 
     # ==============================================================
     # MÉTODOS DE PRODUCTOS
@@ -3776,19 +3602,13 @@ class SistemaFacturacion:
                 precio = float(precio)
                 stock = int(stock)
             except ValueError:
-                raise ValueError(
-                    "Precio y Stock deben ser números válidos"
-                ) from None
+                raise ValueError("Precio y Stock deben ser números válidos") from None
 
             if precio <= 0:
-                raise ValueError(
-                    "El precio debe ser mayor a 0"
-                )
+                raise ValueError("El precio debe ser mayor a 0")
 
             if stock < 0:
-                raise ValueError(
-                    "El stock no puede ser negativo"
-                )
+                raise ValueError("El stock no puede ser negativo")
 
             products_service.create_product(
                 self.conn,
@@ -3851,12 +3671,9 @@ class SistemaFacturacion:
             )
             return
 
-        
         selected_item = selected_items[0]
 
-        item = self.tree_productos.item(
-            selected_item
-        )
+        item = self.tree_productos.item(selected_item)
 
         values = item["values"]
         producto_id = int(values[0])
@@ -3866,19 +3683,13 @@ class SistemaFacturacion:
                 precio = float(precio)
                 stock = int(stock)
             except ValueError:
-                raise ValueError(
-                    "Precio y Stock deben ser números válidos"
-                ) from None
+                raise ValueError("Precio y Stock deben ser números válidos") from None
 
             if precio <= 0:
-                raise ValueError(
-                    "El precio debe ser mayor a 0"
-                )
+                raise ValueError("El precio debe ser mayor a 0")
 
             if stock < 0:
-                raise ValueError(
-                    "El stock no puede ser negativo"
-                )
+                raise ValueError("El stock no puede ser negativo")
 
             products_service.update_product(
                 self.conn,
@@ -3936,9 +3747,7 @@ class SistemaFacturacion:
         ):
             selected_item = selected_items[0]
 
-            item = self.tree_productos.item(
-                selected_item
-            )
+            item = self.tree_productos.item(selected_item)
 
             producto_id = int(item["values"][0])
 
@@ -3964,13 +3773,11 @@ class SistemaFacturacion:
                     f"Error al eliminar producto: {exc}",
                 )
 
-
     def limpiar_form_producto(self):
         self.prod_codigo.delete(0, tk.END)
         self.prod_nombre.delete(0, tk.END)
         self.prod_precio.delete(0, tk.END)
         self.prod_stock.delete(0, tk.END)
-
 
     def seleccionar_producto_tabla(self, event=None):
         selected_items = self.tree_productos.selection()
@@ -3980,9 +3787,7 @@ class SistemaFacturacion:
 
         selected_item = selected_items[0]
 
-        item = self.tree_productos.item(
-            selected_item
-        )
+        item = self.tree_productos.item(selected_item)
 
         values = item["values"]
 
@@ -3997,7 +3802,6 @@ class SistemaFacturacion:
 
         self.prod_stock.delete(0, tk.END)
         self.prod_stock.insert(0, values[4])
-
 
     def _actualizar_badge(self, badge, texto, tone=None):
         """Actualiza el contador de una insignia sin romper si cambia su API."""
@@ -4028,7 +3832,6 @@ class SistemaFacturacion:
                     text=texto,
                 )
 
-
     def cargar_productos(self):
         self.table_productos.clear()
 
@@ -4056,7 +3859,6 @@ class SistemaFacturacion:
         # El catálogo de la pestaña de factura
         # lee la misma tabla.
         self.cargar_catalogo_factura()
-
 
     # ==============================================================
     # MÉTODOS DE CLIENTES
@@ -4109,7 +3911,6 @@ class SistemaFacturacion:
                 f"Error al agregar cliente: {exc}",
             )
 
-
     def actualizar_cliente(self):
         if not self.require_permission("manage_customers"):
             return
@@ -4123,9 +3924,7 @@ class SistemaFacturacion:
             )
             return
 
-        item = self.tree_clientes.item(
-            selected[0]
-        )
+        item = self.tree_clientes.item(selected[0])
 
         cliente_id = item["values"][0]
 
@@ -4167,7 +3966,6 @@ class SistemaFacturacion:
                 f"Error al actualizar cliente: {exc}",
             )
 
-
     def eliminar_cliente(self):
         if not self.require_permission("manage_customers"):
             return
@@ -4188,9 +3986,7 @@ class SistemaFacturacion:
         ):
             return
 
-        item = self.tree_clientes.item(
-            selected[0]
-        )
+        item = self.tree_clientes.item(selected[0])
 
         cliente_id = item["values"][0]
 
@@ -4203,8 +3999,7 @@ class SistemaFacturacion:
 
             messagebox.showinfo(
                 "Éxito",
-                "Cliente desactivado correctamente. "
-                "Su historial se conserva.",
+                "Cliente desactivado correctamente. " "Su historial se conserva.",
             )
 
             self.limpiar_form_cliente()
@@ -4217,13 +4012,11 @@ class SistemaFacturacion:
                 f"Error al eliminar cliente: {exc}",
             )
 
-
     def limpiar_form_cliente(self):
         self.cli_nombre.delete(0, tk.END)
         self.cli_cedula.delete(0, tk.END)
         self.cli_telefono.delete(0, tk.END)
         self.cli_direccion.delete(0, tk.END)
-
 
     def seleccionar_cliente_tabla(self, event=None):
         selected = self.tree_clientes.selection()
@@ -4231,9 +4024,7 @@ class SistemaFacturacion:
         if not selected:
             return
 
-        item = self.tree_clientes.item(
-            selected[0]
-        )
+        item = self.tree_clientes.item(selected[0])
 
         values = item["values"]
 
@@ -4248,7 +4039,6 @@ class SistemaFacturacion:
 
         self.cli_direccion.delete(0, tk.END)
         self.cli_direccion.insert(0, values[4])
-
 
     def cargar_clientes(self):
         self.table_clientes.clear()
@@ -4274,16 +4064,12 @@ class SistemaFacturacion:
             f"{len(filas)} cliente{'s' if len(filas) != 1 else ''}",
         )
 
-
     # ==============================================================
     # MÉTODOS DE FACTURACIÓN
     # ==============================================================
 
     def generar_numero_factura(self):
-        return invoice_service.next_invoice_number(
-            self.conn
-        )
-
+        return invoice_service.next_invoice_number(self.conn)
 
     def seleccionar_producto(self, event=None):
         producto_str = self.producto_var.get()
@@ -4306,10 +4092,7 @@ class SistemaFacturacion:
         result = self.cursor.fetchone()
 
         if result:
-            self.precio_var.set(
-                f"{result[0]:.2f}"
-            )
-
+            self.precio_var.set(f"{result[0]:.2f}")
 
     def agregar_item(self):
         producto_str = self.producto_var.get()
@@ -4333,22 +4116,16 @@ class SistemaFacturacion:
             precio = float(precio_str)
 
             if precio <= 0:
-                raise ValueError(
-                    "El precio debe ser mayor a 0"
-                )
+                raise ValueError("El precio debe ser mayor a 0")
 
             cantidad = int(cantidad_str)
 
             if cantidad <= 0:
-                raise ValueError(
-                    "La cantidad debe ser mayor a 0"
-                )
+                raise ValueError("La cantidad debe ser mayor a 0")
 
             # Extraer código y nombre.
             if " - " not in producto_str:
-                raise ValueError(
-                    "Seleccione un producto válido de la lista"
-                )
+                raise ValueError("Seleccione un producto válido de la lista")
 
             codigo, nombre = producto_str.split(
                 " - ",
@@ -4368,34 +4145,26 @@ class SistemaFacturacion:
             stock_actual = self.cursor.fetchone()
 
             if not stock_actual:
-                raise ValueError(
-                    "Producto no encontrado"
-                )
+                raise ValueError("Producto no encontrado")
 
             if stock_actual[0] < cantidad:
                 raise ValueError(
-                    f"Stock insuficiente. "
-                    f"Disponible: {stock_actual[0]}"
+                    f"Stock insuficiente. " f"Disponible: {stock_actual[0]}"
                 )
 
             # Si el producto ya está en la factura,
             # aumentar su cantidad.
             for item in self.items_factura:
                 if item["codigo"] == codigo:
-                    nueva_cantidad = (
-                        item["cantidad"] + cantidad
-                    )
+                    nueva_cantidad = item["cantidad"] + cantidad
 
                     if nueva_cantidad > stock_actual[0]:
                         raise ValueError(
-                            f"Stock insuficiente. "
-                            f"Disponible: {stock_actual[0]}"
+                            f"Stock insuficiente. " f"Disponible: {stock_actual[0]}"
                         )
 
                     item["cantidad"] = nueva_cantidad
-                    item["subtotal"] = (
-                        item["precio"] * nueva_cantidad
-                    )
+                    item["subtotal"] = item["precio"] * nueva_cantidad
 
                     self._refrescar_items_factura()
                     self.actualizar_totales()
@@ -4451,7 +4220,6 @@ class SistemaFacturacion:
                 f"Error al agregar ítem: {exc}",
             )
 
-
     def eliminar_item(self):
         if not self.tree_items.selection():
             messagebox.showwarning(
@@ -4473,7 +4241,6 @@ class SistemaFacturacion:
 
         self.actualizar_totales()
 
-
     def _refrescar_items_factura(self):
         self.items_table.clear()
 
@@ -4490,28 +4257,17 @@ class SistemaFacturacion:
 
         self.items_table.restripe()
 
-
     def actualizar_totales(self):
-        subtotal = sum(
-            item["subtotal"]
-            for item in self.items_factura
-        )
+        subtotal = sum(item["subtotal"] for item in self.items_factura)
 
         itbis = subtotal * 0.18
         total = subtotal + itbis
 
-        self.subtotal_var.set(
-            f"RD$ {subtotal:.2f}"
-        )
+        self.subtotal_var.set(f"RD$ {subtotal:.2f}")
 
-        self.itbis_var.set(
-            f"RD$ {itbis:.2f}"
-        )
+        self.itbis_var.set(f"RD$ {itbis:.2f}")
 
-        self.total_var.set(
-            f"RD$ {total:.2f}"
-        )
-
+        self.total_var.set(f"RD$ {total:.2f}")
 
     def generar_factura(self):
         if not self.require_permission("create_invoices"):
@@ -4550,24 +4306,15 @@ class SistemaFacturacion:
                 return
 
             # Calcular totales.
-            subtotal, itbis, total = (
-                invoice_service.calculate_totals(
-                    self.items_factura
-                )
+            subtotal, itbis, total = invoice_service.calculate_totals(
+                self.items_factura
             )
 
             numero = self.num_factura.get()
             fecha = invoice_service.invoice_date()
-            metodo_pago = (
-                self.metodo_pago_var.get()
-                or "EFECTIVO"
-            )
+            metodo_pago = self.metodo_pago_var.get() or "EFECTIVO"
 
-            estado = (
-                "PENDIENTE"
-                if metodo_pago == "CREDITO"
-                else "PAGADA"
-            )
+            estado = "PENDIENTE" if metodo_pago == "CREDITO" else "PAGADA"
 
             usuario_id = self.current_user.get("id")
 
@@ -4623,9 +4370,7 @@ class SistemaFacturacion:
                 producto = self.cursor.fetchone()
 
                 if not producto:
-                    raise ValueError(
-                        f"Producto no encontrado: {item['codigo']}"
-                    )
+                    raise ValueError(f"Producto no encontrado: {item['codigo']}")
 
                 producto_id = producto[0]
 
@@ -4665,8 +4410,7 @@ class SistemaFacturacion:
 
                 if self.cursor.rowcount != 1:
                     raise ValueError(
-                        f"Stock insuficiente para el producto "
-                        f"{item['codigo']}"
+                        f"Stock insuficiente para el producto " f"{item['codigo']}"
                     )
 
                 self.cursor.execute(
@@ -4715,9 +4459,7 @@ class SistemaFacturacion:
                 payment_method = self.cursor.fetchone()
 
                 if not payment_method:
-                    raise ValueError(
-                        "Método de pago no válido"
-                    )
+                    raise ValueError("Método de pago no válido")
 
                 self.cursor.execute(
                     """
@@ -4741,22 +4483,19 @@ class SistemaFacturacion:
                 # CAJA
                 # ==================================================
 
-                self.cursor.execute(
-                    """
+                self.cursor.execute("""
                     SELECT id
                     FROM cash_registers
                     WHERE estado='ABIERTA'
                     ORDER BY id DESC
                     LIMIT 1
-                    """
-                )
+                    """)
 
                 cash_register = self.cursor.fetchone()
 
                 if not cash_register:
                     raise ValueError(
-                        "Debe abrir una caja antes de registrar "
-                        "una venta pagada"
+                        "Debe abrir una caja antes de registrar " "una venta pagada"
                     )
 
                 self.cursor.execute(
@@ -4797,9 +4536,7 @@ class SistemaFacturacion:
             # PDF
             # ======================================================
 
-            pdf_path = self.generar_pdf(
-                factura_id
-            )
+            pdf_path = self.generar_pdf(factura_id)
 
             self.conn.commit()
 
@@ -4816,23 +4553,18 @@ class SistemaFacturacion:
         except Exception as exc:
             self.conn.rollback()
 
-            if (
-                pdf_path
-                and os.path.exists(pdf_path)
-            ):
+            if pdf_path and os.path.exists(pdf_path):
                 try:
                     os.remove(pdf_path)
                 except OSError:
                     logging.exception(
-                        "No se pudo limpiar el PDF "
-                        "de una factura revertida"
+                        "No se pudo limpiar el PDF " "de una factura revertida"
                     )
 
             messagebox.showerror(
                 "Error",
                 f"Error al generar factura: {exc}",
             )
-
 
     def generar_pdf(self, factura_id):
         try:
@@ -4859,9 +4591,7 @@ class SistemaFacturacion:
             factura_data = self.cursor.fetchone()
 
             if not factura_data:
-                raise ValueError(
-                    "Factura no encontrada"
-                )
+                raise ValueError("Factura no encontrada")
 
             self.cursor.execute(
                 """
@@ -4882,12 +4612,9 @@ class SistemaFacturacion:
             items_data = self.cursor.fetchall()
 
             if not items_data:
-                raise ValueError(
-                    "La factura no tiene items"
-                )
+                raise ValueError("La factura no tiene items")
 
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 SELECT
                     nombre,
                     rnc,
@@ -4897,8 +4624,7 @@ class SistemaFacturacion:
                     website
                 FROM empresa
                 WHERE id = 1
-                """
-            )
+                """)
 
             empresa_row = self.cursor.fetchone()
 
@@ -4929,30 +4655,15 @@ class SistemaFacturacion:
                     "",
                 )
 
-            empresa_nombre = (
-                empresa_nombre
-                or "TU EMPRESA S.A."
-            )
+            empresa_nombre = empresa_nombre or "TU EMPRESA S.A."
 
-            empresa_rnc = (
-                empresa_rnc
-                or "000-00000-0"
-            )
+            empresa_rnc = empresa_rnc or "000-00000-0"
 
-            empresa_direccion = (
-                empresa_direccion
-                or "Tu dirección aquí"
-            )
+            empresa_direccion = empresa_direccion or "Tu dirección aquí"
 
-            empresa_email = (
-                empresa_email
-                or "example@gmail.com"
-            )
+            empresa_email = empresa_email or "example@gmail.com"
 
-            empresa_telefono = (
-                empresa_telefono
-                or "(809) 000-0000"
-            )
+            empresa_telefono = empresa_telefono or "(809) 000-0000"
 
             facturas_dir = os.path.join(
                 self.base_path,
@@ -4966,17 +4677,13 @@ class SistemaFacturacion:
                 )
             except OSError as exc:
                 raise RuntimeError(
-                    "No se pudo crear la carpeta de facturas: "
-                    f"{exc}"
+                    "No se pudo crear la carpeta de facturas: " f"{exc}"
                 ) from exc
 
             # Limpiar el número para usarlo como
             # nombre de archivo.
             nombre_seguro = "".join(
-                c
-                if c.isalnum() or c in "-_"
-                else "_"
-                for c in str(factura_data[0])
+                c if c.isalnum() or c in "-_" else "_" for c in str(factura_data[0])
             )
 
             filename = os.path.join(
@@ -5053,16 +4760,10 @@ class SistemaFacturacion:
             )
 
             if empresa_email:
-                empresa_text += (
-                    f"<br/>Email: "
-                    f"{escape(str(empresa_email))}"
-                )
+                empresa_text += f"<br/>Email: " f"{escape(str(empresa_email))}"
 
             if empresa_website:
-                empresa_text += (
-                    f"<br/>Web: "
-                    f"{escape(str(empresa_website))}"
-                )
+                empresa_text += f"<br/>Web: " f"{escape(str(empresa_website))}"
 
             elements.append(
                 Paragraph(
@@ -5251,9 +4952,7 @@ class SistemaFacturacion:
                 )
             )
 
-            elements.append(
-                productos_table
-            )
+            elements.append(productos_table)
 
             elements.append(
                 Spacer(
@@ -5345,9 +5044,7 @@ class SistemaFacturacion:
                 )
             )
 
-            elements.append(
-                totales_table
-            )
+            elements.append(totales_table)
 
             elements.append(
                 Spacer(
@@ -5373,10 +5070,7 @@ class SistemaFacturacion:
             return filename
 
         except Exception as exc:
-            raise RuntimeError(
-                f"Error al generar el PDF: {exc}"
-            ) from exc
-
+            raise RuntimeError(f"Error al generar el PDF: {exc}") from exc
 
     def nueva_factura(self):
         # Limpiar tabla de items.
@@ -5386,42 +5080,27 @@ class SistemaFacturacion:
         self.items_factura = []
 
         # Resetear totales.
-        self.subtotal_var.set(
-            "RD$ 0.00"
-        )
+        self.subtotal_var.set("RD$ 0.00")
 
-        self.itbis_var.set(
-            "RD$ 0.00"
-        )
+        self.itbis_var.set("RD$ 0.00")
 
-        self.total_var.set(
-            "RD$ 0.00"
-        )
+        self.total_var.set("RD$ 0.00")
 
         # Nuevo número de factura.
-        self.num_factura.set(
-            self.generar_numero_factura()
-        )
+        self.num_factura.set(self.generar_numero_factura())
 
         # Nueva fecha.
-        self.fecha_factura.set(
-            datetime.now().strftime(
-                "%d/%m/%Y"
-            )
-        )
+        self.fecha_factura.set(datetime.now().strftime("%d/%m/%Y"))
 
         # Limpiar cliente.
         self.cliente_var.set("")
 
-        self.metodo_pago_var.set(
-            "EFECTIVO"
-        )
+        self.metodo_pago_var.set("EFECTIVO")
 
         # Limpiar producto.
         self.producto_var.set("")
         self.precio_var.set("")
         self.cantidad_var.set("1")
-
 
     def cargar_historial(self):
         self.table_historial.clear()
@@ -5454,8 +5133,7 @@ class SistemaFacturacion:
             )
 
         else:
-            self.cursor.execute(
-                """
+            self.cursor.execute("""
                 SELECT
                     f.id,
                     f.numero,
@@ -5469,8 +5147,7 @@ class SistemaFacturacion:
                 JOIN clientes c
                     ON f.cliente_id = c.id
                 ORDER BY f.id DESC
-                """
-            )
+                """)
 
         filas = self.cursor.fetchall()
 
@@ -5499,7 +5176,6 @@ class SistemaFacturacion:
             f"{len(filas)} factura{'s' if len(filas) != 1 else ''}",
         )
 
-
     def ver_detalles_factura(self):
         selected = self.tree_historial.selection()
 
@@ -5510,9 +5186,7 @@ class SistemaFacturacion:
             )
             return
 
-        item = self.tree_historial.item(
-            selected[0]
-        )
+        item = self.tree_historial.item(selected[0])
 
         factura_id = item["values"][0]
 
@@ -5551,9 +5225,7 @@ class SistemaFacturacion:
         # VENTANA DE DETALLES
         # ==========================================================
 
-        detalle_win = ctk.CTkToplevel(
-            self.root
-        )
+        detalle_win = ctk.CTkToplevel(self.root)
 
         theme.prepare_toplevel(
             detalle_win,
@@ -5594,9 +5266,7 @@ class SistemaFacturacion:
                 f"{etiqueta}: {valor}",
                 font_role="body",
                 background="surface",
-            ).pack(
-                anchor="w"
-            )
+            ).pack(anchor="w")
 
         # ==========================================================
         # TABLA DE ITEMS
@@ -5704,18 +5374,14 @@ class SistemaFacturacion:
             f"Subtotal: RD$ {factura_data[2]:.2f}",
             font_role="body",
             background="surface",
-        ).pack(
-            anchor="e"
-        )
+        ).pack(anchor="e")
 
         cards.label(
             total_card.body,
             f"ITBIS: RD$ {factura_data[3]:.2f}",
             font_role="body",
             background="surface",
-        ).pack(
-            anchor="e"
-        )
+        ).pack(anchor="e")
 
         total_label = ctk.CTkLabel(
             total_card.body,
@@ -5730,7 +5396,6 @@ class SistemaFacturacion:
             pady=(4, 0),
         )
 
-
     def regenerar_pdf(self):
         selected = self.tree_historial.selection()
 
@@ -5741,16 +5406,12 @@ class SistemaFacturacion:
             )
             return
 
-        item = self.tree_historial.item(
-            selected[0]
-        )
+        item = self.tree_historial.item(selected[0])
 
         factura_id = item["values"][0]
 
         try:
-            self.generar_pdf(
-                factura_id
-            )
+            self.generar_pdf(factura_id)
 
             messagebox.showinfo(
                 "Éxito",
@@ -5763,7 +5424,6 @@ class SistemaFacturacion:
                 f"Error al generar PDF: {exc}",
             )
 
-
     def _factura_seleccionada(self):
         selected = self.tree_historial.selection()
 
@@ -5774,10 +5434,7 @@ class SistemaFacturacion:
             )
             return None
 
-        return self.tree_historial.item(
-            selected[0]
-        )["values"][0]
-
+        return self.tree_historial.item(selected[0])["values"][0]
 
     def registrar_abono(self):
         if not self.require_permission("create_invoices"):
@@ -5800,10 +5457,7 @@ class SistemaFacturacion:
 
             invoice = self.cursor.fetchone()
 
-            if (
-                not invoice
-                or invoice[1] == "ANULADA"
-            ):
+            if not invoice or invoice[1] == "ANULADA":
                 messagebox.showwarning(
                     "Abono",
                     "La factura no admite abonos.",
@@ -5835,11 +5489,7 @@ class SistemaFacturacion:
 
             amount = simpledialog.askfloat(
                 "Registrar abono",
-                (
-                    f"Saldo pendiente: "
-                    f"RD$ {balance:.2f}\n"
-                    "Monto del abono:"
-                ),
+                (f"Saldo pendiente: " f"RD$ {balance:.2f}\n" "Monto del abono:"),
                 minvalue=0.01,
                 maxvalue=balance,
                 parent=self.root,
@@ -5855,9 +5505,7 @@ class SistemaFacturacion:
                 parent=self.root,
             )
 
-            method = (
-                method or "EFECTIVO"
-            ).strip().upper()
+            method = (method or "EFECTIVO").strip().upper()
 
             self.cursor.execute(
                 """
@@ -5882,11 +5530,7 @@ class SistemaFacturacion:
                 2,
             )
 
-            state = (
-                "PAGADA"
-                if new_paid >= invoice[0]
-                else "PARCIAL"
-            )
+            state = "PAGADA" if new_paid >= invoice[0] else "PARCIAL"
 
             self.cursor.execute(
                 """
@@ -5951,7 +5595,6 @@ class SistemaFacturacion:
                 str(exc),
             )
 
-
     def anular_factura(self):
         if not self.require_permission("create_invoices"):
             return
@@ -5963,8 +5606,7 @@ class SistemaFacturacion:
 
         if not messagebox.askyesno(
             "Anular factura",
-            "La factura quedará bloqueada y "
-            "el stock será reintegrado. ¿Continuar?",
+            "La factura quedará bloqueada y " "el stock será reintegrado. ¿Continuar?",
         ):
             return
 
@@ -5980,10 +5622,7 @@ class SistemaFacturacion:
 
             invoice = self.cursor.fetchone()
 
-            if (
-                not invoice
-                or invoice[1] == "ANULADA"
-            ):
+            if not invoice or invoice[1] == "ANULADA":
                 messagebox.showwarning(
                     "Anular factura",
                     "La factura ya está anulada o no existe.",
@@ -6079,7 +5718,6 @@ class SistemaFacturacion:
                 str(exc),
             )
 
-
     def cargar_datos(self):
         """Carga los datos en los combobox."""
 
@@ -6087,49 +5725,34 @@ class SistemaFacturacion:
         # PRODUCTOS
         # ==========================================================
 
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT codigo, nombre
             FROM productos
             WHERE activo=1
             ORDER BY nombre
-            """
-        )
+            """)
 
-        productos = [
-            f"{row[0]} - {row[1]}"
-            for row in self.cursor.fetchall()
-        ]
+        productos = [f"{row[0]} - {row[1]}" for row in self.cursor.fetchall()]
 
-        self.combo_producto.configure(
-            values=productos
-        )
+        self.combo_producto.configure(values=productos)
 
         # ==========================================================
         # CLIENTES
         # ==========================================================
 
-        self.cursor.execute(
-            """
+        self.cursor.execute("""
             SELECT nombre, cedula
             FROM clientes
             WHERE activo=1
             ORDER BY nombre
-            """
-        )
+            """)
 
         clientes = [
-            (
-                f"{row[0]} - {row[1]}"
-                if row[1]
-                else row[0]
-            )
+            (f"{row[0]} - {row[1]}" if row[1] else row[0])
             for row in self.cursor.fetchall()
         ]
 
-        self.combo_cliente.configure(
-            values=clientes
-        )
+        self.combo_cliente.configure(values=clientes)
 
         # ==========================================================
         # TABLAS

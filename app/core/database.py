@@ -3,8 +3,6 @@ from pathlib import Path
 from typing import Iterable
 
 SCHEMA_VERSION = 2
-SCHEMA_VERSION = 1
-
 
 def connect_database(path: str | Path) -> sqlite3.Connection:
     connection = sqlite3.connect(path, timeout=10)

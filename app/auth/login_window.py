@@ -2,7 +2,6 @@ import logging
 import os
 import sqlite3
 import tkinter as tk
-
 import customtkinter as ctk
 
 from datetime import datetime
@@ -20,15 +19,17 @@ from app.ui.components import inputs
 
 
 class LoginWindow:
+
     creator = CREATOR_URL
 
     def __init__(self, root, on_success):
+
         self.root = root
         self.on_success = on_success
 
-        # ---------------------------------------------------------
+        # =============================================================
         # CONFIGURACIÓN GENERAL
-        # ---------------------------------------------------------
+        # =============================================================
 
         configure_app_style()
 
@@ -37,62 +38,95 @@ class LoginWindow:
         self.root.resizable(False, False)
 
         self.base_path = self.get_base_path()
-        self.db_path = os.path.join(self.base_path, "facturacion.db")
+        self.db_path = os.path.join(
+            self.base_path,
+            "facturacion.db"
+        )
 
-        set_app_icon(self.root, self.base_path)
+        set_app_icon(
+            self.root,
+            self.base_path
+        )
 
-        self.center_window(460, 430)
+        self.center_window(
+            460,
+            430
+        )
 
-        # ---------------------------------------------------------
+        # =============================================================
         # LOGS
-        # ---------------------------------------------------------
+        # =============================================================
 
         self.configure_logs()
 
-        # ---------------------------------------------------------
+        # =============================================================
         # VARIABLES
-        # ---------------------------------------------------------
+        # =============================================================
 
         self.username_var = tk.StringVar()
         self.password_var = tk.StringVar()
-        self.show_password_var = tk.BooleanVar(value=False)
-        self.remember_var = tk.BooleanVar(value=False)
 
-        # Referencia a la ventana de registro para evitar
-        # abrir varias ventanas simultáneamente.
+        self.show_password_var = tk.BooleanVar(
+            value=False
+        )
+
+        self.remember_var = tk.BooleanVar(
+            value=False
+        )
+
+        # Referencia a ventana de registro
         self.register_window = None
 
-        # ---------------------------------------------------------
-        # MANEJO GLOBAL DE ERRORES DE TKINTER
-        # ---------------------------------------------------------
+        # =============================================================
+        # MANEJO GLOBAL DE ERRORES
+        # =============================================================
 
-        self.root.report_callback_exception = self._handle_callback_exception
+        self.root.report_callback_exception = (
+            self._handle_callback_exception
+        )
 
-        # ---------------------------------------------------------
+        # =============================================================
         # BASE DE DATOS
-        # ---------------------------------------------------------
+        # =============================================================
 
         self.ensure_user_table()
         self.load_remembered_user()
 
-        # ---------------------------------------------------------
+        # =============================================================
         # INTERFAZ
-        # ---------------------------------------------------------
+        # =============================================================
 
         self.create_widgets()
 
-        self.root.bind("<Return>", lambda event: self.login())
+        self.root.bind(
+            "<Return>",
+            lambda event: self.login()
+        )
 
     # =============================================================
     # LOGGING
     # =============================================================
 
     def configure_logs(self):
-        logs_path = os.path.join(self.base_path, "logs")
-        os.makedirs(logs_path, exist_ok=True)
 
-        date_now = datetime.now().strftime("%Y-%m-%d")
-        log_file = os.path.join(logs_path, f"{date_now}.log")
+        logs_path = os.path.join(
+            self.base_path,
+            "logs"
+        )
+
+        os.makedirs(
+            logs_path,
+            exist_ok=True
+        )
+
+        date_now = datetime.now().strftime(
+            "%Y-%m-%d"
+        )
+
+        log_file = os.path.join(
+            logs_path,
+            f"{date_now}.log"
+        )
 
         logging.basicConfig(
             filename=log_file,
@@ -102,9 +136,16 @@ class LoginWindow:
             encoding="utf-8",
         )
 
-        logging.info("=== FACTURING SYSTEM STARTED ===")
+        logging.info(
+            "=== FACTURING SYSTEM STARTED ==="
+        )
 
-    def register_accion(self, mensaje, nivel="info"):
+    def register_accion(
+        self,
+        mensaje,
+        nivel="info"
+    ):
+
         nivel = nivel.lower()
 
         if nivel == "info":
@@ -126,21 +167,40 @@ class LoginWindow:
     def get_base_path(self):
         return application_path()
 
-    def center_window(self, width, height, window=None):
+    def center_window(
+        self,
+        width,
+        height,
+        window=None
+    ):
+
         if window is None:
             window = self.root
 
         window.update_idletasks()
 
-        x = (window.winfo_screenwidth() - width) // 2
-        y = (window.winfo_screenheight() - height) // 2
+        x = (
+            window.winfo_screenwidth() - width
+        ) // 2
 
-        window.geometry(f"{width}x{height}+{x}+{y}")
+        y = (
+            window.winfo_screenheight() - height
+        ) // 2
 
-    def _handle_callback_exception(self, exc, val, tb):
+        window.geometry(
+            f"{width}x{height}+{x}+{y}"
+        )
+
+    def _handle_callback_exception(
+        self,
+        exc,
+        val,
+        tb
+    ):
+
         """
-        Handler global para excepciones no controladas dentro
-        de callbacks de Tkinter.
+        Handler global para excepciones no controladas
+        dentro de callbacks de Tkinter.
         """
 
         logging.exception(
@@ -149,10 +209,12 @@ class LoginWindow:
         )
 
         try:
+
             if (
                 self.root.winfo_exists()
                 and self.root.state() == "withdrawn"
             ):
+
                 self.root.deiconify()
                 self.root.lift()
                 self.root.focus_force()
@@ -173,25 +235,40 @@ class LoginWindow:
     # =============================================================
 
     def ensure_user_table(self):
+
         """
-        Crea las tablas necesarias para el sistema de autenticación
-        si todavía no existen.
+        Crea las tablas necesarias para el sistema
+        de autenticación si todavía no existen.
         """
 
         try:
-            with connect_database(self.db_path) as conn:
+
+            with connect_database(
+                self.db_path
+            ) as conn:
+
                 cursor = conn.cursor()
 
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS usuarios (
+
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+
                         usuario TEXT NOT NULL UNIQUE,
+
                         clave TEXT NOT NULL,
-                        role TEXT NOT NULL DEFAULT 'Vendedor',
-                        activo INTEGER NOT NULL DEFAULT 1,
+
+                        role TEXT NOT NULL
+                            DEFAULT 'Vendedor',
+
+                        activo INTEGER NOT NULL
+                            DEFAULT 1,
+
                         ultimo_acceso TIMESTAMP,
-                        intentos_fallidos INTEGER NOT NULL DEFAULT 0
+
+                        intentos_fallidos INTEGER NOT NULL
+                            DEFAULT 0
                     )
                     """
                 )
@@ -199,7 +276,9 @@ class LoginWindow:
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS config (
+
                         clave TEXT PRIMARY KEY,
+
                         valor TEXT
                     )
                     """
@@ -208,7 +287,10 @@ class LoginWindow:
                 conn.commit()
 
         except sqlite3.Error as e:
-            logging.exception("Error inicializando las tablas de autenticación.")
+
+            logging.exception(
+                "Error inicializando las tablas de autenticación."
+            )
 
             messagebox.showerror(
                 "Error de Base de Datos",
@@ -224,8 +306,13 @@ class LoginWindow:
     # =============================================================
 
     def load_remembered_user(self):
+
         try:
-            with connect_database(self.db_path) as conn:
+
+            with connect_database(
+                self.db_path
+            ) as conn:
+
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -240,40 +327,66 @@ class LoginWindow:
                 row = cursor.fetchone()
 
                 if row and row[0]:
-                    self.username_var.set(row[0])
-                    self.remember_var.set(True)
+
+                    self.username_var.set(
+                        row[0]
+                    )
+
+                    self.remember_var.set(
+                        True
+                    )
 
         except sqlite3.Error as e:
+
             logging.warning(
                 f"No se pudo cargar el usuario recordado: {e}"
             )
 
     def save_remembered_user(self):
+
         try:
-            with connect_database(self.db_path) as conn:
+
+            username = self.username_var.get().strip()
+
+            if not username:
+                return
+
+            with connect_database(
+                self.db_path
+            ) as conn:
+
                 cursor = conn.cursor()
 
                 cursor.execute(
                     """
-                    REPLACE INTO config (clave, valor)
+                    REPLACE INTO config (
+                        clave,
+                        valor
+                    )
                     VALUES (?, ?)
                     """,
                     (
                         "remembered_user",
-                        self.username_var.get().strip(),
+                        username,
                     ),
                 )
 
                 conn.commit()
 
         except sqlite3.Error as e:
+
             logging.warning(
                 f"No se pudo guardar el usuario recordado: {e}"
             )
 
     def clear_remembered_user(self):
+
         try:
-            with connect_database(self.db_path) as conn:
+
+            with connect_database(
+                self.db_path
+            ) as conn:
+
                 cursor = conn.cursor()
 
                 cursor.execute(
@@ -287,6 +400,7 @@ class LoginWindow:
                 conn.commit()
 
         except sqlite3.Error as e:
+
             logging.warning(
                 f"No se pudo eliminar el usuario recordado: {e}"
             )
@@ -296,171 +410,256 @@ class LoginWindow:
     # =============================================================
 
     def toggle_password_visibility(self):
-        show_char = "" if self.show_password_var.get() else "*"
 
-        self.password_entry.configure(show=show_char)
+        show_char = (
+            ""
+            if self.show_password_var.get()
+            else "*"
+        )
+
+        self.password_entry.configure(
+            show=show_char
+        )
 
     # =============================================================
     # INTERFAZ
     # =============================================================
 
     def create_widgets(self):
-        # ---------------------------------------------------------
-        # CONTENEDOR PRINCIPAL
-        # ---------------------------------------------------------
 
-        login_frame = ctk.CTkFrame(
+        # =========================================================
+        # FRAME PRINCIPAL
+        #
+        # Ahora ocupa TODO el contenido de la ventana.
+        # =========================================================
+
+        self.login_frame = ctk.CTkFrame(
             self.root,
-            width=400,
-            height=300,
+
             fg_color=Colors.SURFACE,
-            corner_radius=12,
-            border_width=1,
-            border_color=Colors.BORDER,
+
+            corner_radius=0,
+
+            border_width=0,
         )
 
-        login_frame.place(
+        self.login_frame.pack(
+            fill="both",
+            expand=True,
+        )
+
+        # =========================================================
+        # CONTENEDOR CENTRAL
+        #
+        # Permite mantener el contenido centrado y con márgenes
+        # aunque el frame principal ocupe toda la ventana.
+        # =========================================================
+
+        content_frame = ctk.CTkFrame(
+            self.login_frame,
+
+            fg_color="transparent",
+
+            corner_radius=0,
+        )
+
+        content_frame.place(
             relx=0.5,
             rely=0.5,
             anchor="center",
+
+            relwidth=0.82,
         )
 
-        # Evita que el contenido cambie las dimensiones declaradas.
-        login_frame.grid_propagate(False)
-
-        # ---------------------------------------------------------
+        # =========================================================
         # HEADER
-        # ---------------------------------------------------------
+        # =========================================================
 
         header_frame = ctk.CTkFrame(
-            login_frame,
-            height=65,
+            content_frame,
+
+            fg_color="transparent",
+
             corner_radius=0,
-            fg_color=Colors.PRIMARY,
         )
 
         header_frame.pack(
             fill="x",
-            padx=0,
-            pady=0,
+            pady=(0, 18),
         )
 
-        header_frame.pack_propagate(False)
+        # =========================================================
+        # LOGO / IDENTIDAD
+        # =========================================================
 
         ctk.CTkLabel(
             header_frame,
+
             text="KLP SYSTEM",
-            text_color=Colors.TEXT,
+
+            text_color=Colors.PRIMARY,
+
             font=Fonts.TITLE,
         ).pack(
-            pady=(13, 2)
+            pady=(0, 3)
         )
 
         ctk.CTkLabel(
             header_frame,
+
             text="Sistema de facturación",
-            text_color=Colors.TEXT,
+
+            text_color=Colors.TEXT_SECONDARY,
+
             font=Fonts.SMALL,
         ).pack()
 
-        # ---------------------------------------------------------
-        # DESCRIPCIÓN
-        # ---------------------------------------------------------
+        # =========================================================
+        # SEPARADOR
+        # =========================================================
 
-        ctk.CTkLabel(
-            login_frame,
-            text="Ingrese sus datos para continuar",
-            text_color=Colors.TEXT_SECONDARY,
-            font=Fonts.BODY,
-        ).pack(
-            pady=(14, 12)
+        separator = ctk.CTkFrame(
+            content_frame,
+
+            height=1,
+
+            fg_color=Colors.BORDER,
         )
 
-        # ---------------------------------------------------------
+        separator.pack(
+            fill="x",
+            pady=(0, 18),
+        )
+
+        # =========================================================
+        # DESCRIPCIÓN
+        # =========================================================
+
+        ctk.CTkLabel(
+            content_frame,
+
+            text="Inicie sesión para continuar",
+
+            text_color=Colors.TEXT,
+
+            font=Fonts.BODY_BOLD,
+        ).pack(
+            anchor="w",
+            pady=(0, 14),
+        )
+
+        # =========================================================
         # USUARIO
-        # ---------------------------------------------------------
+        # =========================================================
 
         self.username_label = ctk.CTkLabel(
-            login_frame,
+            content_frame,
+
             text="Usuario",
+
             text_color=Colors.TEXT,
+
             font=Fonts.BODY_BOLD,
+
             anchor="w",
         )
 
         self.username_label.pack(
             fill="x",
-            padx=36,
+            pady=(0, 5),
         )
 
         self.username_entry = inputs.make_entry(
-            login_frame,
+            content_frame,
+
             textvariable=self.username_var,
+
             width=328,
-            height=36,
+
+            height=38,
+
             font_role="body",
+
             placeholder_text="Ingrese su usuario",
         )
 
         self.username_entry.pack(
             fill="x",
-            padx=36,
-            pady=(4, 10),
+
+            pady=(0, 14),
         )
 
-        # ---------------------------------------------------------
+        # =========================================================
         # CONTRASEÑA
-        # ---------------------------------------------------------
+        # =========================================================
 
         self.password_label = ctk.CTkLabel(
-            login_frame,
+            content_frame,
+
             text="Contraseña",
+
             text_color=Colors.TEXT,
+
             font=Fonts.BODY_BOLD,
+
             anchor="w",
         )
 
         self.password_label.pack(
             fill="x",
-            padx=36,
+
+            pady=(0, 5),
         )
 
         self.password_entry = inputs.make_entry(
-            login_frame,
+            content_frame,
+
             textvariable=self.password_var,
+
             width=328,
-            height=36,
+
+            height=38,
+
             font_role="body",
+
             placeholder_text="Ingrese su contraseña",
+
             show="*",
         )
 
         self.password_entry.pack(
             fill="x",
-            padx=36,
-            pady=(4, 10),
+
+            pady=(0, 10),
         )
 
-        # ---------------------------------------------------------
+        # =========================================================
         # OPCIONES
-        # ---------------------------------------------------------
+        # =========================================================
 
         options_frame = ctk.CTkFrame(
-            login_frame,
+            content_frame,
+
             fg_color="transparent",
+
+            corner_radius=0,
         )
 
         options_frame.pack(
             fill="x",
-            padx=34,
-            pady=(0, 10),
+
+            pady=(0, 16),
         )
 
         inputs.make_checkbutton(
             options_frame,
+
             text="Mostrar contraseña",
+
             variable=self.show_password_var,
+
             command=self.toggle_password_visibility,
+
             font_role="small",
         ).pack(
             side="left"
@@ -468,67 +667,108 @@ class LoginWindow:
 
         inputs.make_checkbutton(
             options_frame,
+
             text="Recordar usuario",
+
             variable=self.remember_var,
+
             font_role="small",
         ).pack(
             side="right"
         )
 
-        # ---------------------------------------------------------
+        # =========================================================
         # BOTONES
-        # ---------------------------------------------------------
+        # =========================================================
 
         btn_frame = ctk.CTkFrame(
-            login_frame,
+            content_frame,
+
             fg_color="transparent",
+
+            corner_radius=0,
         )
 
         btn_frame.pack(
             fill="x",
-            padx=36,
-            pady=(2, 15),
+
+            pady=(0, 12),
         )
 
         self.login_button = AppButton(
             btn_frame,
+
             text="Entrar",
+
             command=self.login,
+
             variant="primary",
+
             size="medium",
+
             font_role="button",
         )
 
         self.login_button.pack(
             side="left",
+
             fill="x",
+
             expand=True,
-            padx=(0, 6),
+
+            padx=(0, 5),
         )
 
         self.register_button = AppButton(
             btn_frame,
+
             text="Crear cuenta",
+
             command=self.open_register_window,
+
             variant="success",
+
             size="medium",
+
             font_role="button",
         )
 
         self.register_button.pack(
             side="left",
+
             fill="x",
+
             expand=True,
-            padx=(6, 0),
+
+            padx=(5, 0),
         )
 
-        # ---------------------------------------------------------
+        # =========================================================
+        # FOOTER
+        # =========================================================
+
+        ctk.CTkLabel(
+            content_frame,
+
+            text="KLP SYSTEM",
+
+            text_color=Colors.TEXT_SECONDARY,
+
+            font=Fonts.SMALL,
+        ).pack(
+            pady=(4, 0)
+        )
+
+        # =========================================================
         # FOCUS INICIAL
-        # ---------------------------------------------------------
+        # =========================================================
 
         if self.username_var.get().strip():
+
             self.password_entry.focus_set()
+
         else:
+
             self.username_entry.focus_set()
 
     # =============================================================
@@ -536,20 +776,25 @@ class LoginWindow:
     # =============================================================
 
     def open_register_window(self):
+
         """
         Abre la ventana de registro evitando duplicados.
         """
 
         try:
+
             if (
                 self.register_window is not None
                 and self.register_window.winfo_exists()
             ):
+
                 self.register_window.lift()
                 self.register_window.focus_force()
+
                 return
 
         except tk.TclError:
+
             self.register_window = None
 
         register_controller = RegisterWindow(
@@ -557,7 +802,9 @@ class LoginWindow:
             self,
         )
 
-        result = register_controller.open_register_window()
+        result = (
+            register_controller.open_register_window()
+        )
 
         self.register_window = result
 
@@ -566,26 +813,39 @@ class LoginWindow:
     # =============================================================
 
     def login(self):
+
         usuario = self.username_var.get().strip()
 
         # No se hace strip() a la contraseña.
         clave = self.password_var.get()
 
         if not usuario or not clave:
+
             messagebox.showwarning(
                 "Advertencia",
+
                 "Ingrese usuario y contraseña.",
+
                 parent=self.root,
             )
+
             return
 
         try:
-            with connect_database(self.db_path) as conn:
+
+            with connect_database(
+                self.db_path
+            ) as conn:
+
                 cursor = conn.cursor()
 
                 cursor.execute(
                     """
-                    SELECT id, clave, activo, role
+                    SELECT
+                        id,
+                        clave,
+                        activo,
+                        role
                     FROM usuarios
                     WHERE usuario = ?
                     """,
@@ -595,20 +855,28 @@ class LoginWindow:
                 row = cursor.fetchone()
 
                 valid, needs_upgrade = (
-                    verify_password(clave, row[1])
+                    verify_password(
+                        clave,
+                        row[1]
+                    )
                     if row
                     else (False, False)
                 )
 
-                # -------------------------------------------------
+                # =================================================
                 # LOGIN CORRECTO
-                # -------------------------------------------------
+                # =================================================
 
                 if row and row[2] and valid:
+
                     user_id, _, _activo, role = row
 
+                    # -------------------------------------------------
                     # Actualiza hashes antiguos si es necesario.
+                    # -------------------------------------------------
+
                     if needs_upgrade:
+
                         cursor.execute(
                             """
                             UPDATE usuarios
@@ -621,6 +889,10 @@ class LoginWindow:
                             ),
                         )
 
+                    # -------------------------------------------------
+                    # Actualizar acceso
+                    # -------------------------------------------------
+
                     cursor.execute(
                         """
                         UPDATE usuarios
@@ -632,12 +904,21 @@ class LoginWindow:
                         (user_id,),
                     )
 
+                    # -------------------------------------------------
+                    # Auditoría
+                    # -------------------------------------------------
+
                     audit(
                         conn,
+
                         "INICIO_SESION",
+
                         "usuarios",
+
                         user_id,
+
                         usuario,
+
                         user_id,
                     )
 
@@ -646,25 +927,12 @@ class LoginWindow:
                     # -------------------------------------------------
 
                     if self.remember_var.get():
-                        cursor.execute(
-                            """
-                            REPLACE INTO config (clave, valor)
-                            VALUES (?, ?)
-                            """,
-                            (
-                                "remembered_user",
-                                usuario,
-                            ),
-                        )
+
+                        self.save_remembered_user()
 
                     else:
-                        cursor.execute(
-                            """
-                            DELETE FROM config
-                            WHERE clave = ?
-                            """,
-                            ("remembered_user",),
-                        )
+
+                        self.clear_remembered_user()
 
                     conn.commit()
 
@@ -677,17 +945,21 @@ class LoginWindow:
                     self.on_success(
                         {
                             "id": user_id,
+
                             "usuario": usuario,
+
                             "role": role,
                         }
                     )
 
-                # -------------------------------------------------
+                # =================================================
                 # LOGIN INCORRECTO
-                # -------------------------------------------------
+                # =================================================
 
                 else:
+
                     if row:
+
                         cursor.execute(
                             """
                             UPDATE usuarios
@@ -700,10 +972,15 @@ class LoginWindow:
 
                         audit(
                             conn,
+
                             "FALLO_INICIO_SESION",
+
                             "usuarios",
+
                             row[0],
+
                             usuario,
+
                             row[0],
                         )
 
@@ -711,18 +988,25 @@ class LoginWindow:
 
                     messagebox.showwarning(
                         "Acceso denegado",
+
                         "Usuario o contraseña incorrectos. "
                         "Si no tiene cuenta, regístrese.",
+
                         parent=self.root,
                     )
 
         except sqlite3.Error as e:
+
             logging.exception(
-                "Error de base de datos durante el inicio de sesión."
+                "Error de base de datos durante "
+                "el inicio de sesión."
             )
 
             messagebox.showerror(
                 "Error de Base de Datos",
+
                 f"No se pudo validar el usuario:\n\n{e}",
+
                 parent=self.root,
             )
+
