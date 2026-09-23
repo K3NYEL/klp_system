@@ -87,9 +87,6 @@ Thumbs.db
 build/
 dist/
 
-# PyInstaller generated spec files
-*.spec
-
 # ---------------------------------------------------------
 # Environment variables / local secrets
 # ---------------------------------------------------------
