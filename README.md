@@ -42,6 +42,6 @@ El sistema continúa evolucionando con nuevas funcionalidades, mejoras de interf
 
 ## Licencia
 
-**MIT License**
+**License**
 
 Copyright © 2026 **Kenyel**
