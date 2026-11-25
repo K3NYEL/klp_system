@@ -1,0 +1,10 @@
+altgraph==0.17.5
+charset-normalizer==3.5.2
+customtkinter==6.0.0
+darkdetect==0.8.0
+packaging==26.3
+pillow==13.0.0
+pyinstaller==6.22.3
+pyinstaller-hooks-contrib==2026.10
+reportlab==4.5.1
+setuptools==84.2.1
