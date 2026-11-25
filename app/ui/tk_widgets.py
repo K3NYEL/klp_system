@@ -328,7 +328,7 @@ class Tabview(tk.Frame):
             padx=16,
             pady=11,
             cursor="hand2",
-            font=(tkfont.nametofont("TkDefaultFont", root=master).actual("family"), 9, "bold"),
+            font=(tkfont.nametofont("TkDefaultFont", root=self.winfo_toplevel()).actual("family"), 9, "bold"),
         )
         button.pack(side="left", fill="x", expand=True)
         self._tabs[name] = page

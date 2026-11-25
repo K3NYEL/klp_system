@@ -47,6 +47,7 @@ def start_main_app(user=None) -> None:
     import time
 
     application = None
+    main_root = None
 
     try:
         start_time = time.perf_counter()
@@ -83,6 +84,16 @@ def start_main_app(user=None) -> None:
 
     except Exception:
         traceback.print_exc()
+
+        # Si la construcción de la interfaz falla, no dejar una
+        # ventana principal parcialmente inicializada y operable.
+        if main_root is not None:
+            try:
+                if main_root.winfo_exists():
+                    main_root.destroy()
+            except tk.TclError:
+                pass
+
         raise
 
     finally:

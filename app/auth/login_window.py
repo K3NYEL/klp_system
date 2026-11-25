@@ -209,26 +209,28 @@ class LoginWindow:
         )
 
         try:
+            # El login se destruye al autenticar. Si la creación de la
+            # ventana principal falla después, no intentar abrir un
+            # messagebox usando un intérprete Tk que ya fue destruido.
+            if not self.root.winfo_exists():
+                return
 
-            if (
-                self.root.winfo_exists()
-                and self.root.state() == "withdrawn"
-            ):
-
+            if self.root.state() == "withdrawn":
                 self.root.deiconify()
                 self.root.lift()
                 self.root.focus_force()
 
+            messagebox.showerror(
+                "Error inesperado",
+                f"Ocurrió un error inesperado:\n\n{val}\n\n"
+                "Revisa el archivo de log en la carpeta 'logs' "
+                "para más detalle.",
+                parent=self.root,
+            )
         except tk.TclError:
-            pass
-
-        messagebox.showerror(
-            "Error inesperado",
-            f"Ocurrió un error inesperado:\n\n{val}\n\n"
-            "Revisa el archivo de log en la carpeta 'logs' "
-            "para más detalle.",
-            parent=self.root,
-        )
+            logging.exception(
+                "No se pudo mostrar el diálogo de error de Tkinter."
+            )
 
     # =============================================================
     # BASE DE DATOS
