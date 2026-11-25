@@ -1,33 +1,31 @@
 from __future__ import annotations
 
 import importlib.util
-import re
 import sys
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 from app.core.paths import application_path
 
 
-# ============================================================
-# CONFIGURACIÓN
-# ============================================================
-
 PACKAGE_MODULES = {
-    "customtkinter": "customtkinter",
     "reportlab": "reportlab",
     "pyinstaller": "PyInstaller",
+    "pillow": "PIL",
+    "pyinstaller-hooks-contrib": "pyinstaller_hooks_contrib",
+    "charset-normalizer": "charset_normalizer",
+    "altgraph": "altgraph",
+    "setuptools": "setuptools",
+    "packaging": "packaging",
 }
 
 
-# ============================================================
-# MODELO DE RESULTADO
-# ============================================================
-
 @dataclass
 class DependencyResult:
-    """Resultado de la comprobación de una dependencia."""
-
     name: str
     module: str
     requirement: str
@@ -35,240 +33,63 @@ class DependencyResult:
     required: bool = True
 
 
-# ============================================================
-# DETECCIÓN DEL ENTORNO
-# ============================================================
-
 def is_frozen() -> bool:
-    """
-    Indica si KLP SYSTEM está ejecutándose como
-    una aplicación compilada con PyInstaller.
-    """
+    return bool(getattr(sys, "frozen", False))
 
-    return getattr(sys, "frozen", False)
-
-
-# ============================================================
-# REQUIREMENTS
-# ============================================================
 
 def get_requirements_path() -> Path:
-    """
-    Obtiene la ruta de requirements.txt.
-
-    En desarrollo:
-        ~/Escritorio/klp_system/requirements.txt
-    """
-
     return Path(application_path()) / "requirements.txt"
 
 
 def read_requirements() -> list[str]:
-    """
-    Lee las dependencias definidas en requirements.txt.
+    path = get_requirements_path()
+    if not path.is_file():
+        raise FileNotFoundError(f"No se encontró requirements.txt: {path}")
+    return [
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
 
-    Ignora:
-        - líneas vacías
-        - comentarios
-    """
-
-    requirements_path = get_requirements_path()
-
-    if not requirements_path.exists():
-        raise FileNotFoundError(
-            f"No se encontró requirements.txt: "
-            f"{requirements_path}"
-        )
-
-    requirements: list[str] = []
-
-    with requirements_path.open(
-        "r",
-        encoding="utf-8",
-    ) as file:
-
-        for line in file:
-            line = line.strip()
-
-            if not line:
-                continue
-
-            if line.startswith("#"):
-                continue
-
-            requirements.append(line)
-
-    return requirements
-
-
-# ============================================================
-# NOMBRES DE PAQUETES
-# ============================================================
 
 def get_package_name(requirement: str) -> str:
-    """
-    Extrae el nombre del paquete desde una línea
-    de requirements.txt.
-
-    Ejemplo:
-
-        customtkinter>=5.2,<7
-
-    devuelve:
-
-        customtkinter
-    """
-
-    match = re.match(
-        r"^([A-Za-z0-9_.-]+)",
-        requirement,
-    )
-
-    if not match:
-        return requirement
-
-    return match.group(1)
+    return Requirement(requirement).name
 
 
 def get_module_name(package_name: str) -> str:
-    """
-    Convierte el nombre del paquete al nombre
-    real del módulo importable.
-
-    Ejemplo:
-
-        PyInstaller -> PyInstaller
-        customtkinter -> customtkinter
-        reportlab -> reportlab
-    """
-
-    normalized_name = package_name.lower()
-
-    return PACKAGE_MODULES.get(
-        normalized_name,
-        package_name,
-    )
+    return PACKAGE_MODULES.get(package_name.lower(), package_name.replace("-", "_"))
 
 
-# ============================================================
-# COMPROBACIÓN INDIVIDUAL
-# ============================================================
+def check_package(package_name: str, requirement: str) -> DependencyResult:
+    parsed = Requirement(requirement)
+    module_name = get_module_name(package_name)
+    installed = False
+    if parsed.marker is None or parsed.marker.evaluate():
+        try:
+            installed_version = Version(version(package_name))
+            installed = parsed.specifier.contains(installed_version, prereleases=True)
+        except (PackageNotFoundError, ValueError):
+            installed = False
+        if installed and importlib.util.find_spec(module_name) is None:
+            installed = False
+    return DependencyResult(package_name, module_name, requirement, installed)
 
-def check_package(
-    package_name: str,
-    requirement: str,
-) -> DependencyResult:
-    """
-    Comprueba si un paquete puede ser encontrado
-    por el intérprete actual.
-    """
-
-    module_name = get_module_name(
-        package_name
-    )
-
-    installed = (
-        importlib.util.find_spec(
-            module_name
-        )
-        is not None
-    )
-
-    return DependencyResult(
-        name=package_name,
-        module=module_name,
-        requirement=requirement,
-        installed=installed,
-    )
-
-
-# ============================================================
-# COMPROBACIÓN GENERAL
-# ============================================================
 
 def check_dependencies() -> list[DependencyResult]:
-    """
-    Comprueba las dependencias necesarias para KLP SYSTEM.
-
-    En desarrollo:
-        utiliza requirements.txt.
-
-    En una aplicación compilada con PyInstaller:
-        las dependencias ya están incluidas
-        dentro del ejecutable.
-
-        Por lo tanto, NO se necesita
-        requirements.txt.
-    """
-
-    # --------------------------------------------------------
-    # APLICACIÓN COMPILADA
-    # --------------------------------------------------------
-
     if is_frozen():
-        return [
-            DependencyResult(
-                name="KLP SYSTEM",
-                module="",
-                requirement="bundled",
-                installed=True,
-            )
-        ]
-
-    # --------------------------------------------------------
-    # ENTORNO DE DESARROLLO
-    # --------------------------------------------------------
-
-    requirements = read_requirements()
-
-    results: list[DependencyResult] = []
-
-    for requirement in requirements:
-
-        package_name = get_package_name(
-            requirement
-        )
-
-        result = check_package(
-            package_name,
-            requirement,
-        )
-
-        results.append(result)
-
+        return [DependencyResult("KLP SYSTEM", "", "bundled", True)]
+    results = []
+    for requirement in read_requirements():
+        parsed = Requirement(requirement)
+        if parsed.marker is not None and not parsed.marker.evaluate():
+            continue
+        results.append(check_package(parsed.name, requirement))
     return results
 
 
-# ============================================================
-# ESTADO GENERAL
-# ============================================================
-
 def dependencies_ready() -> bool:
-    """
-    Devuelve True cuando todas las dependencias
-    obligatorias están disponibles.
-    """
-
-    results = check_dependencies()
-
-    return all(
-        result.installed
-        for result in results
-        if result.required
-    )
+    return all(result.installed for result in check_dependencies() if result.required)
 
 
 def get_missing_dependencies() -> list[DependencyResult]:
-    """
-    Devuelve una lista con las dependencias
-    obligatorias que no están instaladas.
-    """
-
-    results = check_dependencies()
-
-    return [
-        result
-        for result in results
-        if result.required
-        and not result.installed
-    ]
+    return [result for result in check_dependencies() if result.required and not result.installed]

@@ -2,7 +2,7 @@ import logging
 import os
 import sqlite3
 import tkinter as tk
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 
 from datetime import datetime
 from tkinter import messagebox
@@ -209,26 +209,28 @@ class LoginWindow:
         )
 
         try:
+            # El login se destruye al autenticar. Si la creación de la
+            # ventana principal falla después, no intentar abrir un
+            # messagebox usando un intérprete Tk que ya fue destruido.
+            if not self.root.winfo_exists():
+                return
 
-            if (
-                self.root.winfo_exists()
-                and self.root.state() == "withdrawn"
-            ):
-
+            if self.root.state() == "withdrawn":
                 self.root.deiconify()
                 self.root.lift()
                 self.root.focus_force()
 
+            messagebox.showerror(
+                "Error inesperado",
+                f"Ocurrió un error inesperado:\n\n{val}\n\n"
+                "Revisa el archivo de log en la carpeta 'logs' "
+                "para más detalle.",
+                parent=self.root,
+            )
         except tk.TclError:
-            pass
-
-        messagebox.showerror(
-            "Error inesperado",
-            f"Ocurrió un error inesperado:\n\n{val}\n\n"
-            "Revisa el archivo de log en la carpeta 'logs' "
-            "para más detalle.",
-            parent=self.root,
-        )
+            logging.exception(
+                "No se pudo mostrar el diálogo de error de Tkinter."
+            )
 
     # =============================================================
     # BASE DE DATOS
@@ -433,7 +435,7 @@ class LoginWindow:
         # Ahora ocupa TODO el contenido de la ventana.
         # =========================================================
 
-        self.login_frame = ctk.CTkFrame(
+        self.login_frame = tkui.Frame(
             self.root,
 
             fg_color=Colors.SURFACE,
@@ -455,7 +457,7 @@ class LoginWindow:
         # aunque el frame principal ocupe toda la ventana.
         # =========================================================
 
-        content_frame = ctk.CTkFrame(
+        content_frame = tkui.Frame(
             self.login_frame,
 
             fg_color="transparent",
@@ -475,7 +477,7 @@ class LoginWindow:
         # HEADER
         # =========================================================
 
-        header_frame = ctk.CTkFrame(
+        header_frame = tkui.Frame(
             content_frame,
 
             fg_color="transparent",
@@ -492,7 +494,7 @@ class LoginWindow:
         # LOGO / IDENTIDAD
         # =========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             header_frame,
 
             text="KLP SYSTEM",
@@ -504,7 +506,7 @@ class LoginWindow:
             pady=(0, 3)
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             header_frame,
 
             text="Sistema de facturación",
@@ -518,7 +520,7 @@ class LoginWindow:
         # SEPARADOR
         # =========================================================
 
-        separator = ctk.CTkFrame(
+        separator = tkui.Frame(
             content_frame,
 
             height=1,
@@ -535,7 +537,7 @@ class LoginWindow:
         # DESCRIPCIÓN
         # =========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             content_frame,
 
             text="Inicie sesión para continuar",
@@ -552,7 +554,7 @@ class LoginWindow:
         # USUARIO
         # =========================================================
 
-        self.username_label = ctk.CTkLabel(
+        self.username_label = tkui.Label(
             content_frame,
 
             text="Usuario",
@@ -593,7 +595,7 @@ class LoginWindow:
         # CONTRASEÑA
         # =========================================================
 
-        self.password_label = ctk.CTkLabel(
+        self.password_label = tkui.Label(
             content_frame,
 
             text="Contraseña",
@@ -637,7 +639,7 @@ class LoginWindow:
         # OPCIONES
         # =========================================================
 
-        options_frame = ctk.CTkFrame(
+        options_frame = tkui.Frame(
             content_frame,
 
             fg_color="transparent",
@@ -681,7 +683,7 @@ class LoginWindow:
         # BOTONES
         # =========================================================
 
-        btn_frame = ctk.CTkFrame(
+        btn_frame = tkui.Frame(
             content_frame,
 
             fg_color="transparent",
@@ -747,7 +749,7 @@ class LoginWindow:
         # FOOTER
         # =========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             content_frame,
 
             text="KLP SYSTEM",
@@ -845,7 +847,11 @@ class LoginWindow:
                         id,
                         clave,
                         activo,
-                        role
+                        role,
+                        (
+                            bloqueado_hasta IS NOT NULL
+                            AND bloqueado_hasta > CURRENT_TIMESTAMP
+                        )
                     FROM usuarios
                     WHERE usuario = ?
                     """,
@@ -859,7 +865,7 @@ class LoginWindow:
                         clave,
                         row[1]
                     )
-                    if row
+                    if row and not row[4]
                     else (False, False)
                 )
 
@@ -869,7 +875,7 @@ class LoginWindow:
 
                 if row and row[2] and valid:
 
-                    user_id, _, _activo, role = row
+                    user_id, _, _activo, role, _locked = row
 
                     # -------------------------------------------------
                     # Actualiza hashes antiguos si es necesario.
@@ -898,7 +904,8 @@ class LoginWindow:
                         UPDATE usuarios
                         SET
                             ultimo_acceso = CURRENT_TIMESTAMP,
-                            intentos_fallidos = 0
+                            intentos_fallidos = 0,
+                            bloqueado_hasta = NULL
                         WHERE id = ?
                         """,
                         (user_id,),
@@ -958,13 +965,18 @@ class LoginWindow:
 
                 else:
 
-                    if row:
+                    if row and not row[4]:
 
                         cursor.execute(
                             """
                             UPDATE usuarios
-                            SET intentos_fallidos =
-                                intentos_fallidos + 1
+                            SET
+                                intentos_fallidos = intentos_fallidos + 1,
+                                bloqueado_hasta = CASE
+                                    WHEN intentos_fallidos + 1 >= 5
+                                    THEN datetime('now', '+15 minutes')
+                                    ELSE bloqueado_hasta
+                                END
                             WHERE id = ?
                             """,
                             (row[0],),

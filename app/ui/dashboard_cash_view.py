@@ -28,7 +28,7 @@ from datetime import date
 from tkinter import messagebox
 from typing import Any, Callable, Optional
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 
 from app.core.reports import receivables, sales_summary, top_products
 from app.ui import theme
@@ -89,7 +89,7 @@ class DashboardCajaView:
         self.can_manage_cash = can_manage_cash
         self.on_change = on_change
 
-        self.frame = ctk.CTkFrame(parent)
+        self.frame = tkui.Frame(parent)
 
         theme.remember(
             self.frame,
@@ -138,13 +138,13 @@ class DashboardCajaView:
         # Ventanas secundarias
         # ------------------------------------------------------------------
 
-        self.movements_window: Optional[ctk.CTkToplevel] = None
+        self.movements_window: Optional[tkui.Toplevel] = None
         self.movements_table: Optional[tables.DataTable] = None
 
-        self.products_window: Optional[ctk.CTkToplevel] = None
+        self.products_window: Optional[tkui.Toplevel] = None
         self.products_table: Optional[tables.DataTable] = None
 
-        self.receivables_window: Optional[ctk.CTkToplevel] = None
+        self.receivables_window: Optional[tkui.Toplevel] = None
         self.receivables_table: Optional[tables.DataTable] = None
 
         # ------------------------------------------------------------------
@@ -191,7 +191,7 @@ class DashboardCajaView:
         left = header.left
         right = header.right
 
-        dashboard_label = ctk.CTkLabel(
+        dashboard_label = tkui.Label(
             left,
             text="Dashboard",
             font=theme.font("body_bold"),
@@ -294,7 +294,7 @@ class DashboardCajaView:
     # -----------------------------------------------------------------------
 
     def _build_metrics(self) -> None:
-        row = ctk.CTkFrame(self.frame)
+        row = tkui.Frame(self.frame)
 
         theme.remember(
             row,
@@ -350,7 +350,7 @@ class DashboardCajaView:
     # -----------------------------------------------------------------------
 
     def _build_main_content(self) -> None:
-        content = ctk.CTkFrame(self.frame)
+        content = tkui.Frame(self.frame)
 
         theme.remember(
             content,
@@ -387,7 +387,7 @@ class DashboardCajaView:
         self._build_cash_panel(content)
 
         # Derecha
-        right_column = ctk.CTkFrame(content)
+        right_column = tkui.Frame(content)
 
         theme.remember(
             right_column,
@@ -451,7 +451,7 @@ class DashboardCajaView:
         # Estado
         # ------------------------------------------------------------------
 
-        status = ctk.CTkFrame(body)
+        status = tkui.Frame(body)
 
         theme.remember(
             status,
@@ -465,7 +465,7 @@ class DashboardCajaView:
             pady=(0, 12),
         )
 
-        self.cash_info_label = ctk.CTkLabel(
+        self.cash_info_label = tkui.Label(
             status,
             textvariable=self.cash_info_var,
             anchor="w",
@@ -484,7 +484,7 @@ class DashboardCajaView:
         # Resumen financiero de caja
         # ------------------------------------------------------------------
 
-        summary = ctk.CTkFrame(body)
+        summary = tkui.Frame(body)
 
         theme.remember(
             summary,
@@ -538,7 +538,7 @@ class DashboardCajaView:
         # Registro rápido
         # ------------------------------------------------------------------
 
-        section_title = ctk.CTkLabel(
+        section_title = tkui.Label(
             body,
             text="Registrar movimiento",
             anchor="w",
@@ -550,7 +550,7 @@ class DashboardCajaView:
             pady=(0, 8),
         )
 
-        form = ctk.CTkFrame(body)
+        form = tkui.Frame(body)
 
         theme.remember(
             form,
@@ -626,7 +626,7 @@ class DashboardCajaView:
         # Botones
         # ------------------------------------------------------------------
 
-        actions = ctk.CTkFrame(body)
+        actions = tkui.Frame(body)
 
         theme.remember(
             actions,
@@ -693,9 +693,9 @@ class DashboardCajaView:
         title: str,
         value: str,
         column: int,
-    ) -> ctk.CTkLabel:
+    ) -> tkui.Label:
 
-        box = ctk.CTkFrame(parent)
+        box = tkui.Frame(parent)
 
         theme.remember(
             box,
@@ -712,7 +712,7 @@ class DashboardCajaView:
             pady=4,
         )
 
-        label = ctk.CTkLabel(
+        label = tkui.Label(
             box,
             text=title,
             anchor="w",
@@ -725,7 +725,7 @@ class DashboardCajaView:
             pady=(7, 0),
         )
 
-        value_label = ctk.CTkLabel(
+        value_label = tkui.Label(
             box,
             text=value,
             anchor="w",
@@ -829,7 +829,7 @@ class DashboardCajaView:
 
         body = card.body
 
-        self.activity_container = ctk.CTkFrame(body)
+        self.activity_container = tkui.Frame(body)
 
         theme.remember(
             self.activity_container,
@@ -860,7 +860,7 @@ class DashboardCajaView:
             widget.destroy()
 
         if not self._recent_activity_rows:
-            empty = ctk.CTkLabel(
+            empty = tkui.Label(
                 self.activity_container,
                 text="No hay actividad reciente.",
                 anchor="w",
@@ -878,7 +878,7 @@ class DashboardCajaView:
         for row in self._recent_activity_rows[:5]:
             fecha, tipo, monto, referencia = row
 
-            item = ctk.CTkFrame(
+            item = tkui.Frame(
                 self.activity_container,
                 height=34,
             )
@@ -908,7 +908,7 @@ class DashboardCajaView:
                 "●",
             )
 
-            icon = ctk.CTkLabel(
+            icon = tkui.Label(
                 item,
                 text=icon_text,
                 width=20,
@@ -922,7 +922,7 @@ class DashboardCajaView:
                 sticky="w",
             )
 
-            type_label = ctk.CTkLabel(
+            type_label = tkui.Label(
                 item,
                 text=tipo,
                 width=70,
@@ -937,7 +937,7 @@ class DashboardCajaView:
                 sticky="w",
             )
 
-            ref_label = ctk.CTkLabel(
+            ref_label = tkui.Label(
                 item,
                 text=referencia or "Sin referencia",
                 anchor="w",
@@ -951,7 +951,7 @@ class DashboardCajaView:
                 sticky="ew",
             )
 
-            amount_label = ctk.CTkLabel(
+            amount_label = tkui.Label(
                 item,
                 text=f"RD$ {float(monto):.2f}",
                 anchor="e",
@@ -1332,7 +1332,7 @@ class DashboardCajaView:
             self.refresh_movements_table()
             return
 
-        window = ctk.CTkToplevel(
+        window = tkui.Toplevel(
             self.frame
         )
 
@@ -1363,7 +1363,7 @@ class DashboardCajaView:
             self._close_movements_window,
         )
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             window
         )
 
@@ -1521,7 +1521,7 @@ class DashboardCajaView:
             self.refresh_products()
             return
 
-        window = ctk.CTkToplevel(
+        window = tkui.Toplevel(
             self.frame
         )
 
@@ -1552,7 +1552,7 @@ class DashboardCajaView:
             self._close_products_window,
         )
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             window
         )
 
@@ -1649,7 +1649,7 @@ class DashboardCajaView:
             self.refresh_receivables()
             return
 
-        window = ctk.CTkToplevel(
+        window = tkui.Toplevel(
             self.frame
         )
 
@@ -1680,7 +1680,7 @@ class DashboardCajaView:
             self._close_receivables_window,
         )
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             window
         )
 

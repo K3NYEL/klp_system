@@ -29,7 +29,27 @@ APPDIR="AppDir"
 RELEASE_DIR="releases/Linux"
 APPIMAGE="$RELEASE_DIR/KLP-System-x86_64.AppImage"
 
-APPIMAGETOOL="$HOME/.local/bin/squashfs-root/AppRun"
+APPIMAGETOOL="${APPIMAGETOOL:-}"
+
+if [[ -z "$APPIMAGETOOL" ]]; then
+    APPIMAGETOOL="$(command -v appimagetool || true)"
+fi
+
+if [[ -z "$APPIMAGETOOL" ]]; then
+    for candidate in \
+        "$HOME/.local/bin/appimagetool" \
+        "$HOME/.local/bin/appimagetool-x86_64.AppImage" \
+        "$HOME/.local/bin/appimagetool.AppImage" \
+        "$HOME/.local/bin/squashfs-root/AppRun" \
+        "/usr/local/bin/appimagetool" \
+        "/usr/bin/appimagetool"
+    do
+        if [[ -x "$candidate" ]]; then
+            APPIMAGETOOL="$candidate"
+            break
+        fi
+    done
+fi
 
 # ------------------------------------------------------------------------
 # 1. Limpiar compilación anterior
@@ -161,18 +181,17 @@ chmod +x "$APPDIR/AppRun"
 
 echo "[4/5] Comprobando appimagetool..."
 
-if [[ ! -x "$APPIMAGETOOL" ]]; then
-
+if [[ -z "$APPIMAGETOOL" || ! -x "$APPIMAGETOOL" ]]; then
     echo ""
     echo "Error: no se encontró appimagetool."
     echo ""
-    echo "Ruta esperada:"
-    echo "  $APPIMAGETOOL"
+    echo "Instálalo desde el paquete oficial o define su ruta:"
+    echo "  APPIMAGETOOL=/ruta/a/appimagetool ./build.sh"
     echo ""
-
     exit 1
 fi
 
+echo "Usando appimagetool: $APPIMAGETOOL"
 "$APPIMAGETOOL" --version
 
 # ------------------------------------------------------------------------

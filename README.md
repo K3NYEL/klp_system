@@ -4,14 +4,14 @@
 
 KLP SYSTEM es una aplicación de escritorio diseñada para facilitar la gestión de operaciones comerciales desde una interfaz moderna, sencilla y organizada.
 
-Permite administrar diferentes áreas del negocio desde un mismo sistema, utilizando almacenamiento local y una interfaz desarrollada con **CustomTkinter**.
+Permite administrar diferentes áreas del negocio desde un mismo sistema, utilizando almacenamiento local y una interfaz desarrollada con **Tkinter + ttk**.
 
 ---
 
 ## Tecnologías
 
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
-![CustomTkinter](https://img.shields.io/badge/CustomTkinter-GUI-1f6feb?style=for-the-badge)
+![Tkinter](https://img.shields.io/badge/Tkinter-GUI-1f6feb?style=for-the-badge)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=for-the-badge\&logo=sqlite\&logoColor=white)
 ![ReportLab](https://img.shields.io/badge/ReportLab-PDF-8A2BE2?style=for-the-badge)
 ![PyInstaller](https://img.shields.io/badge/PyInstaller-Build-000000?style=for-the-badge)

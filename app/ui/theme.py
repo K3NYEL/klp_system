@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import ttk
 from typing import Any, Dict, Optional, Tuple
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 
 CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"
 APP_VERSION = "1.1"
-FONT_FAMILY = "Segoe UI" if os.name == "nt" else "DejaVu Sans"
+FONT_FAMILY = "Inter"
+_FONT_CANDIDATES = ("Inter", "DejaVu Sans", "Noto Sans", "Liberation Sans", "Arial", "Helvetica")
+_FONT_ROOT_ID = None
 
 
 def resource_path(*parts: str) -> str:
@@ -117,6 +120,9 @@ FONTS = {
         10,
         "bold",
     ),
+    "nav": (FONT_FAMILY, 9),
+    "nav_bold": (FONT_FAMILY, 9, "bold"),
+    "tiny": (FONT_FAMILY, 8, "bold"),
 }
 
 
@@ -124,8 +130,8 @@ FONTS = {
 # TEMA FIJO
 # ============================================================
 
-DEFAULT_THEME = "oscuro"
-_current_theme = "oscuro"
+DEFAULT_THEME = "claro"
+_current_theme = "claro"
 
 
 # ============================================================
@@ -133,68 +139,68 @@ _current_theme = "oscuro"
 # ============================================================
 
 THEMES = {
-    "oscuro": {
+    "claro": {
         # ----------------------------------------------------
         # SUPERFICIES
         # ----------------------------------------------------
-        "window": "#090B10",
-        "surface": "#11141B",
-        "surface_alt": "#171B23",
-        "card": "#131720",
-        "card_hover": "#191E28",
-        "border": "#252B36",
-        "border_light": "#303744",
-        "header": "#0D1016",
-        "header_text": "#F5F7FA",
+        "window": "#FAFAF8",
+        "surface": "#FFFFFF",
+        "surface_alt": "#F3F2EF",
+        "card": "#FFFFFF",
+        "card_hover": "#FAFAF8",
+        "border": "#ECEAE6",
+        "border_light": "#DDDAD4",
+        "header": "#FFFFFF",
+        "header_text": "#1C1C1A",
         # ----------------------------------------------------
         # ROJO KLP
         # ----------------------------------------------------
-        "accent": "#E53935",
-        "accent_dark": "#C62828",
-        "accent_hover": "#EF5350",
-        "accent_soft": "#321719",
-        "text": "#F1F3F5",
-        "text_muted": "#98A2B3",
-        "text_disabled": "#5C6470",
+        "accent": "#C8312E",
+        "accent_dark": "#A92724",
+        "accent_hover": "#B52B28",
+        "accent_soft": "#FBE9E8",
+        "text": "#1C1C1A",
+        "text_muted": "#6B6B66",
+        "text_disabled": "#A5A49F",
         "text_on_accent": "#FFFFFF",
         # ----------------------------------------------------
         # ESTADOS
         # ----------------------------------------------------
-        "success": "#35C779",
-        "success_dark": "#249C5C",
-        "success_soft": "#13281D",
-        "danger": "#FF5C5C",
-        "danger_dark": "#D63D3D",
-        "danger_soft": "#321819",
-        "warning": "#F2B84B",
-        "warning_dark": "#C88B1B",
-        "warning_soft": "#302511",
-        "info": "#5AA9FF",
-        "info_dark": "#337CC7",
-        "info_soft": "#14263A",
-        "neutral": "#8E99A8",
-        "neutral_dark": "#697482",
-        "neutral_soft": "#202631",
+        "success": "#27834A",
+        "success_dark": "#1E6B3C",
+        "success_soft": "#E8F4EB",
+        "danger": "#C8312E",
+        "danger_dark": "#A92724",
+        "danger_soft": "#FBE9E8",
+        "warning": "#A66B12",
+        "warning_dark": "#80520D",
+        "warning_soft": "#FBF2DF",
+        "info": "#286C9C",
+        "info_dark": "#20577F",
+        "info_soft": "#EAF3F8",
+        "neutral": "#F3F2EF",
+        "neutral_dark": "#E8E6E1",
+        "neutral_soft": "#F3F2EF",
         # ----------------------------------------------------
         # TABLAS
         # ----------------------------------------------------
-        "row_alt": "#151A22",
-        "row_hover": "#202632",
-        "selection": "#B72D2A",
-        "selection_text": "#FFFFFF",
+        "row_alt": "#FAFAF8",
+        "row_hover": "#F3F2EF",
+        "selection": "#FBE9E8",
+        "selection_text": "#1C1C1A",
         # ----------------------------------------------------
         # INPUTS
         # ----------------------------------------------------
-        "entry_bg": "#151922",
-        "entry_border": "#303744",
-        "entry_focus": "#E53935",
-        "entry_disabled": "#10131A",
+        "entry_bg": "#FFFFFF",
+        "entry_border": "#DDDAD4",
+        "entry_focus": "#C8312E",
+        "entry_disabled": "#F3F2EF",
         # ----------------------------------------------------
         # SCROLL
         # ----------------------------------------------------
-        "scroll_trough": "#10131A",
-        "scroll_thumb": "#343B48",
-        "scroll_hover": "#454E5D",
+        "scroll_trough": "#F3F2EF",
+        "scroll_thumb": "#C9C7C1",
+        "scroll_hover": "#A9A79F",
     },
 }
 
@@ -325,8 +331,8 @@ _manager = None
 # ============================================================
 
 INPUT_STYLE = {
-    "fg_color": "#151922",
-    "border_color": "#303744",
+    "fg_color": "#FFFFFF",
+    "border_color": "#DDDAD4",
     "border_width": 1,
     "corner_radius": 8,
     "height": 38,
@@ -340,27 +346,27 @@ INPUT_STYLE = {
 
 def theme_name() -> str:
     """Devuelve siempre el nombre del tema de KLP SYSTEM."""
-    return "oscuro"
+    return "claro"
 
 
 def is_dark() -> bool:
-    """KLP SYSTEM utiliza siempre el tema oscuro."""
-    return True
+    """KLP SYSTEM utiliza siempre el tema claro."""
+    return False
 
 
 # Compatibilidad:
 # theme.colors["accent"]
-colors = THEMES["oscuro"]
+colors = THEMES["claro"]
 
 
 def _refresh_colors_reference():
     global colors
-    colors = THEMES["oscuro"]
+    colors = THEMES["claro"]
 
 
 def color(name: str) -> str:
     """
-    Obtiene un color del tema oscuro actual.
+    Obtiene un color del tema claro actual.
 
     Soporta:
         accent
@@ -395,7 +401,7 @@ def color(name: str) -> str:
                 name = aliases[base] + suffix
                 break
 
-    palette = THEMES["oscuro"]
+    palette = THEMES["claro"]
 
     return palette.get(
         name,
@@ -403,11 +409,51 @@ def color(name: str) -> str:
     )
 
 
-def font(role: str = "default"):
-    return FONTS.get(
-        role,
-        FONTS["default"],
+def configure_fonts(root=None) -> str:
+    """Selecciona una fuente instalada y la aplica a los widgets Tk."""
+    global FONT_FAMILY, FONTS, _FONT_ROOT_ID
+
+    root = root or getattr(tk, "_default_root", None)
+    if root is None:
+        return FONT_FAMILY
+
+    try:
+        available = {name.casefold(): name for name in tkfont.families(root)}
+    except (tk.TclError, RuntimeError):
+        available = {}
+
+    selected = next(
+        (available[name.casefold()] for name in _FONT_CANDIDATES if name.casefold() in available),
+        None,
     )
+    if selected is None:
+        try:
+            selected = tkfont.nametofont("TkDefaultFont", root=root).actual("family")
+        except (tk.TclError, RuntimeError):
+            selected = "DejaVu Sans"
+
+    FONT_FAMILY = selected
+    FONTS = {role: (selected, *spec[1:]) for role, spec in FONTS.items()}
+
+    for name in (
+        "TkDefaultFont", "TkTextFont", "TkFixedFont", "TkMenuFont",
+        "TkHeadingFont", "TkCaptionFont", "TkSmallCaptionFont",
+        "TkIconFont", "TkTooltipFont",
+    ):
+        try:
+            tkfont.nametofont(name, root=root).configure(family=selected)
+        except (tk.TclError, RuntimeError):
+            pass
+
+    _FONT_ROOT_ID = str(root)
+    return selected
+
+
+def font(role: str = "default"):
+    root = getattr(tk, "_default_root", None)
+    if root is not None and _FONT_ROOT_ID != str(root):
+        configure_fonts(root)
+    return FONTS.get(role, FONTS["default"])
 
 
 def role_colors(
@@ -566,7 +612,7 @@ def prepare_toplevel(
     modal=False,
 ):
     """
-    Configura una ventana secundaria CTkToplevel existente.
+    Configura una ventana secundaria Toplevel existente.
     """
     if title:
         window.title(title)
@@ -670,7 +716,7 @@ def separator(
     **kwargs,
 ):
     """
-    Crea un separador compatible con Tkinter/CustomTkinter.
+    Crea un separador compatible con Tkinter/Tkinter.
 
     Los parámetros de geometría como padx, pady, fill,
     side y expand se consumen antes de crear el widget.
@@ -703,7 +749,7 @@ def separator(
     orient_value = "horizontal" if str(orient).lower().startswith("h") else "vertical"
 
     if orient_value == "horizontal":
-        widget = ctk.CTkFrame(
+        widget = tkui.Frame(
             parent,
             height=1,
             fg_color=color("border"),
@@ -714,7 +760,7 @@ def separator(
         default_fill = "x"
 
     else:
-        widget = ctk.CTkFrame(
+        widget = tkui.Frame(
             parent,
             width=1,
             fg_color=color("border"),
@@ -752,7 +798,7 @@ def paint(
     spec: Dict[str, Any],
 ):
     """
-    Reaplica el tema oscuro a un widget registrado.
+    Reaplica el tema claro a un widget registrado.
     """
 
     if widget is None:
@@ -760,12 +806,12 @@ def paint(
 
     try:
         # ----------------------------------------------------
-        # CUSTOMTKINTER - LABEL
+        # TKINTER - LABEL
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkLabel,
+            tkui.Label,
         ):
             bg = spec.get(
                 "bg",
@@ -791,12 +837,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - BUTTON
+        # TKINTER - BUTTON
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkButton,
+            tkui.Button,
         ):
             variant = spec.get(
                 "variant",
@@ -815,12 +861,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - ENTRY
+        # TKINTER - ENTRY
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkEntry,
+            tkui.Entry,
         ):
             _safe_configure(
                 widget,
@@ -848,12 +894,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - COMBOBOX
+        # TKINTER - COMBOBOX
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkComboBox,
+            tkui.ComboBox,
         ):
             _safe_configure(
                 widget,
@@ -867,12 +913,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - CHECKBOX
+        # TKINTER - CHECKBOX
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkCheckBox,
+            tkui.CheckBox,
         ):
             _safe_configure(
                 widget,
@@ -885,12 +931,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SWITCH
+        # TKINTER - SWITCH
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkSwitch,
+            tkui.Switch,
         ):
             _safe_configure(
                 widget,
@@ -903,12 +949,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SLIDER
+        # TKINTER - SLIDER
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkSlider,
+            tkui.Slider,
         ):
             _safe_configure(
                 widget,
@@ -921,12 +967,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - PROGRESS BAR
+        # TKINTER - PROGRESS BAR
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkProgressBar,
+            tkui.ProgressBar,
         ):
             _safe_configure(
                 widget,
@@ -937,12 +983,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SCROLLBAR
+        # TKINTER - SCROLLBAR
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkScrollbar,
+            tkui.Scrollbar,
         ):
             _safe_configure(
                 widget,
@@ -954,7 +1000,7 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - TABVIEW
+        # TKINTER - TABVIEW
         #
         # El Tabview utiliza el mismo lenguaje visual
         # que las Cards de KLP SYSTEM.
@@ -962,7 +1008,7 @@ def paint(
 
         if isinstance(
             widget,
-            ctk.CTkTabview,
+            tkui.Tabview,
         ):
             _safe_configure(
                 widget,
@@ -981,16 +1027,16 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SCROLLABLE FRAME
+        # TKINTER - SCROLLABLE FRAME
         #
         # IMPORTANTE:
-        # Este bloque debe estar ANTES del CTkFrame genérico,
-        # porque CTkScrollableFrame hereda de CTkFrame.
+        # Este bloque debe estar ANTES del Frame genérico,
+        # porque ScrollableFrame hereda de Frame.
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkScrollableFrame,
+            tkui.ScrollableFrame,
         ):
             bg = spec.get(
                 "bg",
@@ -1010,16 +1056,16 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - FRAME
+        # TKINTER - FRAME
         #
-        # Este debe ser el último widget CTkFrame,
-        # porque muchos componentes de CustomTkinter
-        # heredan de CTkFrame.
+        # Este debe ser el último widget Frame,
+        # porque muchos componentes de Tkinter
+        # heredan de Frame.
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkFrame,
+            tkui.Frame,
         ):
             bg = spec.get(
                 "bg",
@@ -1352,7 +1398,7 @@ def restyle(
 ) -> None:
     """
     Actualiza propiedades de un widget y reaplica
-    el tema oscuro.
+    el tema claro.
     """
     if root is not None and changes:
         try:
@@ -1374,24 +1420,24 @@ def restyle(
 # ============================================================
 
 
-def apply_theme(name: str = "oscuro"):
+def apply_theme(name: str = "claro"):
     """
     Aplica el único tema disponible de KLP SYSTEM.
 
     El argumento ``name`` se mantiene únicamente por
     compatibilidad con código existente.
 
-    La aplicación siempre utiliza el tema oscuro.
+    La aplicación siempre utiliza el tema claro.
     """
     global _current_theme
 
-    _current_theme = "oscuro"
+    _current_theme = "claro"
 
     _refresh_colors_reference()
     _update_input_style()
 
-    # Fuerza CustomTkinter a utilizar Dark.
-    ctk.set_appearance_mode("Dark")
+    # Fuerza Tkinter a utilizar el estilo claro.
+    tkui.set_appearance_mode("Light")
 
     configure_app_style()
     repaint_all()
@@ -1406,7 +1452,7 @@ class ThemeManager:
     """
     Administrador del tema global de KLP SYSTEM.
 
-    KLP SYSTEM utiliza exclusivamente el tema oscuro.
+    KLP SYSTEM utiliza exclusivamente el tema claro.
     """
 
     def __init__(
@@ -1417,39 +1463,39 @@ class ThemeManager:
         global _manager
 
         self.root = root
-        self.theme = "oscuro"
+        self.theme = "claro"
 
         _manager = self
 
-        apply_theme("oscuro")
+        apply_theme("claro")
 
     def set_theme(
         self,
-        name: str = "oscuro",
+        name: str = "claro",
     ):
         """
-        Mantiene KLP SYSTEM en tema oscuro.
+        Mantiene KLP SYSTEM en tema claro.
 
         ``name`` se acepta por compatibilidad, pero
-        cualquier valor termina usando ``oscuro``.
+        cualquier valor termina usando ``claro``.
         """
-        self.theme = "oscuro"
-        apply_theme("oscuro")
+        self.theme = "claro"
+        apply_theme("claro")
 
     def toggle(self):
         """
-        Mantiene el tema oscuro.
+        Mantiene el tema claro.
 
         No existe un segundo tema para alternar.
         """
-        self.theme = "oscuro"
-        apply_theme("oscuro")
+        self.theme = "claro"
+        apply_theme("claro")
 
     def is_dark(self):
-        return True
+        return False
 
     def colors(self):
-        return THEMES["oscuro"]
+        return THEMES["claro"]
 
 
 # ============================================================
@@ -1464,7 +1510,7 @@ def set_app_icon(
     """
     Configura el icono de la aplicación.
 
-    Primero intenta PNG para CustomTkinter/Tkinter
+    Primero intenta PNG para Tkinter/Tkinter
     y luego ICO.
 
     Las imágenes PNG quedan retenidas mientras la
@@ -1564,7 +1610,7 @@ def set_app_icon(
 
 class Tooltip:
     """
-    Tooltip ligero para widgets Tkinter/CustomTkinter.
+    Tooltip ligero para widgets Tkinter/Tkinter.
     """
 
     def __init__(
@@ -1698,9 +1744,9 @@ def detect_system_theme() -> str:
     Compatibilidad con código anterior.
 
     KLP SYSTEM ya no detecta el tema del sistema.
-    Siempre devuelve ``oscuro``.
+    Siempre devuelve ``claro``.
     """
-    return "oscuro"
+    return "claro"
 
 
 def system_theme_info():
@@ -1712,10 +1758,10 @@ def system_theme_info():
     externa.
     """
     return {
-        "detected": "oscuro",
-        "current": "oscuro",
-        "available": ["oscuro"],
-        "is_dark": True,
+        "detected": "claro",
+        "current": "claro",
+        "available": ["claro"],
+        "is_dark": False,
     }
 
 
@@ -1723,8 +1769,8 @@ def system_theme_info():
 # CONFIGURACIÓN INICIAL
 # ============================================================
 
-# Fuerza CustomTkinter a utilizar siempre el modo oscuro.
-ctk.set_appearance_mode("Dark")
+# Fuerza Tkinter a utilizar siempre el modo claro.
+tkui.set_appearance_mode("Dark")
 
 _refresh_colors_reference()
 _update_input_style()

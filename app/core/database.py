@@ -189,6 +189,7 @@ def migrate_database(connection: sqlite3.Connection) -> None:
         ("activo", "INTEGER NOT NULL DEFAULT 1"),
         ("ultimo_acceso", "TEXT"),
         ("intentos_fallidos", "INTEGER NOT NULL DEFAULT 0"),
+        ("bloqueado_hasta", "TEXT"),
     ))
     _add_columns(connection, "productos", (
         ("codigo_barras", "TEXT"),

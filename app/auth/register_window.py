@@ -3,12 +3,13 @@ import sqlite3
 import tkinter as tk
 from typing import Optional
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 from tkinter import messagebox
 
 from app.core.ui import set_app_icon
 from app.core.database import connect_database, audit
-from app.auth.security import hash_password
+from app.core.user_management import create_user
+from app.ui.styles import Colors, Fonts
 from app.auth.password_window import PasswordWindow
 
 
@@ -42,7 +43,7 @@ class RegisterWindow:
 
         self.window.geometry("500x470")
         self.window.resizable(False, False)
-        self.window.configure(bg="#f0f0f0")
+        self.window.configure(bg=Colors.BACKGROUND)
         self.window.transient(self.root)
 
         self.login_window.center_window(
@@ -60,27 +61,27 @@ class RegisterWindow:
         # TÍTULO
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             self.window,
             text="Crear cuenta",
-            font=("Roboto", 22, "bold"),
-            text_color="#2d3436",
+            font=Fonts.TITLE,
+            text_color=Colors.TEXT,
         ).pack(pady=(25, 5))
 
-        ctk.CTkLabel(
+        tkui.Label(
             self.window,
             text="Registra un nuevo usuario en el sistema.",
-            font=("Arial", 13),
-            text_color="#636e72",
+            font=Fonts.BODY,
+            text_color=Colors.TEXT_SECONDARY,
         ).pack(pady=(0, 20))
 
         # ==========================================================
         # FORMULARIO
         # ==========================================================
 
-        form_frame = ctk.CTkFrame(
+        form_frame = tkui.Frame(
             self.window,
-            fg_color="#ffffff",
+            fg_color=Colors.CARD,
             corner_radius=12,
         )
 
@@ -97,11 +98,11 @@ class RegisterWindow:
         # USUARIO
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Usuario",
-            font=("Arial", 13, "bold"),
-            text_color="#2d3436",
+            font=Fonts.BODY_BOLD,
+            text_color=Colors.TEXT,
         ).grid(
             row=0,
             column=0,
@@ -112,10 +113,10 @@ class RegisterWindow:
 
         new_user_var = tk.StringVar()
 
-        username_entry = ctk.CTkEntry(
+        username_entry = tkui.Entry(
             form_frame,
             textvariable=new_user_var,
-            font=("Arial", 13),
+            font=Fonts.BODY,
             height=32,
         )
 
@@ -131,11 +132,11 @@ class RegisterWindow:
         # CONTRASEÑA
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Contraseña",
-            font=("Arial", 13, "bold"),
-            text_color="#2d3436",
+            font=Fonts.BODY_BOLD,
+            text_color=Colors.TEXT,
         ).grid(
             row=1,
             column=0,
@@ -146,11 +147,11 @@ class RegisterWindow:
 
         self.password_status_var = tk.StringVar(value="No configurada")
 
-        ctk.CTkButton(
+        tkui.Button(
             form_frame,
             textvariable=self.password_status_var,
             command=self.open_password_window,
-            font=("Arial", 13, "bold"),
+            font=Fonts.BODY_BOLD,
             width=180,
         ).grid(
             row=1,
@@ -164,11 +165,11 @@ class RegisterWindow:
         # TIPO DE USUARIO
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Tipo de usuario",
-            font=("Arial", 13, "bold"),
-            text_color="#2d3436",
+            font=Fonts.BODY_BOLD,
+            text_color=Colors.TEXT,
         ).grid(
             row=2,
             column=0,
@@ -177,11 +178,11 @@ class RegisterWindow:
             pady=8,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Vendedor (o Administrador si es el primer usuario)",
-            font=("Arial", 12),
-            text_color="#636e72",
+            font=Fonts.SMALL,
+            text_color=Colors.TEXT_SECONDARY,
         ).grid(
             row=2,
             column=1,
@@ -194,7 +195,7 @@ class RegisterWindow:
         # BOTONES
         # ==========================================================
 
-        button_frame = ctk.CTkFrame(
+        button_frame = tkui.Frame(
             form_frame,
             fg_color="transparent",
         )
@@ -207,13 +208,13 @@ class RegisterWindow:
             pady=(20, 20),
         )
 
-        register_button = ctk.CTkButton(
+        register_button = tkui.Button(
             button_frame,
             text="Guardar cuenta",
             command=lambda: self.register_user(
                 new_user_var.get().strip(),
             ),
-            font=("Arial", 13, "bold"),
+            font=Fonts.BODY_BOLD,
             width=170,
         )
 
@@ -222,13 +223,13 @@ class RegisterWindow:
             padx=(0, 10),
         )
 
-        cancel_button = ctk.CTkButton(
+        cancel_button = tkui.Button(
             button_frame,
             text="Cancelar",
             command=self.close_register_window,
-            fg_color="#757575",
-            hover_color="#616161",
-            font=("Arial", 13, "bold"),
+            fg_color=Colors.SECONDARY,
+            hover_color=Colors.SECONDARY_HOVER,
+            font=Fonts.BODY_BOLD,
             width=130,
         )
 
@@ -375,33 +376,7 @@ class RegisterWindow:
 
                 assigned_role = "Administrador" if first_user else "Vendedor"
 
-                # Crear usuario
-                cursor.execute(
-                    """
-                    INSERT INTO usuarios
-                    (usuario, clave, role)
-                    VALUES (?, ?, ?)
-                    """,
-                    (
-                        usuario,
-                        hash_password(clave),
-                        assigned_role,
-                    ),
-                )
-
-                user_id = cursor.lastrowid
-
-                # Auditoría
-                audit(
-                    conn,
-                    "CREAR_USUARIO",
-                    "usuarios",
-                    user_id,
-                    usuario,
-                    user_id,
-                )
-
-                conn.commit()
+                user_id = create_user(conn, usuario, clave, assigned_role, None)
 
             # ------------------------------------------------------
             # REGISTRO EXITOSO

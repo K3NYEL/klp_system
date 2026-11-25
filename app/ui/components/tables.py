@@ -1,8 +1,8 @@
 """
 Componente de tablas de KLP SYSTEM.
 
-DataTable utiliza un CTkFrame como contenedor y un ttk.Treeview
-internamente, ya que CustomTkinter no dispone de un componente
+DataTable utiliza un Frame como contenedor y un ttk.Treeview
+internamente, ya que Tkinter no dispone de un componente
 nativo equivalente a Treeview.
 
 La API mantiene compatibilidad con las tablas existentes del sistema.
@@ -15,7 +15,7 @@ from tkinter import ttk
 
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 
 from app.ui import theme
 from app.ui.styles import Colors, Fonts
@@ -40,24 +40,24 @@ TABLE_BORDER_WIDTH = 1
 
 STATE_TAGS = {
     "activo": {
-        "background": "#17351F",
-        "foreground": "#81C784",
+        "background": "#E8F4EB",
+        "foreground": "#27834A",
     },
     "inactivo": {
-        "background": "#35191A",
-        "foreground": "#EF9A9A",
+        "background": "#FBE9E8",
+        "foreground": "#A92724",
     },
     "pendiente": {
-        "background": "#3A3016",
-        "foreground": "#FFD54F",
+        "background": "#FBF2DF",
+        "foreground": "#80520D",
     },
     "pagado": {
-        "background": "#17351F",
-        "foreground": "#81C784",
+        "background": "#E8F4EB",
+        "foreground": "#27834A",
     },
     "cancelado": {
-        "background": "#35191A",
-        "foreground": "#EF9A9A",
+        "background": "#FBE9E8",
+        "foreground": "#A92724",
     },
 }
 
@@ -72,24 +72,24 @@ STATE_TAGS = {
 
 TONE_COLORS = {
     "info": {
-        "background": "#122F3D",
-        "foreground": "#64B5F6",
+        "background": "#EAF3F8",
+        "foreground": "#20577F",
     },
     "ok": {
-        "background": "#17351F",
-        "foreground": "#81C784",
+        "background": "#E8F4EB",
+        "foreground": "#27834A",
     },
     "warn": {
-        "background": "#3A3016",
-        "foreground": "#FFD54F",
+        "background": "#FBF2DF",
+        "foreground": "#80520D",
     },
     "danger": {
-        "background": "#35191A",
-        "foreground": "#EF9A9A",
+        "background": "#FBE9E8",
+        "foreground": "#A92724",
     },
     "neutral": {
-        "background": "#26282B",
-        "foreground": "#CFCFCF",
+        "background": "#F3F2EF",
+        "foreground": "#6B6B66",
     },
 }
 
@@ -115,18 +115,18 @@ def _as_map(value: Any) -> Mapping[str, Any]:
 # ================================================================
 
 
-class DataTable(ctk.CTkFrame):
+class DataTable(tkui.Frame):
     """
     Tabla reutilizable para KLP SYSTEM.
 
     Estructura:
 
-        DataTable (CTkFrame)
+        DataTable (Frame)
         ├── ttk.Treeview
-        ├── ctk.CTkScrollbar vertical
-        └── ctk.CTkScrollbar horizontal (opcional, ver ``hscroll``)
+        ├── tkui.Scrollbar vertical
+        └── tkui.Scrollbar horizontal (opcional, ver ``hscroll``)
 
-    El Treeview continúa siendo ttk porque CustomTkinter no dispone
+    El Treeview continúa siendo ttk porque Tkinter no dispone
     de un componente de tabla nativo.
     """
 
@@ -153,13 +153,13 @@ class DataTable(ctk.CTkFrame):
         border_width: int = TABLE_BORDER_WIDTH,
         # Controla si se crea la barra de scroll horizontal.
         # Antes no existía como parámetro propio y terminaba
-        # colándose en **kwargs hacia CTkFrame, que no lo acepta.
+        # colándose en **kwargs hacia Frame, que no lo acepta.
         hscroll: bool = True,
         # Permite definir tags de fila propios (p. ej. tipos de
         # movimiento) mapeando un nombre de tag a un tono genérico
         # ("info", "ok", "warn", "danger", "neutral"). Igual que
         # hscroll, antes no era un parámetro propio y se colaba en
-        # **kwargs hacia CTkFrame.
+        # **kwargs hacia Frame.
         state_tags: Optional[Mapping[str, str]] = None,
         **kwargs,
     ):
@@ -246,11 +246,11 @@ class DataTable(ctk.CTkFrame):
             "border_color": Colors.BORDER,
         }
 
-        # CTkFrame no debe recibir width=None.
+        # Frame no debe recibir width=None.
         if width is not None:
             frame_kwargs["width"] = width
 
-        # Otros argumentos válidos de CTkFrame.
+        # Otros argumentos válidos de Frame.
         frame_kwargs.update(kwargs)
 
         super().__init__(
@@ -276,7 +276,7 @@ class DataTable(ctk.CTkFrame):
         # FRAME INTERNO
         # ============================================================
 
-        self.table_frame = ctk.CTkFrame(
+        self.table_frame = tkui.Frame(
             self,
             fg_color="transparent",
             corner_radius=0,
@@ -339,7 +339,7 @@ class DataTable(ctk.CTkFrame):
         # SCROLLBAR VERTICAL
         # ============================================================
 
-        self.vertical_scrollbar = ctk.CTkScrollbar(
+        self.vertical_scrollbar = tkui.Scrollbar(
             self.table_frame,
             orientation="vertical",
             command=self.tree.yview,
@@ -362,7 +362,7 @@ class DataTable(ctk.CTkFrame):
         # explícitamente (hscroll=True, el valor por defecto).
         if self.hscroll:
 
-            self.horizontal_scrollbar = ctk.CTkScrollbar(
+            self.horizontal_scrollbar = tkui.Scrollbar(
                 self.table_frame,
                 orientation="horizontal",
                 command=self.tree.xview,

@@ -222,7 +222,8 @@ def change_user_password(
         """
         UPDATE usuarios
         SET clave = ?,
-            intentos_fallidos = 0
+            intentos_fallidos = 0,
+            bloqueado_hasta = NULL
         WHERE id = ?
         """,
         (

@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Any, Optional
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 
 from app.core.inventory import register_movement
 from app.ui import theme
@@ -31,7 +31,7 @@ class InventoryMovementView:
         self.connection = connection
         self.actor_id = actor_id
 
-        self.window = ctk.CTkToplevel(parent)
+        self.window = tkui.Toplevel(parent)
 
         self.window.title(
             "Movimientos de inventario"
@@ -65,7 +65,7 @@ class InventoryMovementView:
 
         self.products: dict[str, int] = {}
 
-        self.frame = ctk.CTkFrame(
+        self.frame = tkui.Frame(
             self.window,
             fg_color=theme.color("window"),
             corner_radius=0,
@@ -114,7 +114,7 @@ class InventoryMovementView:
 
         body = card.body
 
-        form = ctk.CTkFrame(body)
+        form = tkui.Frame(body)
 
         theme.remember(
             form,
@@ -189,7 +189,7 @@ class InventoryMovementView:
             entry_sticky="ew",
         )
 
-        actions = ctk.CTkFrame(body)
+        actions = tkui.Frame(body)
 
         theme.remember(
             actions,

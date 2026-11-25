@@ -1,7 +1,7 @@
 """
 Botones reutilizables de KLP SYSTEM.
 
-Todos los botones utilizan CustomTkinter.
+Todos los botones utilizan Tkinter.
 No se utiliza tk.Button.
 """
 
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
 
 from app.ui import theme
 
@@ -50,13 +50,13 @@ class ButtonTooltip:
             x = self.widget.winfo_rootx()
             y = self.widget.winfo_rooty() + self.widget.winfo_height() + 6
 
-            self.tip_window = ctk.CTkToplevel(self.widget)
+            self.tip_window = tkui.Toplevel(self.widget)
 
             self.tip_window.overrideredirect(True)
             self.tip_window.attributes("-topmost", True)
             self.tip_window.geometry(f"+{x}+{y}")
 
-            label = ctk.CTkLabel(
+            label = tkui.Label(
                 self.tip_window,
                 text=self.text,
                 fg_color=theme.color("card"),
@@ -87,7 +87,7 @@ class ButtonTooltip:
 # ============================================================
 
 
-class AppButton(ctk.CTkButton):
+class AppButton(tkui.Button):
     """
     Botón estándar de KLP SYSTEM.
 
@@ -338,7 +338,7 @@ class AppButton(ctk.CTkButton):
         config.update(kwargs)
 
         # ----------------------------------------------------
-        # Crear CTkButton
+        # Crear Button
         # ----------------------------------------------------
 
         super().__init__(

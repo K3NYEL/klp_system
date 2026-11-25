@@ -2,7 +2,9 @@ import logging
 import tkinter as tk
 from tkinter import messagebox
 
-import customtkinter as ctk
+from app.ui import tk_widgets as tkui
+
+from app.ui.styles import Colors, Fonts
 
 
 class PasswordWindow:
@@ -43,7 +45,7 @@ class PasswordWindow:
         self.window.title("Crear contraseña")
         self.window.geometry("500x300")
         self.window.resizable(False, False)
-        self.window.configure(bg="#f0f0f0")
+        self.window.configure(bg=Colors.BACKGROUND)
         self.window.transient(self.parent)
 
         self.window.protocol(
@@ -51,23 +53,23 @@ class PasswordWindow:
             self.close,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             self.window,
             text="Crear contraseña",
-            font=("Roboto", 20, "bold"),
-            text_color="#2d3436",
+            font=Fonts.TITLE,
+            text_color=Colors.TEXT,
         ).pack(pady=(25, 8))
 
-        ctk.CTkLabel(
+        tkui.Label(
             self.window,
             text="Crea una contraseña para la nueva cuenta.",
-            font=("Arial", 14),
-            text_color="#555555",
+            font=Fonts.BODY,
+            text_color=Colors.TEXT_SECONDARY,
         ).pack()
 
-        form_frame = ctk.CTkFrame(
+        form_frame = tkui.Frame(
             self.window,
-            fg_color="#ffffff",
+            fg_color=Colors.CARD,
             corner_radius=12,
         )
 
@@ -80,11 +82,11 @@ class PasswordWindow:
 
         form_frame.columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Contraseña",
-            font=("Arial", 13, "bold"),
-            text_color="#2d3436",
+            font=Fonts.BODY_BOLD,
+            text_color=Colors.TEXT,
         ).grid(
             row=0,
             column=0,
@@ -95,10 +97,10 @@ class PasswordWindow:
 
         self.password_var = tk.StringVar()
 
-        self.password_entry = ctk.CTkEntry(
+        self.password_entry = tkui.Entry(
             form_frame,
             textvariable=self.password_var,
-            font=("Arial", 13),
+            font=Fonts.BODY,
             show="*",
             height=32,
         )
@@ -111,11 +113,11 @@ class PasswordWindow:
             pady=(22, 8),
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Confirmar",
-            font=("Arial", 13, "bold"),
-            text_color="#2d3436",
+            font=Fonts.BODY_BOLD,
+            text_color=Colors.TEXT,
         ).grid(
             row=1,
             column=0,
@@ -126,10 +128,10 @@ class PasswordWindow:
 
         self.confirm_password_var = tk.StringVar()
 
-        self.confirm_password_entry = ctk.CTkEntry(
+        self.confirm_password_entry = tkui.Entry(
             form_frame,
             textvariable=self.confirm_password_var,
-            font=("Arial", 13),
+            font=Fonts.BODY,
             show="*",
             height=32,
         )
@@ -142,11 +144,11 @@ class PasswordWindow:
             pady=8,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
-            text="Mínimo 5 caracteres e incluir letras y números.",
-            font=("Arial", 12),
-            text_color="#636e72",
+            text="Mínimo 8 caracteres e incluir letras y números.",
+            font=Fonts.SMALL,
+            text_color=Colors.TEXT_SECONDARY,
         ).grid(
             row=2,
             column=0,
@@ -156,7 +158,7 @@ class PasswordWindow:
             pady=(5, 10),
         )
 
-        button_frame = ctk.CTkFrame(
+        button_frame = tkui.Frame(
             form_frame,
             fg_color="transparent",
         )
@@ -169,24 +171,24 @@ class PasswordWindow:
             pady=(5, 15),
         )
 
-        ctk.CTkButton(
+        tkui.Button(
             button_frame,
             text="Aceptar",
             command=self.confirm,
-            font=("Arial", 13, "bold"),
+            font=Fonts.BODY_BOLD,
             width=150,
         ).pack(
             side=tk.LEFT,
             padx=(0, 10),
         )
 
-        ctk.CTkButton(
+        tkui.Button(
             button_frame,
             text="Cancelar",
             command=self.close,
-            fg_color="#757575",
-            hover_color="#616161",
-            font=("Arial", 13, "bold"),
+            fg_color=Colors.SECONDARY,
+            hover_color=Colors.SECONDARY_HOVER,
+            font=Fonts.BODY_BOLD,
             width=130,
         ).pack(
             side=tk.LEFT,
@@ -257,10 +259,10 @@ class PasswordWindow:
             )
             return False
 
-        if len(password) < 5:
+        if len(password) < 8:
             messagebox.showwarning(
                 "Advertencia",
-                "La contraseña debe tener al menos 5 caracteres.",
+                "La contraseña debe tener al menos 8 caracteres.",
                 parent=window,
             )
             return False
