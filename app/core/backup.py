@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import tempfile
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
@@ -19,7 +20,7 @@ def validate_backup(backup_path: str | Path) -> None:
     if not path.is_file() or path.stat().st_size == 0:
         raise FileNotFoundError(f"No existe un backup válido: {path}")
     try:
-        with sqlite3.connect(f"file:{path.resolve().as_posix()}?mode=ro", uri=True) as connection:
+        with closing(sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)) as connection:
             _integrity_check(connection)
             tables = {row[0] for row in connection.execute(
                 "SELECT name FROM sqlite_master WHERE type = 'table'"
@@ -42,8 +43,8 @@ def create_backup(database_path: str | Path, backup_directory: str | Path) -> Pa
     try:
         with tempfile.NamedTemporaryFile(prefix=".facturacion_backup_", suffix=".tmp", dir=destination_dir, delete=False) as handle:
             temporary = Path(handle.name)
-        with sqlite3.connect(source) as source_connection:
-            with sqlite3.connect(temporary) as backup_connection:
+        with closing(sqlite3.connect(source)) as source_connection:
+            with closing(sqlite3.connect(temporary)) as backup_connection:
                 source_connection.backup(backup_connection)
                 _integrity_check(backup_connection)
         validate_backup(temporary)
@@ -68,8 +69,8 @@ def restore_backup(backup_path: str | Path, database_path: str | Path, backup_di
     try:
         with tempfile.NamedTemporaryFile(prefix=f".{database.name}.restore_", suffix=".tmp", dir=database.parent, delete=False) as handle:
             temporary = Path(handle.name)
-        with sqlite3.connect(source_path) as source_connection:
-            with sqlite3.connect(temporary) as target_connection:
+        with closing(sqlite3.connect(source_path)) as source_connection:
+            with closing(sqlite3.connect(temporary)) as target_connection:
                 source_connection.backup(target_connection)
                 _integrity_check(target_connection)
         validate_backup(temporary)

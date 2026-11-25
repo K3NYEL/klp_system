@@ -1,4 +1,5 @@
 import hashlib
+from contextlib import closing
 import sqlite3
 import tempfile
 import unittest
@@ -25,10 +26,11 @@ class PasswordSecurityTests(unittest.TestCase):
 
 class BackupTests(unittest.TestCase):
     def create_database(self, path: Path, value: str) -> None:
-        with sqlite3.connect(path) as connection:
+        with closing(sqlite3.connect(path)) as connection:
             for table in ("usuarios", "productos", "clientes", "facturas", "factura_items"):
                 connection.execute(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY, valor TEXT)")
             connection.execute("INSERT INTO facturas (valor) VALUES (?)", (value,))
+            connection.commit()
 
     def test_backup_is_valid_and_contains_data(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -37,7 +39,7 @@ class BackupTests(unittest.TestCase):
             self.create_database(database, "original")
             backup = create_backup(database, root / "backups")
             validate_backup(backup)
-            with sqlite3.connect(backup) as connection:
+            with closing(sqlite3.connect(backup)) as connection:
                 value = connection.execute("SELECT valor FROM facturas").fetchone()[0]
             self.assertEqual(value, "original")
 
