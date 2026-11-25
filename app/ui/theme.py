@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 from tkinter import ttk
 from typing import Any, Dict, Optional, Tuple
@@ -12,6 +13,8 @@ CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"
 APP_VERSION = "1.1"
 FONT_FAMILY = "Inter"
+_FONT_CANDIDATES = ("Inter", "DejaVu Sans", "Noto Sans", "Liberation Sans", "Arial", "Helvetica")
+_FONT_ROOT_ID = None
 
 
 def resource_path(*parts: str) -> str:
@@ -117,6 +120,9 @@ FONTS = {
         10,
         "bold",
     ),
+    "nav": (FONT_FAMILY, 9),
+    "nav_bold": (FONT_FAMILY, 9, "bold"),
+    "tiny": (FONT_FAMILY, 8, "bold"),
 }
 
 
@@ -403,11 +409,51 @@ def color(name: str) -> str:
     )
 
 
-def font(role: str = "default"):
-    return FONTS.get(
-        role,
-        FONTS["default"],
+def configure_fonts(root=None) -> str:
+    """Selecciona una fuente instalada y la aplica a los widgets Tk."""
+    global FONT_FAMILY, FONTS, _FONT_ROOT_ID
+
+    root = root or getattr(tk, "_default_root", None)
+    if root is None:
+        return FONT_FAMILY
+
+    try:
+        available = {name.casefold(): name for name in tkfont.families(root)}
+    except (tk.TclError, RuntimeError):
+        available = {}
+
+    selected = next(
+        (available[name.casefold()] for name in _FONT_CANDIDATES if name.casefold() in available),
+        None,
     )
+    if selected is None:
+        try:
+            selected = tkfont.nametofont("TkDefaultFont", root=root).actual("family")
+        except (tk.TclError, RuntimeError):
+            selected = "DejaVu Sans"
+
+    FONT_FAMILY = selected
+    FONTS = {role: (selected, *spec[1:]) for role, spec in FONTS.items()}
+
+    for name in (
+        "TkDefaultFont", "TkTextFont", "TkFixedFont", "TkMenuFont",
+        "TkHeadingFont", "TkCaptionFont", "TkSmallCaptionFont",
+        "TkIconFont", "TkTooltipFont",
+    ):
+        try:
+            tkfont.nametofont(name, root=root).configure(family=selected)
+        except (tk.TclError, RuntimeError):
+            pass
+
+    _FONT_ROOT_ID = str(root)
+    return selected
+
+
+def font(role: str = "default"):
+    root = getattr(tk, "_default_root", None)
+    if root is not None and _FONT_ROOT_ID != str(root):
+        configure_fonts(root)
+    return FONTS.get(role, FONTS["default"])
 
 
 def role_colors(

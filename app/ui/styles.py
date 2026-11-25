@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import ttk
 
 class Colors:
@@ -24,6 +25,30 @@ class ButtonSizes:
     LARGE={"width":164,"height":46}; FULL={"height":44}
 
 def configure_app_style(root=None):
+    root = root or getattr(tk, "_default_root", None)
+    available = {}
+    if root is not None:
+        try:
+            available = {name.casefold(): name for name in tkfont.families(root)}
+        except tk.TclError:
+            pass
+    family = next((available[name.casefold()] for name in ("Inter", "DejaVu Sans", "Noto Sans", "Liberation Sans", "Arial", "Helvetica") if name.casefold() in available), None)
+    if family is None and root is not None:
+        try:
+            family = tkfont.nametofont("TkDefaultFont", root=root).actual("family")
+        except tk.TclError:
+            family = "DejaVu Sans"
+    if family:
+        Fonts.FAMILY = family
+        Fonts.BUTTON=(family,10,"bold"); Fonts.BUTTON_SMALL=(family,9,"bold")
+        Fonts.BUTTON_LARGE=(family,11,"bold"); Fonts.TITLE=(family,22,"bold")
+        Fonts.SUBTITLE=(family,16,"bold"); Fonts.BODY=(family,10); Fonts.BODY_BOLD=(family,10,"bold")
+        Fonts.SMALL=(family,9); Fonts.SMALL_BOLD=(family,9,"bold")
+        for name in ("TkDefaultFont", "TkTextFont", "TkFixedFont", "TkMenuFont", "TkHeadingFont", "TkCaptionFont", "TkSmallCaptionFont", "TkIconFont", "TkTooltipFont"):
+            try:
+                tkfont.nametofont(name, root=root).configure(family=family)
+            except tk.TclError:
+                pass
     style=ttk.Style(root)
     try: style.theme_use("clam")
     except tk.TclError: pass

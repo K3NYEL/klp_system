@@ -53,6 +53,7 @@ class SistemaFacturacion:
         current_user=None,
     ):
         self.root = root
+        theme.configure_fonts(self.root)
         self.on_logout = on_logout
         self.current_user = current_user or {}
 
@@ -470,15 +471,15 @@ class SistemaFacturacion:
         brand = tkui.Frame(sidebar, fg_color="transparent")
         brand.pack(fill="x", padx=18, pady=(24, 30))
         tkui.Label(brand, text="KLP", fg_color="#C8312E", text_color="#FFFFFF",
-                   font=("Inter", 10, "bold"), width=4, height=2,
+                   font=theme.font("label"), width=4, height=2,
                    anchor="center").pack(side="left", padx=(0, 10))
         tkui.Label(brand, text="KLP SYSTEM", text_color="#1C1C1A",
-                   font=("Inter", 11, "bold")).pack(side="left")
+                   font=theme.font("body_bold")).pack(side="left")
         self._nav_buttons = {}
         nav = tkui.Frame(sidebar, fg_color="transparent")
         nav.pack(fill="both", expand=True, padx=12)
         tkui.Label(nav, text="MÓDULOS", text_color="#9A9993",
-                   font=("Inter", 8, "bold"), anchor="w").pack(fill="x", padx=10, pady=(0, 8))
+                   font=theme.font("tiny"), anchor="w").pack(fill="x", padx=10, pady=(0, 8))
         navigation = (
             ("invoice", "Facturación"), ("products", "Inventario"),
             ("customers", "Clientes"), ("history", "Facturas guardadas"),
@@ -490,23 +491,23 @@ class SistemaFacturacion:
                 background="#FFFFFF", foreground="#5F5F5A",
                 activebackground="#F3F2EF", activeforeground="#1C1C1A",
                 relief="flat", borderwidth=0, highlightthickness=0,
-                padx=13, pady=11, cursor="hand2", font=("Inter", 9, "normal"))
+                padx=13, pady=11, cursor="hand2", font=theme.font("nav"))
             button.pack(fill="x", pady=2)
             self._nav_buttons[key] = button
         account = tkui.Frame(sidebar, fg_color="transparent")
         account.pack(fill="x", padx=18, pady=18)
         tkui.Frame(account, fg_color="#ECEAE6", height=1).pack(fill="x", pady=(0, 14))
         tkui.Label(account, text=self.current_user.get("usuario", "Administrador"),
-                   text_color="#1C1C1A", font=("Inter", 9, "bold"),
+                   text_color="#1C1C1A", font=theme.font("nav_bold"),
                    anchor="w").pack(fill="x")
         tkui.Label(account, text=self.current_user.get("role", "Usuario"),
-                   text_color="#8A8983", font=("Inter", 8),
+                   text_color="#8A8983", font=theme.font("tiny"),
                    anchor="w").pack(fill="x", pady=(2, 8))
         tk.Button(account, text="Cerrar sesión", anchor="w", command=self.cerrar_sesion,
                   background="#FFFFFF", foreground="#6B6B66",
                   activebackground="#F3F2EF", activeforeground="#1C1C1A",
                   relief="flat", borderwidth=0, padx=0, pady=6,
-                  cursor="hand2", font=("Inter", 9)).pack(fill="x")
+                  cursor="hand2", font=theme.font("nav")).pack(fill="x")
         workspace = tkui.Frame(shell, fg_color=theme.color("window"), corner_radius=0)
         workspace.pack(side="left", fill="both", expand=True)
         self._crear_encabezado(workspace)
@@ -551,7 +552,7 @@ class SistemaFacturacion:
             active = name == key
             button.configure(background="#F3F2EF" if active else "#FFFFFF",
                              foreground="#1C1C1A" if active else "#5F5F5A",
-                             font=("Inter", 9, "bold" if active else "normal"))
+                             font=theme.font("nav_bold" if active else "nav"))
 
     # ========================================================
     # MENÚ
@@ -751,9 +752,9 @@ class SistemaFacturacion:
         self.page_title_var = tkui.StringVar(value="Nueva factura")
         self.page_subtitle_var = tkui.StringVar(value="Elige el cliente, agrega productos y cobra.")
         tkui.Label(left, textvariable=self.page_title_var, text_color="#1C1C1A",
-                   font=("Inter", 19, "bold"), anchor="w").pack(anchor="w")
+                   font=theme.font("heading"), anchor="w").pack(anchor="w")
         tkui.Label(left, textvariable=self.page_subtitle_var, text_color="#6B6B66",
-                   font=("Inter", 9), anchor="w").pack(anchor="w", pady=(5, 0))
+                   font=theme.font("nav"), anchor="w").pack(anchor="w", pady=(5, 0))
         actions = tkui.Frame(header, fg_color="transparent")
         actions.pack(side="right", padx=(12, 0))
         AppButton(actions, text="Facturación rápida", command=self.abrir_facturacion_rapida,

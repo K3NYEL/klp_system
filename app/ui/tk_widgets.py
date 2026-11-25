@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import ttk
 from typing import Any
 
@@ -327,7 +328,7 @@ class Tabview(tk.Frame):
             padx=16,
             pady=11,
             cursor="hand2",
-            font=("Inter", 9, "bold"),
+            font=(tkfont.nametofont("TkDefaultFont", root=master).actual("family"), 9, "bold"),
         )
         button.pack(side="left", fill="x", expand=True)
         self._tabs[name] = page
