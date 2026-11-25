@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Facturación
-Comment=Sistema de facturación
-Exec=/home/kany/Escritorio/klp_system/dist/facturacion
-Path=/home/kany/Escritorio/klp_system
-Terminal=false
-Categories=Office;Finance;
