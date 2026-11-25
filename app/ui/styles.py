@@ -5,12 +5,14 @@ Este archivo contiene únicamente constantes de diseño:
 colores, fuentes, tamaños y configuraciones generales.
 """
 
-import customtkinter as ctk
+import os
 
+import customtkinter as ctk
 
 # ============================================================
 # COLORES
 # ============================================================
+
 
 class Colors:
     """Paleta de colores principal de KLP SYSTEM."""
@@ -93,10 +95,11 @@ class Colors:
 # FUENTES
 # ============================================================
 
+
 class Fonts:
     """Fuentes utilizadas por KLP SYSTEM."""
 
-    FAMILY = "Cantarell"
+    FAMILY = "Segoe UI" if os.name == "nt" else "DejaVu Sans"
 
     # Botones
     BUTTON = (FAMILY, 11, "bold")
@@ -119,6 +122,7 @@ class Fonts:
 # ============================================================
 # TAMAÑOS DE BOTONES
 # ============================================================
+
 
 class ButtonSizes:
     """Tamaños estándar de los botones de KLP SYSTEM."""
@@ -150,6 +154,7 @@ class ButtonSizes:
 # ============================================================
 # CONFIGURACIÓN GLOBAL DE CUSTOMTKINTER
 # ============================================================
+
 
 def configure_app_style() -> None:
     """
