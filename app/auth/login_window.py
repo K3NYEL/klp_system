@@ -845,7 +845,11 @@ class LoginWindow:
                         id,
                         clave,
                         activo,
-                        role
+                        role,
+                        (
+                            bloqueado_hasta IS NOT NULL
+                            AND bloqueado_hasta > CURRENT_TIMESTAMP
+                        )
                     FROM usuarios
                     WHERE usuario = ?
                     """,
@@ -859,7 +863,7 @@ class LoginWindow:
                         clave,
                         row[1]
                     )
-                    if row
+                    if row and not row[4]
                     else (False, False)
                 )
 
@@ -898,7 +902,8 @@ class LoginWindow:
                         UPDATE usuarios
                         SET
                             ultimo_acceso = CURRENT_TIMESTAMP,
-                            intentos_fallidos = 0
+                            intentos_fallidos = 0,
+                            bloqueado_hasta = NULL
                         WHERE id = ?
                         """,
                         (user_id,),
@@ -958,13 +963,18 @@ class LoginWindow:
 
                 else:
 
-                    if row:
+                    if row and not row[4]:
 
                         cursor.execute(
                             """
                             UPDATE usuarios
-                            SET intentos_fallidos =
-                                intentos_fallidos + 1
+                            SET
+                                intentos_fallidos = intentos_fallidos + 1,
+                                bloqueado_hasta = CASE
+                                    WHEN intentos_fallidos + 1 >= 5
+                                    THEN datetime('now', '+15 minutes')
+                                    ELSE bloqueado_hasta
+                                END
                             WHERE id = ?
                             """,
                             (row[0],),
