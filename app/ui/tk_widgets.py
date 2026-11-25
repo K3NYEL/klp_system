@@ -75,9 +75,9 @@ class Button(_Compat, tk.Button):
             kwargs["height"] = max(1, round(kwargs["height"] / 24))
         kwargs.setdefault("padx", 10)
         kwargs.setdefault("pady", 6)
-        kwargs.setdefault("background", "#E53935")
+        kwargs.setdefault("background", "#C8312E")
         kwargs.setdefault("foreground", "#FFFFFF")
-        kwargs.setdefault("activebackground", "#EF5350")
+        kwargs.setdefault("activebackground", "#B52B28")
         kwargs.setdefault("activeforeground", "#FFFFFF")
         kwargs.setdefault("relief", "flat")
         kwargs.setdefault("borderwidth", 0)
@@ -262,16 +262,19 @@ class _SegmentedButtonCompat:
 
 class Tabview(tk.Frame):
     def __init__(self, master=None, **kwargs):
+        self._show_tabs = kwargs.pop("show_tabs", True)
+        self._on_change = kwargs.pop("on_change", None)
         kwargs = _translate(kwargs, master, "frame")
-        kwargs.setdefault("background", "#090B10")
+        kwargs.setdefault("background", "#FAFAF8")
         kwargs.pop("height", None)
         kwargs.pop("width", None)
         super().__init__(master, **kwargs)
 
-        self._tab_bar = tk.Frame(self, background="#11141B", highlightthickness=0)
-        self._tab_bar.pack(side="top", fill="x")
+        self._tab_bar = tk.Frame(self, background="#FFFFFF", highlightthickness=0)
+        if self._show_tabs:
+            self._tab_bar.pack(side="top", fill="x")
 
-        self._pages = tk.Frame(self, background="#090B10", highlightthickness=0)
+        self._pages = tk.Frame(self, background="#FAFAF8", highlightthickness=0)
         self._pages.pack(side="top", fill="both", expand=True)
         self._pages.grid_rowconfigure(0, weight=1)
         self._pages.grid_columnconfigure(0, weight=1)
@@ -299,9 +302,9 @@ class Tabview(tk.Frame):
             self._tab_bar,
             text=name,
             command=lambda tab_name=name: self.set(tab_name),
-            background="#202631",
-            foreground="#A9B4C2",
-            activebackground="#303744",
+            background="#F3F2EF",
+            foreground="#6B6B66",
+            activebackground="#E8E6E1",
             activeforeground="#FFFFFF",
             disabledforeground="#FFFFFF",
             relief="flat",
@@ -310,7 +313,7 @@ class Tabview(tk.Frame):
             padx=16,
             pady=11,
             cursor="hand2",
-            font=("DejaVu Sans", 9, "bold"),
+            font=("Inter", 9, "bold"),
         )
         button.pack(side="left", fill="x", expand=True)
         self._tabs[name] = page
@@ -332,16 +335,16 @@ class Tabview(tk.Frame):
         for tab_name, button in self._tab_buttons.items():
             if tab_name == name:
                 button.configure(
-                    background="#E53935",
+                    background="#C8312E",
                     foreground="#FFFFFF",
-                    activebackground="#EF5350",
+                    activebackground="#B52B28",
                     activeforeground="#FFFFFF",
                 )
             else:
                 button.configure(
-                    background="#202631",
-                    foreground="#A9B4C2",
-                    activebackground="#303744",
+                    background="#F3F2EF",
+                    foreground="#6B6B66",
+                    activebackground="#E8E6E1",
                     activeforeground="#FFFFFF",
                 )
 
