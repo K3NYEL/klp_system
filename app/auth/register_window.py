@@ -3,7 +3,7 @@ import sqlite3
 import tkinter as tk
 from typing import Optional
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 from tkinter import messagebox
 
 from app.core.ui import set_app_icon

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 from tkinter import messagebox
 
 from app.core.user_management import (

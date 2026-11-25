@@ -28,7 +28,7 @@ from datetime import date
 from tkinter import messagebox
 from typing import Any, Callable, Optional
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 from app.core.reports import receivables, sales_summary, top_products
 from app.ui import theme

@@ -2,7 +2,7 @@ import logging
 import os
 import sqlite3
 import tkinter as tk
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 from datetime import datetime
 from tkinter import messagebox

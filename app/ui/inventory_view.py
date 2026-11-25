@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Any, Optional
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 from app.core.inventory import register_movement
 from app.ui import theme

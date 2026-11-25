@@ -2,7 +2,7 @@ import logging
 import tkinter as tk
 from tkinter import messagebox
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 from app.ui.styles import Colors, Fonts
 
