@@ -13,13 +13,11 @@ from app.core.paths import application_path
 
 
 PACKAGE_MODULES = {
-    "customtkinter": "customtkinter",
     "reportlab": "reportlab",
     "pyinstaller": "PyInstaller",
     "pillow": "PIL",
     "pyinstaller-hooks-contrib": "pyinstaller_hooks_contrib",
     "charset-normalizer": "charset_normalizer",
-    "darkdetect": "darkdetect",
     "altgraph": "altgraph",
     "setuptools": "setuptools",
     "packaging": "packaging",
