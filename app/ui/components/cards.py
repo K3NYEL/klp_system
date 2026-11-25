@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from app.ui import tk_compat as ctk
+from app.ui import tk_widgets as tkui
 
 from app.ui import theme
 
@@ -31,7 +31,7 @@ def label(
     **kwargs,
 ):
     """
-    Crea un CTkLabel compatible con las llamadas antiguas del proyecto.
+    Crea un Label compatible con las llamadas antiguas del proyecto.
 
     Soporta:
         - font_role="body"
@@ -75,9 +75,9 @@ def label(
     kwargs.pop("pady", None)
 
     # Algunos lugares antiguos pueden pasar "anchor".
-    # CTkLabel sí lo soporta, así que lo dejamos.
+    # Label sí lo soporta, así que lo dejamos.
 
-    widget = ctk.CTkLabel(
+    widget = tkui.Label(
         parent,
         text=text,
         font=theme.font(font_role),
@@ -106,7 +106,7 @@ def label(
 # ============================================================
 
 
-class Card(ctk.CTkFrame):
+class Card(tkui.Frame):
     """
     Card reutilizable para KLP SYSTEM.
 
@@ -167,7 +167,7 @@ class Card(ctk.CTkFrame):
         # ----------------------------------------------------
 
         if title or subtitle:
-            header = ctk.CTkFrame(
+            header = tkui.Frame(
                 self,
                 fg_color="transparent",
             )
@@ -217,7 +217,7 @@ class Card(ctk.CTkFrame):
         # BODY
         # ----------------------------------------------------
 
-        self.body = ctk.CTkFrame(
+        self.body = tkui.Frame(
             self,
             fg_color="transparent",
         )
@@ -283,7 +283,7 @@ class MetricCard(Card):
             tone,
         )
 
-        top = ctk.CTkFrame(
+        top = tkui.Frame(
             self.body,
             fg_color="transparent",
         )
@@ -314,7 +314,7 @@ class MetricCard(Card):
         # ----------------------------------------------------
 
         if icon:
-            icon_label = ctk.CTkLabel(
+            icon_label = tkui.Label(
                 top,
                 text=icon,
                 font=(
@@ -338,7 +338,7 @@ class MetricCard(Card):
         # VALOR
         # ----------------------------------------------------
 
-        value_label = ctk.CTkLabel(
+        value_label = tkui.Label(
             self.body,
             text=value,
             font=theme.font("metric"),
@@ -362,7 +362,7 @@ class MetricCard(Card):
         # ----------------------------------------------------
 
         if subtitle:
-            self.subtitle_label = ctk.CTkLabel(
+            self.subtitle_label = tkui.Label(
                 self.body,
                 text=subtitle,
                 font=theme.font("small"),
@@ -422,7 +422,7 @@ class MetricCard(Card):
         """
 
         if self.subtitle_label is None:
-            self.subtitle_label = ctk.CTkLabel(
+            self.subtitle_label = tkui.Label(
                 self.body,
                 text=hint,
                 font=theme.font("small"),
@@ -455,7 +455,7 @@ class MetricCard(Card):
 # ============================================================
 
 
-class Badge(ctk.CTkLabel):
+class Badge(tkui.Label):
     """
     Badge de estado.
 
@@ -482,7 +482,7 @@ class Badge(ctk.CTkLabel):
             tone,
         )
 
-        # CTkLabel no necesita padx/pady como argumentos
+        # Label no necesita padx/pady como argumentos
         # del constructor.
         kwargs.pop("padx", None)
         kwargs.pop("pady", None)
@@ -554,7 +554,7 @@ class Badge(ctk.CTkLabel):
 # ============================================================
 
 
-class Toolbar(ctk.CTkFrame):
+class Toolbar(tkui.Frame):
     """
     Barra superior reutilizable y compatible
     con las vistas antiguas.
@@ -570,7 +570,7 @@ class Toolbar(ctk.CTkFrame):
     ):
         self.padding = padding
 
-        # Evitar que padding llegue a CTkFrame.
+        # Evitar que padding llegue a Frame.
         kwargs.pop(
             "padding",
             None,
@@ -592,7 +592,7 @@ class Toolbar(ctk.CTkFrame):
         # CONTENIDO
         # -------------------------------------------------
 
-        self.content = ctk.CTkFrame(
+        self.content = tkui.Frame(
             self,
             fg_color="transparent",
             corner_radius=0,
@@ -613,7 +613,7 @@ class Toolbar(ctk.CTkFrame):
         # CONTENEDOR IZQUIERDO
         # -------------------------------------------------
 
-        self.left = ctk.CTkFrame(
+        self.left = tkui.Frame(
             self.content,
             fg_color="transparent",
             corner_radius=0,
@@ -629,7 +629,7 @@ class Toolbar(ctk.CTkFrame):
         # CONTENEDOR DERECHO
         # -------------------------------------------------
 
-        self.right = ctk.CTkFrame(
+        self.right = tkui.Frame(
             self.content,
             fg_color="transparent",
             corner_radius=0,
@@ -696,7 +696,7 @@ class Toolbar(ctk.CTkFrame):
         kwargs.pop("corner_radius", None)
         kwargs.pop("height", None)
 
-        button = ctk.CTkButton(
+        button = tkui.Button(
             self.right,
             text=text,
             command=command,
@@ -728,7 +728,7 @@ class Toolbar(ctk.CTkFrame):
 # ============================================================
 
 
-class Button(ctk.CTkButton):
+class Button(tkui.Button):
     """
     Botón estándar de KLP SYSTEM.
 

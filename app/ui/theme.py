@@ -6,7 +6,7 @@ from pathlib import Path
 from tkinter import ttk
 from typing import Any, Dict, Optional, Tuple
 
-from app.ui import tk_compat as ctk
+from app.ui import tk_widgets as tkui
 
 CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"
@@ -566,7 +566,7 @@ def prepare_toplevel(
     modal=False,
 ):
     """
-    Configura una ventana secundaria CTkToplevel existente.
+    Configura una ventana secundaria Toplevel existente.
     """
     if title:
         window.title(title)
@@ -670,7 +670,7 @@ def separator(
     **kwargs,
 ):
     """
-    Crea un separador compatible con Tkinter/CustomTkinter.
+    Crea un separador compatible con Tkinter/Tkinter.
 
     Los parámetros de geometría como padx, pady, fill,
     side y expand se consumen antes de crear el widget.
@@ -703,7 +703,7 @@ def separator(
     orient_value = "horizontal" if str(orient).lower().startswith("h") else "vertical"
 
     if orient_value == "horizontal":
-        widget = ctk.CTkFrame(
+        widget = tkui.Frame(
             parent,
             height=1,
             fg_color=color("border"),
@@ -714,7 +714,7 @@ def separator(
         default_fill = "x"
 
     else:
-        widget = ctk.CTkFrame(
+        widget = tkui.Frame(
             parent,
             width=1,
             fg_color=color("border"),
@@ -760,12 +760,12 @@ def paint(
 
     try:
         # ----------------------------------------------------
-        # CUSTOMTKINTER - LABEL
+        # TKINTER - LABEL
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkLabel,
+            tkui.Label,
         ):
             bg = spec.get(
                 "bg",
@@ -791,12 +791,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - BUTTON
+        # TKINTER - BUTTON
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkButton,
+            tkui.Button,
         ):
             variant = spec.get(
                 "variant",
@@ -815,12 +815,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - ENTRY
+        # TKINTER - ENTRY
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkEntry,
+            tkui.Entry,
         ):
             _safe_configure(
                 widget,
@@ -848,12 +848,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - COMBOBOX
+        # TKINTER - COMBOBOX
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkComboBox,
+            tkui.ComboBox,
         ):
             _safe_configure(
                 widget,
@@ -867,12 +867,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - CHECKBOX
+        # TKINTER - CHECKBOX
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkCheckBox,
+            tkui.CheckBox,
         ):
             _safe_configure(
                 widget,
@@ -885,12 +885,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SWITCH
+        # TKINTER - SWITCH
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkSwitch,
+            tkui.Switch,
         ):
             _safe_configure(
                 widget,
@@ -903,12 +903,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SLIDER
+        # TKINTER - SLIDER
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkSlider,
+            tkui.Slider,
         ):
             _safe_configure(
                 widget,
@@ -921,12 +921,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - PROGRESS BAR
+        # TKINTER - PROGRESS BAR
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkProgressBar,
+            tkui.ProgressBar,
         ):
             _safe_configure(
                 widget,
@@ -937,12 +937,12 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SCROLLBAR
+        # TKINTER - SCROLLBAR
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkScrollbar,
+            tkui.Scrollbar,
         ):
             _safe_configure(
                 widget,
@@ -954,7 +954,7 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - TABVIEW
+        # TKINTER - TABVIEW
         #
         # El Tabview utiliza el mismo lenguaje visual
         # que las Cards de KLP SYSTEM.
@@ -962,7 +962,7 @@ def paint(
 
         if isinstance(
             widget,
-            ctk.CTkTabview,
+            tkui.Tabview,
         ):
             _safe_configure(
                 widget,
@@ -981,16 +981,16 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - SCROLLABLE FRAME
+        # TKINTER - SCROLLABLE FRAME
         #
         # IMPORTANTE:
-        # Este bloque debe estar ANTES del CTkFrame genérico,
-        # porque CTkScrollableFrame hereda de CTkFrame.
+        # Este bloque debe estar ANTES del Frame genérico,
+        # porque ScrollableFrame hereda de Frame.
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkScrollableFrame,
+            tkui.ScrollableFrame,
         ):
             bg = spec.get(
                 "bg",
@@ -1010,16 +1010,16 @@ def paint(
             return
 
         # ----------------------------------------------------
-        # CUSTOMTKINTER - FRAME
+        # TKINTER - FRAME
         #
-        # Este debe ser el último widget CTkFrame,
-        # porque muchos componentes de CustomTkinter
-        # heredan de CTkFrame.
+        # Este debe ser el último widget Frame,
+        # porque muchos componentes de Tkinter
+        # heredan de Frame.
         # ----------------------------------------------------
 
         if isinstance(
             widget,
-            ctk.CTkFrame,
+            tkui.Frame,
         ):
             bg = spec.get(
                 "bg",
@@ -1390,8 +1390,8 @@ def apply_theme(name: str = "oscuro"):
     _refresh_colors_reference()
     _update_input_style()
 
-    # Fuerza CustomTkinter a utilizar Dark.
-    ctk.set_appearance_mode("Dark")
+    # Fuerza Tkinter a utilizar Dark.
+    tkui.set_appearance_mode("Dark")
 
     configure_app_style()
     repaint_all()
@@ -1464,7 +1464,7 @@ def set_app_icon(
     """
     Configura el icono de la aplicación.
 
-    Primero intenta PNG para CustomTkinter/Tkinter
+    Primero intenta PNG para Tkinter/Tkinter
     y luego ICO.
 
     Las imágenes PNG quedan retenidas mientras la
@@ -1564,7 +1564,7 @@ def set_app_icon(
 
 class Tooltip:
     """
-    Tooltip ligero para widgets Tkinter/CustomTkinter.
+    Tooltip ligero para widgets Tkinter/Tkinter.
     """
 
     def __init__(
@@ -1723,8 +1723,8 @@ def system_theme_info():
 # CONFIGURACIÓN INICIAL
 # ============================================================
 
-# Fuerza CustomTkinter a utilizar siempre el modo oscuro.
-ctk.set_appearance_mode("Dark")
+# Fuerza Tkinter a utilizar siempre el modo oscuro.
+tkui.set_appearance_mode("Dark")
 
 _refresh_colors_reference()
 _update_input_style()

@@ -4,7 +4,7 @@ import sqlite3
 import sys
 import tkinter as tk
 import webbrowser
-from app.ui import tk_compat as ctk
+from app.ui import tk_widgets as tkui
 import time
 
 from datetime import datetime
@@ -195,7 +195,7 @@ class SistemaFacturacion:
 
         self.tabs["company"] = tab
 
-        wrapper = ctk.CTkFrame(
+        wrapper = tkui.Frame(
             tab,
             fg_color="transparent",
         )
@@ -236,13 +236,13 @@ class SistemaFacturacion:
         # VARIABLES
         # ----------------------------------------------------
 
-        self.empresa_nombre_var = ctk.StringVar()
-        self.empresa_rnc_var = ctk.StringVar()
-        self.empresa_direccion_var = ctk.StringVar()
-        self.empresa_telefono_var = ctk.StringVar()
-        self.empresa_email_var = ctk.StringVar()
-        self.empresa_website_var = ctk.StringVar()
-        self.empresa_impuesto_var = ctk.StringVar(value="18")
+        self.empresa_nombre_var = tkui.StringVar()
+        self.empresa_rnc_var = tkui.StringVar()
+        self.empresa_direccion_var = tkui.StringVar()
+        self.empresa_telefono_var = tkui.StringVar()
+        self.empresa_email_var = tkui.StringVar()
+        self.empresa_website_var = tkui.StringVar()
+        self.empresa_impuesto_var = tkui.StringVar(value="18")
 
         fields = (
             (
@@ -305,7 +305,7 @@ class SistemaFacturacion:
         # ACCIONES
         # ----------------------------------------------------
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             form,
             fg_color="transparent",
         )
@@ -463,7 +463,7 @@ class SistemaFacturacion:
 
         self._crear_menu()
 
-        shell = ctk.CTkFrame(
+        shell = tkui.Frame(
             self.root,
             fg_color=theme.color("window"),
             corner_radius=0,
@@ -479,7 +479,7 @@ class SistemaFacturacion:
         # La barra de estado se crea antes del Tabview.
         self._crear_barra_estado(shell)
 
-        self.notebook = ctk.CTkTabview(
+        self.notebook = tkui.Tabview(
             shell,
             corner_radius=8,
         )
@@ -738,7 +738,7 @@ class SistemaFacturacion:
     def _crear_encabezado(self, parent):
         """Crea la barra superior."""
 
-        header = ctk.CTkFrame(
+        header = tkui.Frame(
             parent,
             fg_color=theme.color("header"),
             corner_radius=0,
@@ -748,7 +748,7 @@ class SistemaFacturacion:
             fill="x",
         )
 
-        left = ctk.CTkFrame(
+        left = tkui.Frame(
             header,
             fg_color="transparent",
         )
@@ -759,7 +759,7 @@ class SistemaFacturacion:
             pady=12,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             left,
             text=theme.APP_NAME,
             font=theme.font("title"),
@@ -769,7 +769,7 @@ class SistemaFacturacion:
             anchor="w",
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             left,
             text="Facturación · Caja · Inventario · Clientes",
             font=theme.font("small"),
@@ -780,7 +780,7 @@ class SistemaFacturacion:
             pady=(2, 0),
         )
 
-        right = ctk.CTkFrame(
+        right = tkui.Frame(
             header,
             fg_color="transparent",
         )
@@ -795,7 +795,7 @@ class SistemaFacturacion:
             f"{self.current_user.get('role', 'Sin rol')}"
         )
 
-        self.user_label = ctk.CTkLabel(
+        self.user_label = tkui.Label(
             right,
             text=user_text,
             font=theme.font("body_bold"),
@@ -808,7 +808,7 @@ class SistemaFacturacion:
             pady=(0, 6),
         )
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             right,
             fg_color="transparent",
         )
@@ -860,7 +860,7 @@ class SistemaFacturacion:
     def _crear_barra_estado(self, parent):
         """Crea la barra inferior de estado."""
 
-        bar = ctk.CTkFrame(
+        bar = tkui.Frame(
             parent,
             fg_color=theme.color("surface_alt"),
             corner_radius=0,
@@ -874,9 +874,9 @@ class SistemaFacturacion:
 
         bar.pack_propagate(False)
 
-        self.status_var = ctk.StringVar(value="Listo.")
+        self.status_var = tkui.StringVar(value="Listo.")
 
-        ctk.CTkLabel(
+        tkui.Label(
             bar,
             textvariable=self.status_var,
             font=theme.font("small"),
@@ -887,11 +887,11 @@ class SistemaFacturacion:
             padx=14,
         )
 
-        self.status_right_var = ctk.StringVar(
+        self.status_right_var = tkui.StringVar(
             value=(f"{theme.APP_NAME} " f"v{theme.APP_VERSION} · base local")
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             bar,
             textvariable=self.status_right_var,
             font=theme.font("small"),
@@ -1073,7 +1073,7 @@ class SistemaFacturacion:
             self.quick_code_entry.focus_set()
             return
 
-        window = ctk.CTkToplevel(self.root)
+        window = tkui.Toplevel(self.root)
 
         self.quick_window = window
 
@@ -1088,7 +1088,7 @@ class SistemaFacturacion:
         # ENCABEZADO
         # ----------------------------------------------------
 
-        header = ctk.CTkFrame(
+        header = tkui.Frame(
             window,
             fg_color=theme.color("accent"),
             corner_radius=0,
@@ -1098,7 +1098,7 @@ class SistemaFacturacion:
             fill="x",
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             header,
             text="FACTURACIÓN RÁPIDA",
             font=theme.font("title"),
@@ -1110,7 +1110,7 @@ class SistemaFacturacion:
             pady=(14, 2),
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             header,
             text=("Escanee el código, confirme " "el pago y entregue el ticket"),
             font=theme.font("small"),
@@ -1126,7 +1126,7 @@ class SistemaFacturacion:
         # CONTENEDOR
         # ----------------------------------------------------
 
-        shell = ctk.CTkFrame(
+        shell = tkui.Frame(
             window,
             fg_color=theme.color("window"),
             corner_radius=0,
@@ -1165,7 +1165,7 @@ class SistemaFacturacion:
             padx=(0, 8),
         )
 
-        self.quick_code_var = ctk.StringVar()
+        self.quick_code_var = tkui.StringVar()
 
         self.quick_code_entry = inputs.make_entry(
             scan,
@@ -1193,7 +1193,7 @@ class SistemaFacturacion:
             padx=(14, 8),
         )
 
-        self.quick_quantity_var = ctk.StringVar(value="1")
+        self.quick_quantity_var = tkui.StringVar(value="1")
 
         inputs.make_entry(
             scan,
@@ -1283,9 +1283,9 @@ class SistemaFacturacion:
 
         footer = footer_card.body
 
-        self.quick_total_var = ctk.StringVar(value="Total: RD$ 0.00")
+        self.quick_total_var = tkui.StringVar(value="Total: RD$ 0.00")
 
-        ctk.CTkLabel(
+        tkui.Label(
             footer,
             textvariable=self.quick_total_var,
             font=theme.font("title"),
@@ -1295,7 +1295,7 @@ class SistemaFacturacion:
             side="left",
         )
 
-        self.quick_payment_var = ctk.StringVar(value="EFECTIVO")
+        self.quick_payment_var = tkui.StringVar(value="EFECTIVO")
 
         inputs.make_combobox(
             footer,
@@ -1736,7 +1736,7 @@ class SistemaFacturacion:
     def ir_mi_empresa(self):
         """Abre una ventana aparte para editar los datos de la empresa."""
 
-        empresa_win = ctk.CTkToplevel(self.root)
+        empresa_win = tkui.Toplevel(self.root)
 
         theme.prepare_toplevel(
             empresa_win,
@@ -1790,7 +1790,7 @@ class SistemaFacturacion:
 
             entries.append(entry)
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             form,
             fg_color="transparent",
         )
@@ -2178,7 +2178,7 @@ class SistemaFacturacion:
     def mostrar_acerca_de(self):
         """Ventana «Acerca de» con la versión, autor y enlace del proyecto."""
 
-        about = ctk.CTkToplevel(self.root)
+        about = tkui.Toplevel(self.root)
 
         theme.prepare_toplevel(
             about,
@@ -2210,7 +2210,7 @@ class SistemaFacturacion:
             pady=18,
         )
 
-        title = ctk.CTkLabel(
+        title = tkui.Label(
             card.body,
             text=theme.APP_NAME,
             font=theme.font("display"),
@@ -2219,7 +2219,7 @@ class SistemaFacturacion:
 
         title.pack(pady=(6, 2))
 
-        subtitle = ctk.CTkLabel(
+        subtitle = tkui.Label(
             card.body,
             text="Sistema de gestión y facturación de escritorio",
             text_color=theme.color("text_muted"),
@@ -2227,7 +2227,7 @@ class SistemaFacturacion:
 
         subtitle.pack(pady=(0, 10))
 
-        version = ctk.CTkLabel(
+        version = tkui.Label(
             card.body,
             text=(f"Versión {theme.APP_VERSION} · " "Desarrollado por K.A.R.M."),
             text_color=theme.color("text"),
@@ -2235,15 +2235,15 @@ class SistemaFacturacion:
 
         version.pack(pady=(0, 4))
 
-        stack = ctk.CTkLabel(
+        stack = tkui.Label(
             card.body,
-            text="CustomTkinter · SQLite · ReportLab",
+            text="Tkinter · SQLite · ReportLab",
             text_color=theme.color("text_muted"),
         )
 
         stack.pack(pady=(0, 14))
 
-        link = ctk.CTkLabel(
+        link = tkui.Label(
             card.body,
             text=theme.CREATOR_URL,
             font=theme.font("link"),
@@ -2284,7 +2284,7 @@ class SistemaFacturacion:
         # CONTENEDOR CON SCROLL
         # ----------------------------------------------------
 
-        inner = ctk.CTkScrollableFrame(
+        inner = tkui.ScrollableFrame(
             tab,
             fg_color=theme.color("window"),
             corner_radius=0,
@@ -2297,7 +2297,7 @@ class SistemaFacturacion:
             expand=True,
         )
 
-        columns = ctk.CTkFrame(
+        columns = tkui.Frame(
             inner,
             fg_color="transparent",
         )
@@ -2341,7 +2341,7 @@ class SistemaFacturacion:
 
         body = card.body
 
-        head = ctk.CTkFrame(
+        head = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -2421,7 +2421,7 @@ class SistemaFacturacion:
             anchor="w",
         )
 
-        form = ctk.CTkFrame(
+        form = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -2504,7 +2504,7 @@ class SistemaFacturacion:
             anchor="w",
         )
 
-        search = ctk.CTkFrame(
+        search = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -2750,7 +2750,7 @@ class SistemaFacturacion:
             lambda event: self.eliminar_item(),
         )
 
-        totals = ctk.CTkFrame(
+        totals = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -2788,7 +2788,7 @@ class SistemaFacturacion:
         )
 
         for title, variable, tone, font_role in blocks:
-            block = ctk.CTkFrame(
+            block = tkui.Frame(
                 totals,
                 fg_color="transparent",
             )
@@ -2808,7 +2808,7 @@ class SistemaFacturacion:
                 anchor="w",
             )
 
-            value = ctk.CTkLabel(
+            value = tkui.Label(
                 block,
                 textvariable=variable,
                 font=theme.font(font_role),
@@ -2820,7 +2820,7 @@ class SistemaFacturacion:
                 anchor="w",
             )
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -2884,7 +2884,7 @@ class SistemaFacturacion:
 
         self.tabs["products"] = tab
 
-        wrapper = ctk.CTkFrame(
+        wrapper = tkui.Frame(
             tab,
             fg_color="transparent",
         )
@@ -2910,7 +2910,7 @@ class SistemaFacturacion:
 
         body = card.body
 
-        form = ctk.CTkFrame(
+        form = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -2961,7 +2961,7 @@ class SistemaFacturacion:
             entry_sticky="ew",
         )[1]
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -3025,7 +3025,7 @@ class SistemaFacturacion:
             side="right",
         )
 
-        search = ctk.CTkFrame(
+        search = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -3135,7 +3135,7 @@ class SistemaFacturacion:
 
         self.tabs["customers"] = tab
 
-        wrapper = ctk.CTkFrame(
+        wrapper = tkui.Frame(
             tab,
             fg_color="transparent",
         )
@@ -3165,7 +3165,7 @@ class SistemaFacturacion:
         # FORMULARIO
         # ==========================================================
 
-        form = ctk.CTkFrame(
+        form = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -3220,7 +3220,7 @@ class SistemaFacturacion:
         # ACCIONES
         # ==========================================================
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -3278,7 +3278,7 @@ class SistemaFacturacion:
         # BUSCADOR
         # ==========================================================
 
-        search = ctk.CTkFrame(
+        search = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -3392,7 +3392,7 @@ class SistemaFacturacion:
 
         self.tabs["history"] = tab
 
-        wrapper = ctk.CTkFrame(
+        wrapper = tkui.Frame(
             tab,
             fg_color="transparent",
         )
@@ -3422,7 +3422,7 @@ class SistemaFacturacion:
         # ACCIONES
         # ==========================================================
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -3479,7 +3479,7 @@ class SistemaFacturacion:
         # BUSCADOR
         # ==========================================================
 
-        search = ctk.CTkFrame(
+        search = tkui.Frame(
             body,
             fg_color="transparent",
         )
@@ -5250,7 +5250,7 @@ class SistemaFacturacion:
         # VENTANA DE DETALLES
         # ==========================================================
 
-        detalle_win = ctk.CTkToplevel(self.root)
+        detalle_win = tkui.Toplevel(self.root)
 
         theme.prepare_toplevel(
             detalle_win,
@@ -5408,7 +5408,7 @@ class SistemaFacturacion:
             background="surface",
         ).pack(anchor="e")
 
-        total_label = ctk.CTkLabel(
+        total_label = tkui.Label(
             total_card.body,
             text=f"TOTAL: RD$ {factura_data[4]:.2f}",
             font=theme.font("metric"),

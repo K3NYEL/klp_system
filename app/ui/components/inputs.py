@@ -1,12 +1,12 @@
 """
 Campos de entrada de KLP SYSTEM.
 
-Componentes reutilizables construidos con CustomTkinter:
-- CTkEntry
-- CTkLabel
-- CTkComboBox
-- CTkCheckBox
-- CTkFrame
+Componentes reutilizables construidos con Tkinter:
+- Entry
+- Label
+- ComboBox
+- CheckBox
+- Frame
 - AppButton
 
 Se mantiene el nombre histórico ``inputs.py`` para evitar tener que modificar
@@ -18,7 +18,7 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Any, Callable, Optional, Sequence, Tuple
 
-from app.ui import tk_compat as ctk
+from app.ui import tk_widgets as tkui
 
 from app.ui import theme
 from app.ui.components.buttons import AppButton
@@ -40,9 +40,9 @@ def make_entry(
     tooltip: Optional[str] = None,
     expand: bool = False,
     **kwargs: Any,
-) -> ctk.CTkEntry:
+) -> tkui.Entry:
     """
-    Crea un campo de entrada CustomTkinter.
+    Crea un campo de entrada Tkinter.
 
     Args:
         width:
@@ -82,7 +82,7 @@ def make_entry(
 
     entry_kwargs.update(kwargs)
 
-    entry = ctk.CTkEntry(
+    entry = tkui.Entry(
         parent,
         **entry_kwargs,
     )
@@ -120,7 +120,7 @@ def make_search_entry(
     padx: int = 0,
     pady: int = 0,
     **kwargs: Any,
-) -> ctk.CTkEntry:
+) -> tkui.Entry:
     """
     Crea un campo de búsqueda adaptable.
 
@@ -169,9 +169,9 @@ def _caption(
     sticky: str,
     padx: int,
     pady: int,
-) -> ctk.CTkLabel:
+) -> tkui.Label:
     """
-    Crea una etiqueta de formulario usando CustomTkinter.
+    Crea una etiqueta de formulario usando Tkinter.
     """
 
     anchor = {
@@ -186,7 +186,7 @@ def _caption(
         "sw": "sw",
     }.get(sticky, "w")
 
-    caption = ctk.CTkLabel(
+    caption = tkui.Label(
         parent,
         text=text,
         font=theme.font("body_bold"),
@@ -234,7 +234,7 @@ def labeled_entry(
     background: str = "surface",
     expand: bool = True,
     **kwargs: Any,
-) -> Tuple[ctk.CTkLabel, ctk.CTkEntry]:
+) -> Tuple[tkui.Label, tkui.Entry]:
     """
     Crea una etiqueta y un campo de entrada en una misma fila.
 
@@ -333,9 +333,9 @@ def labeled_combobox(
     pady: int = 5,
     background: str = "surface",
     **kwargs: Any,
-) -> Tuple[ctk.CTkLabel, ctk.CTkComboBox]:
+) -> Tuple[tkui.Label, tkui.ComboBox]:
     """
-    Crea una etiqueta y un CTkComboBox en una misma fila.
+    Crea una etiqueta y un ComboBox en una misma fila.
 
     Devuelve:
         (label, combobox)
@@ -394,9 +394,9 @@ def make_combobox(
     on_select: Optional[Callable[[Any], Any]] = None,
     tooltip: Optional[str] = None,
     **kwargs: Any,
-) -> ctk.CTkComboBox:
+) -> tkui.ComboBox:
     """
-    Crea un CTkComboBox estilizado.
+    Crea un ComboBox estilizado.
 
     ``on_select`` recibe el evento de selección.
     """
@@ -441,13 +441,13 @@ def make_combobox(
     if width is not None:
         combo_kwargs["width"] = width
 
-    # CustomTkinter utiliza command en lugar de bind.
+    # Tkinter utiliza command en lugar de bind.
     if on_select is not None:
         combo_kwargs["command"] = on_select
 
     combo_kwargs.update(kwargs)
 
-    combo = ctk.CTkComboBox(
+    combo = tkui.ComboBox(
         parent,
         **combo_kwargs,
     )
@@ -459,14 +459,14 @@ def make_combobox(
                 variable=textvariable,
             )
         except Exception:
-            # Algunas versiones de CTkComboBox no exponen variable
+            # Algunas versiones de ComboBox no exponen variable
             # de la misma forma.
             try:
                 combo.set(textvariable.get())
             except Exception:
                 pass
 
-    # readonly es el comportamiento natural de CTkComboBox.
+    # readonly es el comportamiento natural de ComboBox.
     if state == "disabled":
         combo.configure(state="disabled")
 
@@ -488,9 +488,9 @@ def make_checkbutton(
     background: str = "surface",
     font_role: str = "body",
     **kwargs: Any,
-) -> ctk.CTkCheckBox:
+) -> tkui.CheckBox:
     """
-    Crea una casilla de verificación CustomTkinter.
+    Crea una casilla de verificación Tkinter.
     """
 
     checkbox_kwargs: dict[str, Any] = {
@@ -525,7 +525,7 @@ def make_checkbutton(
 
     checkbox_kwargs.update(kwargs)
 
-    checkbox = ctk.CTkCheckBox(
+    checkbox = tkui.CheckBox(
         parent,
         **checkbox_kwargs,
     )
@@ -544,12 +544,12 @@ def make_checkbutton(
 # PASSWORD FIELD
 # ============================================================================
 
-class PasswordField(ctk.CTkFrame):
+class PasswordField(tkui.Frame):
     """
     Campo de contraseña reutilizable.
 
     Incluye:
-    - CTkEntry
+    - Entry
     - AppButton
     - Mostrar / ocultar contraseña
     """
@@ -641,6 +641,6 @@ class PasswordField(ctk.CTkFrame):
         self.var.set(value)
 
     def focus_set(self) -> None:  # type: ignore[override]
-        """Enfoca directamente el CTkEntry interno."""
+        """Enfoca directamente el Entry interno."""
 
         self.entry.focus_set()
