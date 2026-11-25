@@ -25,10 +25,10 @@ def _translate(options: dict, widget: Any, kind: str) -> dict:
             if old in {"fg_color", "hover_color"}:
                 value = _color(value, widget)
             values[new] = value
-    for key in ("corner_radius", "border_width", "placeholder_text", "dropdown_fg_color",
-                "dropdown_text_color", "dropdown_hover_color", "button_color",
-                "button_hover_color", "checkbox_width", "checkbox_height",
-                "progress_color", "scrollbar_button_color", "scrollbar_button_hover_color"):
+    for key in ("corner_radius", "border_width", "placeholder_text", "placeholder_text_color", "dropdown_fg_color",
+                "dropdown_text_color", "dropdown_hover_color", "button_color", "button_hover_color",
+                "hover_color", "checkbox_width", "checkbox_height", "progress_color",
+                "scrollbar_button_color", "scrollbar_button_hover_color"):
         values.pop(key, None)
     return values
 
@@ -103,12 +103,27 @@ class CTkEntry(_Compat, tk.Entry):
 
 class CTkComboBox(ttk.Combobox):
     def __init__(self, master=None, **kwargs):
-        for key in ("fg_color", "text_color", "border_color", "corner_radius", "font"):
+        for key in ("fg_color", "text_color", "border_color", "corner_radius", "height",
+                    "button_color", "button_hover_color", "dropdown_fg_color",
+                    "dropdown_hover_color", "dropdown_text_color"):
             kwargs.pop(key, None)
+        if "variable" in kwargs and "textvariable" not in kwargs:
+            kwargs["textvariable"] = kwargs.pop("variable")
         command = kwargs.pop("command", None)
         super().__init__(master, **kwargs)
         if command:
             self.bind("<<ComboboxSelected>>", lambda event: command(self.get()), add="+")
+    def configure(self, cnf=None, **kwargs):
+        options = {} if cnf is None else dict(cnf)
+        options.update(kwargs)
+        if "variable" in options and "textvariable" not in options:
+            options["textvariable"] = options.pop("variable")
+        for key in ("fg_color", "text_color", "border_color", "corner_radius", "height",
+                    "button_color", "button_hover_color", "dropdown_fg_color",
+                    "dropdown_hover_color", "dropdown_text_color"):
+            options.pop(key, None)
+        return super().configure(options)
+    config = configure
 
 class CTkCheckBox(_Compat, tk.Checkbutton):
     _kind = "check"
@@ -132,6 +147,13 @@ class CTkSlider(tk.Scale):
         super().__init__(master, **kwargs)
 
 class CTkProgressBar(ttk.Progressbar):
+    def configure(self, cnf=None, **kwargs):
+        options = {} if cnf is None else dict(cnf)
+        options.update(kwargs)
+        for key in ("progress_color", "fg_color", "text_color", "corner_radius"):
+            options.pop(key, None)
+        return super().configure(options)
+    config = configure
     def set(self, value):
         self.configure(value=float(value) * 100)
 
@@ -140,12 +162,57 @@ class CTkScrollbar(ttk.Scrollbar):
         for key in ("fg_color", "button_color", "button_hover_color"):
             kwargs.pop(key, None)
         super().__init__(master, **kwargs)
+    def configure(self, cnf=None, **kwargs):
+        options = {} if cnf is None else dict(cnf)
+        options.update(kwargs)
+        for key in ("fg_color", "button_color", "button_hover_color"):
+            options.pop(key, None)
+        return super().configure(options)
+    config = configure
 
 class CTkToplevel(tk.Toplevel):
     pass
 
-class CTkScrollableFrame(CTkFrame):
-    pass
+class CTkScrollableFrame(tk.Frame):
+    def __init__(self, master=None, **kwargs):
+        options = _translate(kwargs, master, "frame")
+        background = options.pop("background", "#11141B")
+        self._container = tk.Frame(master, background=background)
+        self._canvas = tk.Canvas(self._container, background=background, highlightthickness=0)
+        self._scrollbar = ttk.Scrollbar(self._container, orient="vertical", command=self._canvas.yview)
+        self._canvas.configure(yscrollcommand=self._scrollbar.set)
+        self._scrollbar.pack(side="right", fill="y")
+        self._canvas.pack(side="left", fill="both", expand=True)
+        super().__init__(self._canvas, background=background, **options)
+        self._window_id = self._canvas.create_window((0, 0), window=self, anchor="nw")
+        self.bind("<Configure>", self._update_scroll_region, add="+")
+        self._canvas.bind("<Configure>", self._resize_content, add="+")
+        self.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
+    def _update_scroll_region(self, _event=None):
+        self._canvas.configure(scrollregion=self._canvas.bbox("all"))
+    def _resize_content(self, event):
+        self._canvas.itemconfigure(self._window_id, width=event.width)
+    def _on_mousewheel(self, event):
+        try:
+            if self.winfo_exists() and self.winfo_containing(event.x_root, event.y_root) is not None:
+                self._canvas.yview_scroll(int(-event.delta / 120), "units")
+        except tk.TclError:
+            pass
+    def pack(self, *args, **kwargs):
+        return self._container.pack(*args, **kwargs)
+    def grid(self, *args, **kwargs):
+        return self._container.grid(*args, **kwargs)
+    def place(self, *args, **kwargs):
+        return self._container.place(*args, **kwargs)
+    def configure(self, cnf=None, **kwargs):
+        options = {} if cnf is None else dict(cnf)
+        options.update(kwargs)
+        options = _translate(options, self, "frame")
+        if "background" in options:
+            self._container.configure(background=options["background"])
+            self._canvas.configure(background=options["background"])
+        return super().configure(options)
+    config = configure
 
 class CTkTabview(tk.Frame):
     def __init__(self, master=None, **kwargs):
@@ -155,6 +222,12 @@ class CTkTabview(tk.Frame):
         self._notebook = ttk.Notebook(self)
         self._notebook.pack(fill="both", expand=True)
         self._tabs = {}
+    def configure(self, cnf=None, **kwargs):
+        options = {} if cnf is None else dict(cnf)
+        options.update(kwargs)
+        options = _translate(options, self, "frame")
+        return super().configure(options)
+    config = configure
     def add(self, name):
         frame = CTkFrame(self._notebook, background="#090B10")
         self._tabs[name] = frame
