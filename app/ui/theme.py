@@ -181,7 +181,7 @@ THEMES = {
         "row_alt": "#FAFAF8",
         "row_hover": "#F3F2EF",
         "selection": "#FBE9E8",
-        "selection_text": "#FFFFFF",
+        "selection_text": "#1C1C1A",
         # ----------------------------------------------------
         # INPUTS
         # ----------------------------------------------------
@@ -1390,7 +1390,7 @@ def apply_theme(name: str = "claro"):
     _refresh_colors_reference()
     _update_input_style()
 
-    # Fuerza Tkinter a utilizar Dark.
+    # Fuerza Tkinter a utilizar el estilo claro.
     tkui.set_appearance_mode("Light")
 
     configure_app_style()
@@ -1446,7 +1446,7 @@ class ThemeManager:
         apply_theme("claro")
 
     def is_dark(self):
-        return True
+        return False
 
     def colors(self):
         return THEMES["claro"]
