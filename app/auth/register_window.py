@@ -3,7 +3,7 @@ import sqlite3
 import tkinter as tk
 from typing import Optional
 
-from app.ui import tk_compat as ctk
+from app.ui import tk_widgets as tkui
 from tkinter import messagebox
 
 from app.core.ui import set_app_icon
@@ -61,14 +61,14 @@ class RegisterWindow:
         # TÍTULO
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             self.window,
             text="Crear cuenta",
             font=Fonts.TITLE,
             text_color=Colors.TEXT,
         ).pack(pady=(25, 5))
 
-        ctk.CTkLabel(
+        tkui.Label(
             self.window,
             text="Registra un nuevo usuario en el sistema.",
             font=Fonts.BODY,
@@ -79,7 +79,7 @@ class RegisterWindow:
         # FORMULARIO
         # ==========================================================
 
-        form_frame = ctk.CTkFrame(
+        form_frame = tkui.Frame(
             self.window,
             fg_color=Colors.CARD,
             corner_radius=12,
@@ -98,7 +98,7 @@ class RegisterWindow:
         # USUARIO
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Usuario",
             font=Fonts.BODY_BOLD,
@@ -113,7 +113,7 @@ class RegisterWindow:
 
         new_user_var = tk.StringVar()
 
-        username_entry = ctk.CTkEntry(
+        username_entry = tkui.Entry(
             form_frame,
             textvariable=new_user_var,
             font=Fonts.BODY,
@@ -132,7 +132,7 @@ class RegisterWindow:
         # CONTRASEÑA
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Contraseña",
             font=Fonts.BODY_BOLD,
@@ -147,7 +147,7 @@ class RegisterWindow:
 
         self.password_status_var = tk.StringVar(value="No configurada")
 
-        ctk.CTkButton(
+        tkui.Button(
             form_frame,
             textvariable=self.password_status_var,
             command=self.open_password_window,
@@ -165,7 +165,7 @@ class RegisterWindow:
         # TIPO DE USUARIO
         # ==========================================================
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Tipo de usuario",
             font=Fonts.BODY_BOLD,
@@ -178,7 +178,7 @@ class RegisterWindow:
             pady=8,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             form_frame,
             text="Vendedor (o Administrador si es el primer usuario)",
             font=Fonts.SMALL,
@@ -195,7 +195,7 @@ class RegisterWindow:
         # BOTONES
         # ==========================================================
 
-        button_frame = ctk.CTkFrame(
+        button_frame = tkui.Frame(
             form_frame,
             fg_color="transparent",
         )
@@ -208,7 +208,7 @@ class RegisterWindow:
             pady=(20, 20),
         )
 
-        register_button = ctk.CTkButton(
+        register_button = tkui.Button(
             button_frame,
             text="Guardar cuenta",
             command=lambda: self.register_user(
@@ -223,7 +223,7 @@ class RegisterWindow:
             padx=(0, 10),
         )
 
-        cancel_button = ctk.CTkButton(
+        cancel_button = tkui.Button(
             button_frame,
             text="Cancelar",
             command=self.close_register_window,

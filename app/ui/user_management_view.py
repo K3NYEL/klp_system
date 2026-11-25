@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.ui import tk_compat as ctk
+from app.ui import tk_widgets as tkui
 from tkinter import messagebox
 
 from app.core.user_management import (
@@ -31,7 +31,7 @@ class UserManagementView:
         self.connection = connection
         self.actor_id = actor_id
 
-        self.window = ctk.CTkToplevel(parent)
+        self.window = tkui.Toplevel(parent)
         self.window.title("Usuarios y permisos")
         self.window.geometry("1000x720")
         self.window.minsize(900, 650)
@@ -46,7 +46,7 @@ class UserManagementView:
         self.selected_role_name = None
         self.selected_role_active = None
 
-        self.permission_vars: dict[str, ctk.BooleanVar] = {}
+        self.permission_vars: dict[str, tkui.BooleanVar] = {}
 
         self._build()
         self.refresh()
@@ -56,7 +56,7 @@ class UserManagementView:
     # ==========================================================
 
     def _build(self):
-        self.main_frame = ctk.CTkFrame(
+        self.main_frame = tkui.Frame(
             self.window,
             fg_color=theme.color("window"),
             corner_radius=0,
@@ -70,7 +70,7 @@ class UserManagementView:
         # Encabezado
         # ------------------------------------------------------
 
-        header = ctk.CTkFrame(
+        header = tkui.Frame(
             self.main_frame,
             fg_color="transparent",
         )
@@ -80,7 +80,7 @@ class UserManagementView:
             pady=(20, 10),
         )
 
-        title = ctk.CTkLabel(
+        title = tkui.Label(
             header,
             text="Usuarios y permisos",
             font=theme.font("title"),
@@ -89,7 +89,7 @@ class UserManagementView:
         )
         title.pack(fill="x")
 
-        subtitle = ctk.CTkLabel(
+        subtitle = tkui.Label(
             header,
             text="Administra usuarios, roles y permisos de acceso.",
             font=theme.font("small"),
@@ -105,7 +105,7 @@ class UserManagementView:
         # Pestañas
         # ------------------------------------------------------
 
-        self.tabs = ctk.CTkTabview(
+        self.tabs = tkui.Tabview(
             self.main_frame,
             corner_radius=10,
         )
@@ -160,15 +160,15 @@ class UserManagementView:
             weight=0,
         )
 
-        self.username = ctk.StringVar()
-        self.password = ctk.StringVar()
-        self.role = ctk.StringVar()
+        self.username = tkui.StringVar()
+        self.password = tkui.StringVar()
+        self.role = tkui.StringVar()
 
         # ------------------------------------------------------
         # Usuario
         # ------------------------------------------------------
 
-        username_frame = ctk.CTkFrame(
+        username_frame = tkui.Frame(
             content,
             fg_color="transparent",
         )
@@ -184,7 +184,7 @@ class UserManagementView:
             weight=1,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             username_frame,
             text="Usuario",
             font=theme.font("body_bold"),
@@ -213,7 +213,7 @@ class UserManagementView:
         # Contraseña
         # ------------------------------------------------------
 
-        password_frame = ctk.CTkFrame(
+        password_frame = tkui.Frame(
             content,
             fg_color="transparent",
         )
@@ -229,7 +229,7 @@ class UserManagementView:
             weight=1,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             password_frame,
             text="Contraseña",
             font=theme.font("body_bold"),
@@ -259,7 +259,7 @@ class UserManagementView:
         # Rol
         # ------------------------------------------------------
 
-        role_frame = ctk.CTkFrame(
+        role_frame = tkui.Frame(
             content,
             fg_color="transparent",
         )
@@ -275,7 +275,7 @@ class UserManagementView:
             weight=1,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             role_frame,
             text="Rol",
             font=theme.font("body_bold"),
@@ -392,7 +392,7 @@ class UserManagementView:
             pady=(0, 10),
         )
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             actions_card.body,
             fg_color="transparent",
         )
@@ -447,7 +447,7 @@ class UserManagementView:
             side="left",
         )
 
-        self.selected_user_label = ctk.CTkLabel(
+        self.selected_user_label = tkui.Label(
             actions_card.body,
             text="Ningún usuario seleccionado",
             font=theme.font("small"),
@@ -466,7 +466,7 @@ class UserManagementView:
     # ==========================================================
 
     def _build_roles_tab(self):
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             self.roles_tab,
             fg_color="transparent",
         )
@@ -546,7 +546,7 @@ class UserManagementView:
             self._on_role_selected,
         )
 
-        actions = ctk.CTkFrame(
+        actions = tkui.Frame(
             role_card.body,
             fg_color="transparent",
         )
@@ -623,7 +623,7 @@ class UserManagementView:
 
         content = permissions_card.body
 
-        self.selected_role_label = ctk.CTkLabel(
+        self.selected_role_label = tkui.Label(
             content,
             text="Ningún rol seleccionado",
             font=theme.font("body_bold"),
@@ -635,7 +635,7 @@ class UserManagementView:
             pady=(0, 10),
         )
 
-        self.permissions_scroll = ctk.CTkScrollableFrame(
+        self.permissions_scroll = tkui.ScrollableFrame(
             content,
             fg_color="transparent",
         )
@@ -836,13 +836,13 @@ class UserManagementView:
         )
 
         for permission_id, code, description in permissions:
-            variable = ctk.BooleanVar(
+            variable = tkui.BooleanVar(
                 value=code in assigned,
             )
 
             self.permission_vars[code] = variable
 
-            checkbox = ctk.CTkCheckBox(
+            checkbox = tkui.CheckBox(
                 self.permissions_scroll,
                 text=description,
                 variable=variable,
@@ -1016,14 +1016,14 @@ class UserManagementView:
         if not names:
             return
 
-        dialog = ctk.CTkToplevel(self.window)
+        dialog = tkui.Toplevel(self.window)
         dialog.title("Cambiar rol")
         dialog.geometry("420x230")
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             dialog,
             fg_color="transparent",
         )
@@ -1034,7 +1034,7 @@ class UserManagementView:
             pady=25,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             container,
             text="Nuevo rol",
             font=theme.font("body_bold"),
@@ -1045,7 +1045,7 @@ class UserManagementView:
             pady=(0, 6),
         )
 
-        role_var = ctk.StringVar(
+        role_var = tkui.StringVar(
             value=self.selected_user_role
             if self.selected_user_role in names
             else names[0]
@@ -1061,7 +1061,7 @@ class UserManagementView:
             fill="x",
         )
 
-        buttons = ctk.CTkFrame(
+        buttons = tkui.Frame(
             container,
             fg_color="transparent",
         )
@@ -1124,14 +1124,14 @@ class UserManagementView:
         if self.selected_user_id is None:
             return
 
-        dialog = ctk.CTkToplevel(self.window)
+        dialog = tkui.Toplevel(self.window)
         dialog.title("Cambiar contraseña")
         dialog.geometry("430x300")
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             dialog,
             fg_color="transparent",
         )
@@ -1142,7 +1142,7 @@ class UserManagementView:
             pady=25,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             container,
             text="Nueva contraseña",
             font=theme.font("body_bold"),
@@ -1153,7 +1153,7 @@ class UserManagementView:
             pady=(0, 6),
         )
 
-        password_var = ctk.StringVar()
+        password_var = tkui.StringVar()
 
         password_entry = inputs.make_entry(
             container,
@@ -1166,7 +1166,7 @@ class UserManagementView:
             fill="x",
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             container,
             text="Confirmar contraseña",
             font=theme.font("body_bold"),
@@ -1177,7 +1177,7 @@ class UserManagementView:
             pady=(15, 6),
         )
 
-        confirm_var = ctk.StringVar()
+        confirm_var = tkui.StringVar()
 
         confirm_entry = inputs.make_entry(
             container,
@@ -1190,7 +1190,7 @@ class UserManagementView:
             fill="x",
         )
 
-        buttons = ctk.CTkFrame(
+        buttons = tkui.Frame(
             container,
             fg_color="transparent",
         )
@@ -1354,14 +1354,14 @@ class UserManagementView:
     # ==========================================================
 
     def create_role(self):
-        dialog = ctk.CTkToplevel(self.window)
+        dialog = tkui.Toplevel(self.window)
         dialog.title("Crear rol")
         dialog.geometry("420x220")
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             dialog,
             fg_color="transparent",
         )
@@ -1372,7 +1372,7 @@ class UserManagementView:
             pady=25,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             container,
             text="Nombre del rol",
             font=theme.font("body_bold"),
@@ -1383,7 +1383,7 @@ class UserManagementView:
             pady=(0, 6),
         )
 
-        name_var = ctk.StringVar()
+        name_var = tkui.StringVar()
 
         entry = inputs.make_entry(
             container,
@@ -1395,7 +1395,7 @@ class UserManagementView:
             fill="x",
         )
 
-        buttons = ctk.CTkFrame(
+        buttons = tkui.Frame(
             container,
             fg_color="transparent",
         )
@@ -1459,14 +1459,14 @@ class UserManagementView:
         if self.selected_role_id is None:
             return
 
-        dialog = ctk.CTkToplevel(self.window)
+        dialog = tkui.Toplevel(self.window)
         dialog.title("Editar rol")
         dialog.geometry("420x220")
         dialog.resizable(False, False)
         dialog.transient(self.window)
         dialog.grab_set()
 
-        container = ctk.CTkFrame(
+        container = tkui.Frame(
             dialog,
             fg_color="transparent",
         )
@@ -1477,7 +1477,7 @@ class UserManagementView:
             pady=25,
         )
 
-        ctk.CTkLabel(
+        tkui.Label(
             container,
             text="Nombre del rol",
             font=theme.font("body_bold"),
@@ -1488,7 +1488,7 @@ class UserManagementView:
             pady=(0, 6),
         )
 
-        name_var = ctk.StringVar(
+        name_var = tkui.StringVar(
             value=self.selected_role_name or "",
         )
 
@@ -1501,7 +1501,7 @@ class UserManagementView:
             fill="x",
         )
 
-        buttons = ctk.CTkFrame(
+        buttons = tkui.Frame(
             container,
             fg_color="transparent",
         )

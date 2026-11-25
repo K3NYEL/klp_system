@@ -40,14 +40,14 @@ class _Compat:
         return super().configure(**_translate(opts, self, self._kind))
     config = configure
 
-class CTkFrame(_Compat, tk.Frame):
+class Frame(_Compat, tk.Frame):
     _kind = "frame"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
         kwargs.setdefault("background", "#11141B")
         super().__init__(master, **kwargs)
 
-class CTkLabel(_Compat, tk.Label):
+class Label(_Compat, tk.Label):
     _kind = "label"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
@@ -57,7 +57,7 @@ class CTkLabel(_Compat, tk.Label):
         kwargs.setdefault("pady", 0)
         super().__init__(master, **kwargs)
 
-class CTkButton(_Compat, tk.Button):
+class Button(_Compat, tk.Button):
     _kind = "button"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
@@ -70,7 +70,7 @@ class CTkButton(_Compat, tk.Button):
         kwargs.setdefault("cursor", "hand2")
         super().__init__(master, **kwargs)
 
-class CTkEntry(_Compat, tk.Entry):
+class Entry(_Compat, tk.Entry):
     _kind = "entry"
     def __init__(self, master=None, **kwargs):
         placeholder = kwargs.get("placeholder_text")
@@ -101,7 +101,7 @@ class CTkEntry(_Compat, tk.Entry):
         value = super().get()
         return "" if self._placeholder_active else value
 
-class CTkComboBox(ttk.Combobox):
+class ComboBox(ttk.Combobox):
     def __init__(self, master=None, **kwargs):
         for key in ("fg_color", "text_color", "border_color", "corner_radius", "height",
                     "button_color", "button_hover_color", "dropdown_fg_color",
@@ -125,7 +125,7 @@ class CTkComboBox(ttk.Combobox):
         return super().configure(options)
     config = configure
 
-class CTkCheckBox(_Compat, tk.Checkbutton):
+class CheckBox(_Compat, tk.Checkbutton):
     _kind = "check"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
@@ -136,17 +136,17 @@ class CTkCheckBox(_Compat, tk.Checkbutton):
         kwargs.setdefault("relief", "flat")
         super().__init__(master, **kwargs)
 
-class CTkSwitch(CTkCheckBox):
+class Switch(CheckBox):
     pass
 
-class CTkSlider(tk.Scale):
+class Slider(tk.Scale):
     def __init__(self, master=None, **kwargs):
         for key in ("progress_color", "button_color", "button_hover_color"):
             kwargs.pop(key, None)
         kwargs.setdefault("orient", "horizontal")
         super().__init__(master, **kwargs)
 
-class CTkProgressBar(ttk.Progressbar):
+class ProgressBar(ttk.Progressbar):
     def configure(self, cnf=None, **kwargs):
         options = {} if cnf is None else dict(cnf)
         options.update(kwargs)
@@ -157,7 +157,7 @@ class CTkProgressBar(ttk.Progressbar):
     def set(self, value):
         self.configure(value=float(value) * 100)
 
-class CTkScrollbar(ttk.Scrollbar):
+class Scrollbar(ttk.Scrollbar):
     def __init__(self, master=None, **kwargs):
         for key in ("fg_color", "button_color", "button_hover_color"):
             kwargs.pop(key, None)
@@ -170,10 +170,10 @@ class CTkScrollbar(ttk.Scrollbar):
         return super().configure(options)
     config = configure
 
-class CTkToplevel(tk.Toplevel):
+class Toplevel(tk.Toplevel):
     pass
 
-class CTkScrollableFrame(tk.Frame):
+class ScrollableFrame(tk.Frame):
     def __init__(self, master=None, **kwargs):
         options = _translate(kwargs, master, "frame")
         background = options.pop("background", "#11141B")
@@ -214,7 +214,7 @@ class CTkScrollableFrame(tk.Frame):
         return super().configure(options)
     config = configure
 
-class CTkTabview(tk.Frame):
+class Tabview(tk.Frame):
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, "frame")
         kwargs.setdefault("background", "#090B10")
@@ -229,7 +229,7 @@ class CTkTabview(tk.Frame):
         return super().configure(options)
     config = configure
     def add(self, name):
-        frame = CTkFrame(self._notebook, background="#090B10")
+        frame = Frame(self._notebook, background="#090B10")
         self._tabs[name] = frame
         self._notebook.add(frame, text=name)
         return frame
