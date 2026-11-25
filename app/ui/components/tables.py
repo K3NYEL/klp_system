@@ -40,24 +40,24 @@ TABLE_BORDER_WIDTH = 1
 
 STATE_TAGS = {
     "activo": {
-        "background": "#17351F",
-        "foreground": "#81C784",
+        "background": "#E8F4EB",
+        "foreground": "#27834A",
     },
     "inactivo": {
-        "background": "#35191A",
-        "foreground": "#EF9A9A",
+        "background": "#FBE9E8",
+        "foreground": "#A92724",
     },
     "pendiente": {
-        "background": "#3A3016",
-        "foreground": "#FFD54F",
+        "background": "#FBF2DF",
+        "foreground": "#80520D",
     },
     "pagado": {
-        "background": "#17351F",
-        "foreground": "#81C784",
+        "background": "#E8F4EB",
+        "foreground": "#27834A",
     },
     "cancelado": {
-        "background": "#35191A",
-        "foreground": "#EF9A9A",
+        "background": "#FBE9E8",
+        "foreground": "#A92724",
     },
 }
 
@@ -72,24 +72,24 @@ STATE_TAGS = {
 
 TONE_COLORS = {
     "info": {
-        "background": "#122F3D",
-        "foreground": "#64B5F6",
+        "background": "#EAF3F8",
+        "foreground": "#20577F",
     },
     "ok": {
-        "background": "#17351F",
-        "foreground": "#81C784",
+        "background": "#E8F4EB",
+        "foreground": "#27834A",
     },
     "warn": {
-        "background": "#3A3016",
-        "foreground": "#FFD54F",
+        "background": "#FBF2DF",
+        "foreground": "#80520D",
     },
     "danger": {
-        "background": "#35191A",
-        "foreground": "#EF9A9A",
+        "background": "#FBE9E8",
+        "foreground": "#A92724",
     },
     "neutral": {
-        "background": "#26282B",
-        "foreground": "#CFCFCF",
+        "background": "#F3F2EF",
+        "foreground": "#6B6B66",
     },
 }
 

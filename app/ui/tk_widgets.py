@@ -9,7 +9,7 @@ def _color(value: Any, widget: Any) -> Any:
         try:
             return widget.cget("background")
         except Exception:
-            return "#11141B"
+            return "#FFFFFF"
     return value
 
 def _translate(options: dict, widget: Any, kind: str) -> dict:
@@ -48,7 +48,7 @@ class Frame(_Compat, tk.Frame):
     _kind = "frame"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
-        kwargs.setdefault("background", "#11141B")
+        kwargs.setdefault("background", "#FFFFFF")
         super().__init__(master, **kwargs)
 
 class Label(_Compat, tk.Label):
@@ -60,7 +60,7 @@ class Label(_Compat, tk.Label):
         if isinstance(kwargs.get("height"), (int, float)) and kwargs["height"] > 4:
             kwargs["height"] = max(1, round(kwargs["height"] / 20))
         kwargs.setdefault("background", _color("transparent", master))
-        kwargs.setdefault("foreground", "#F1F3F5")
+        kwargs.setdefault("foreground", "#1C1C1A")
         kwargs.setdefault("padx", 0)
         kwargs.setdefault("pady", 0)
         super().__init__(master, **kwargs)
@@ -92,9 +92,9 @@ class Entry(_Compat, tk.Entry):
         kwargs.pop("height", None)
         if isinstance(kwargs.get("width"), (int, float)) and kwargs["width"] > 40:
             kwargs["width"] = max(8, round(kwargs["width"] / 8))
-        kwargs.setdefault("background", "#151922")
-        kwargs.setdefault("foreground", "#F1F3F5")
-        kwargs.setdefault("insertbackground", "#F1F3F5")
+        kwargs.setdefault("background", "#FFFFFF")
+        kwargs.setdefault("foreground", "#1C1C1A")
+        kwargs.setdefault("insertbackground", "#1C1C1A")
         kwargs.setdefault("relief", "flat")
         kwargs.setdefault("highlightthickness", 1)
         super().__init__(master, **kwargs)
@@ -107,12 +107,12 @@ class Entry(_Compat, tk.Entry):
     def _clear_placeholder(self, _event=None):
         if self._placeholder_active:
             self.delete(0, "end")
-            self.configure(foreground="#F1F3F5")
+            self.configure(foreground="#1C1C1A")
             self._placeholder_active = False
     def _set_placeholder(self, _event=None):
         if self._placeholder and not self.get():
             self.insert(0, self._placeholder)
-            self.configure(foreground="#737D8C")
+            self.configure(foreground="#8A8983")
             self._placeholder_active = True
     def get(self):
         value = super().get()
@@ -147,9 +147,9 @@ class CheckBox(_Compat, tk.Checkbutton):
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
         kwargs.setdefault("background", _color("transparent", master))
-        kwargs.setdefault("foreground", "#F1F3F5")
+        kwargs.setdefault("foreground", "#1C1C1A")
         kwargs.setdefault("activebackground", kwargs["background"])
-        kwargs.setdefault("selectcolor", "#252B36")
+        kwargs.setdefault("selectcolor", "#ECEAE6")
         kwargs.setdefault("relief", "flat")
         super().__init__(master, **kwargs)
 
@@ -193,7 +193,7 @@ class Toplevel(tk.Toplevel):
 class ScrollableFrame(tk.Frame):
     def __init__(self, master=None, **kwargs):
         options = _translate(kwargs, master, "frame")
-        background = options.pop("background", "#11141B")
+        background = options.pop("background", "#FFFFFF")
         self._container = tk.Frame(master, background=background)
         self._canvas = tk.Canvas(self._container, background=background, highlightthickness=0)
         self._scrollbar = ttk.Scrollbar(self._container, orient="vertical", command=self._canvas.yview)
