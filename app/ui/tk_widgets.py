@@ -205,14 +205,33 @@ class ScrollableFrame(tk.Frame):
         self.bind("<Configure>", self._update_scroll_region, add="+")
         self._canvas.bind("<Configure>", self._resize_content, add="+")
         self.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
+        self.bind_all("<Button-4>", self._on_mousewheel, add="+")
+        self.bind_all("<Button-5>", self._on_mousewheel, add="+")
     def _update_scroll_region(self, _event=None):
         self._canvas.configure(scrollregion=self._canvas.bbox("all"))
     def _resize_content(self, event):
         self._canvas.itemconfigure(self._window_id, width=event.width)
     def _on_mousewheel(self, event):
         try:
-            if self.winfo_exists() and self.winfo_containing(event.x_root, event.y_root) is not None:
-                self._canvas.yview_scroll(int(-event.delta / 120), "units")
+            if not self.winfo_exists():
+                return
+            target = self.winfo_containing(event.x_root, event.y_root)
+            inside = False
+            while target is not None:
+                if target is self:
+                    inside = True
+                    break
+                target = getattr(target, "master", None)
+            if not inside:
+                return
+            if getattr(event, "num", None) == 4:
+                amount = -1
+            elif getattr(event, "num", None) == 5:
+                amount = 1
+            else:
+                amount = int(-event.delta / 120)
+            if amount:
+                self._canvas.yview_scroll(amount, "units")
         except tk.TclError:
             pass
     def pack(self, *args, **kwargs):
