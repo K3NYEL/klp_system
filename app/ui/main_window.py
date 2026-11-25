@@ -459,92 +459,99 @@ class SistemaFacturacion:
     # ========================================================
 
     def crear_interfaz(self):
-        """Crea menú, encabezado, pestañas y barra de estado."""
-
+        """Construye la navegación lateral y las seis vistas del sistema."""
         self._crear_menu()
-
-        shell = tkui.Frame(
-            self.root,
-            fg_color=theme.color("window"),
-            corner_radius=0,
+        shell = tkui.Frame(self.root, fg_color=theme.color("window"), corner_radius=0)
+        shell.pack(fill="both", expand=True)
+        sidebar = tkui.Frame(shell, fg_color="#FFFFFF", corner_radius=0,
+                             border_width=1, border_color="#ECEAE6", width=232)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
+        brand = tkui.Frame(sidebar, fg_color="transparent")
+        brand.pack(fill="x", padx=18, pady=(24, 30))
+        tkui.Label(brand, text="KLP", fg_color="#C8312E", text_color="#FFFFFF",
+                   font=("Inter", 10, "bold"), width=4, height=2,
+                   anchor="center").pack(side="left", padx=(0, 10))
+        tkui.Label(brand, text="KLP SYSTEM", text_color="#1C1C1A",
+                   font=("Inter", 11, "bold")).pack(side="left")
+        self._nav_buttons = {}
+        nav = tkui.Frame(sidebar, fg_color="transparent")
+        nav.pack(fill="both", expand=True, padx=12)
+        tkui.Label(nav, text="MÓDULOS", text_color="#9A9993",
+                   font=("Inter", 8, "bold"), anchor="w").pack(fill="x", padx=10, pady=(0, 8))
+        navigation = (
+            ("invoice", "Facturación"), ("products", "Inventario"),
+            ("customers", "Clientes"), ("history", "Facturas guardadas"),
+            ("dashboard", "Caja y dashboard"), ("company", "Empresa"),
         )
+        for key, label in navigation:
+            button = tk.Button(nav, text=label, anchor="w", justify="left",
+                command=lambda section=key: self.seleccionar_seccion(section),
+                background="#FFFFFF", foreground="#5F5F5A",
+                activebackground="#F3F2EF", activeforeground="#1C1C1A",
+                relief="flat", borderwidth=0, highlightthickness=0,
+                padx=13, pady=11, cursor="hand2", font=("Inter", 9, "normal"))
+            button.pack(fill="x", pady=2)
+            self._nav_buttons[key] = button
+        account = tkui.Frame(sidebar, fg_color="transparent")
+        account.pack(fill="x", padx=18, pady=18)
+        tkui.Frame(account, fg_color="#ECEAE6", height=1).pack(fill="x", pady=(0, 14))
+        tkui.Label(account, text=self.current_user.get("usuario", "Administrador"),
+                   text_color="#1C1C1A", font=("Inter", 9, "bold"),
+                   anchor="w").pack(fill="x")
+        tkui.Label(account, text=self.current_user.get("role", "Usuario"),
+                   text_color="#8A8983", font=("Inter", 8),
+                   anchor="w").pack(fill="x", pady=(2, 8))
+        tk.Button(account, text="Cerrar sesión", anchor="w", command=self.cerrar_sesion,
+                  background="#FFFFFF", foreground="#6B6B66",
+                  activebackground="#F3F2EF", activeforeground="#1C1C1A",
+                  relief="flat", borderwidth=0, padx=0, pady=6,
+                  cursor="hand2", font=("Inter", 9)).pack(fill="x")
+        workspace = tkui.Frame(shell, fg_color=theme.color("window"), corner_radius=0)
+        workspace.pack(side="left", fill="both", expand=True)
+        self._crear_encabezado(workspace)
+        self._crear_barra_estado(workspace)
+        self.notebook = tkui.Tabview(workspace, corner_radius=0, show_tabs=False,
+                                     on_change=self._on_tab_changed)
+        self.notebook.pack(fill="both", expand=True, padx=28, pady=(8, 18))
+        for label, builder in (
+            ("Facturación", self.crear_pestaña_facturacion),
+            ("Inventario", self.crear_pestaña_productos),
+            ("Clientes", self.crear_pestaña_clientes),
+            ("Empresa", self.crear_pestaña_admin),
+            ("Facturas guardadas", self.crear_pestaña_historial),
+            ("Caja y Dashboard", self._crear_pestaña_caja_dashboard),
+        ):
+            started = time.perf_counter()
+            builder()
+            print(f"[PERF] {label}: {time.perf_counter() - started:.3f}s")
+        self.notebook.set("Facturación")
+        self._on_tab_changed("Facturación")
 
-        shell.pack(
-            fill="both",
-            expand=True,
-        )
+    def _on_tab_changed(self, tab_name):
+        reverse = {label: key for key, label in self.tab_names.items()}
+        key = reverse.get(tab_name)
+        if key:
+            self._actualizar_navegacion(key)
 
-        self._crear_encabezado(shell)
-
-        # La barra de estado se crea antes del Tabview.
-        self._crear_barra_estado(shell)
-
-        self.notebook = tkui.Tabview(
-            shell,
-            corner_radius=8,
-        )
-
-        self.notebook.pack(
-            fill="both",
-            expand=True,
-            padx=14,
-            pady=(10, 4),
-        )
-
-        inicio = time.perf_counter()
-
-        self.crear_pestaña_facturacion()
-        print(
-            f"[PERF] Facturación: "
-            f"{time.perf_counter() - inicio:.3f}s"
-        )
-
-        inicio = time.perf_counter()
-
-        self.crear_pestaña_productos()
-        print(
-            f"[PERF] Inventario: "
-            f"{time.perf_counter() - inicio:.3f}s"
-        )
-
-        inicio = time.perf_counter()
-
-        self.crear_pestaña_clientes()
-        print(
-            f"[PERF] Clientes: "
-            f"{time.perf_counter() - inicio:.3f}s"
-        )
-
-        inicio = time.perf_counter()
-
-        self.crear_pestaña_admin()
-        print(
-            f"[PERF] Empresa: "
-            f"{time.perf_counter() - inicio:.3f}s"
-        )
-
-        inicio = time.perf_counter()
-
-        self.crear_pestaña_historial()
-        print(
-            f"[PERF] Historial: "
-            f"{time.perf_counter() - inicio:.3f}s"
-        )
-
-        inicio = time.perf_counter()
-
-        self._crear_pestaña_caja_dashboard()
-        print(
-            f"[PERF] Caja/Dashboard: "
-            f"{time.perf_counter() - inicio:.3f}s"
-        )
-
-        # self.crear_pestaña_facturacion()
-        # self.crear_pestaña_productos()
-        # self.crear_pestaña_clientes()
-        # self.crear_pestaña_admin()
-        # self.crear_pestaña_historial()
-        # self._crear_pestaña_caja_dashboard()
+    def _actualizar_navegacion(self, key):
+        titles = {
+            "invoice": ("Nueva factura", "Elige el cliente, agrega productos y cobra."),
+            "products": ("Inventario", "Administra productos, precios y existencias."),
+            "customers": ("Clientes", "Consulta y administra la información de tus clientes."),
+            "history": ("Facturas guardadas", "Consulta las ventas y facturas registradas."),
+            "dashboard": ("Caja y dashboard", "Resumen de operaciones, ingresos y movimientos."),
+            "company": ("Empresa", "Configura los datos fiscales y de contacto del negocio."),
+        }
+        title, subtitle = titles.get(key, ("KLP SYSTEM", "Sistema de gestión"))
+        if hasattr(self, "page_title_var"):
+            self.page_title_var.set(title)
+            self.page_subtitle_var.set(subtitle)
+        for name, button in getattr(self, "_nav_buttons", {}).items():
+            active = name == key
+            button.configure(background="#F3F2EF" if active else "#FFFFFF",
+                             foreground="#1C1C1A" if active else "#5F5F5A",
+                             font=("Inter", 9, "bold" if active else "normal"))
 
     # ========================================================
     # MENÚ
@@ -736,122 +743,22 @@ class SistemaFacturacion:
     # ========================================================
 
     def _crear_encabezado(self, parent):
-        """Crea la barra superior."""
-
-        header = tkui.Frame(
-            parent,
-            fg_color=theme.color("header"),
-            corner_radius=0,
-        )
-
-        header.pack(
-            fill="x",
-        )
-
-        left = tkui.Frame(
-            header,
-            fg_color="transparent",
-        )
-
-        left.pack(
-            side="left",
-            padx=18,
-            pady=12,
-        )
-
-        tkui.Label(
-            left,
-            text=theme.APP_NAME,
-            font=theme.font("title"),
-            text_color=theme.color("header_text"),
-            anchor="w",
-        ).pack(
-            anchor="w",
-        )
-
-        tkui.Label(
-            left,
-            text="Facturación · Caja · Inventario · Clientes",
-            font=theme.font("small"),
-            text_color=theme.color("header_text"),
-            anchor="w",
-        ).pack(
-            anchor="w",
-            pady=(2, 0),
-        )
-
-        right = tkui.Frame(
-            header,
-            fg_color="transparent",
-        )
-
-        right.pack(
-            side="right",
-            padx=18,
-        )
-
-        user_text = (
-            f"{self.current_user.get('usuario', 'Usuario')} · "
-            f"{self.current_user.get('role', 'Sin rol')}"
-        )
-
-        self.user_label = tkui.Label(
-            right,
-            text=user_text,
-            font=theme.font("body_bold"),
-            text_color=theme.color("header_text"),
-            anchor="e",
-        )
-
-        self.user_label.pack(
-            anchor="e",
-            pady=(0, 6),
-        )
-
-        actions = tkui.Frame(
-            right,
-            fg_color="transparent",
-        )
-
-        actions.pack(
-            anchor="e",
-        )
-
-        AppButton(
-            actions,
-            text="Facturación rápida",
-            command=self.abrir_facturacion_rapida,
-            variant="primary",
-            size="small",
-            tooltip=("Venta de mostrador con lector " "de códigos (F2)"),
-        ).pack(
-            side="left",
-            padx=3,
-        )
-
-        AppButton(
-            actions,
-            text="Caja y Dashboard",
-            command=lambda: self.seleccionar_seccion("dashboard"),
-            variant="ghost",
-            size="small",
-            tooltip=("Indicadores del negocio y " "movimientos de caja"),
-        ).pack(
-            side="left",
-            padx=3,
-        )
-
-        AppButton(
-            actions,
-            text="Cerrar sesión",
-            command=self.cerrar_sesion,
-            variant="danger",
-            size="small",
-            tooltip=("Volver a la pantalla de inicio " "de sesión"),
-        ).pack(
-            side="left",
-            padx=3,
-        )
+        """Encabezado contextual de la sección activa."""
+        header = tkui.Frame(parent, fg_color="#FAFAF8", corner_radius=0)
+        header.pack(fill="x", padx=28, pady=(26, 8))
+        left = tkui.Frame(header, fg_color="transparent")
+        left.pack(side="left", fill="x", expand=True)
+        self.page_title_var = tkui.StringVar(value="Nueva factura")
+        self.page_subtitle_var = tkui.StringVar(value="Elige el cliente, agrega productos y cobra.")
+        tkui.Label(left, textvariable=self.page_title_var, text_color="#1C1C1A",
+                   font=("Inter", 19, "bold"), anchor="w").pack(anchor="w")
+        tkui.Label(left, textvariable=self.page_subtitle_var, text_color="#6B6B66",
+                   font=("Inter", 9), anchor="w").pack(anchor="w", pady=(5, 0))
+        actions = tkui.Frame(header, fg_color="transparent")
+        actions.pack(side="right", padx=(12, 0))
+        AppButton(actions, text="Facturación rápida", command=self.abrir_facturacion_rapida,
+                  variant="primary", size="small",
+                  tooltip="Venta rápida de mostrador (F2)").pack(anchor="e")
 
     # ========================================================
     # BARRA DE ESTADO
