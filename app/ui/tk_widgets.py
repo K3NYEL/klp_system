@@ -55,6 +55,10 @@ class Label(_Compat, tk.Label):
     _kind = "label"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
+        if isinstance(kwargs.get("width"), (int, float)) and kwargs["width"] > 40:
+            kwargs["width"] = max(1, round(kwargs["width"] / 8))
+        if isinstance(kwargs.get("height"), (int, float)) and kwargs["height"] > 4:
+            kwargs["height"] = max(1, round(kwargs["height"] / 20))
         kwargs.setdefault("background", _color("transparent", master))
         kwargs.setdefault("foreground", "#F1F3F5")
         kwargs.setdefault("padx", 0)
@@ -65,6 +69,12 @@ class Button(_Compat, tk.Button):
     _kind = "button"
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, self._kind)
+        if isinstance(kwargs.get("width"), (int, float)) and kwargs["width"] > 40:
+            kwargs["width"] = max(8, round(kwargs["width"] / 8))
+        if isinstance(kwargs.get("height"), (int, float)) and kwargs["height"] > 4:
+            kwargs["height"] = max(1, round(kwargs["height"] / 24))
+        kwargs.setdefault("padx", 10)
+        kwargs.setdefault("pady", 6)
         kwargs.setdefault("background", "#E53935")
         kwargs.setdefault("foreground", "#FFFFFF")
         kwargs.setdefault("activebackground", "#EF5350")
@@ -79,6 +89,9 @@ class Entry(_Compat, tk.Entry):
     def __init__(self, master=None, **kwargs):
         placeholder = kwargs.get("placeholder_text")
         kwargs = _translate(kwargs, master, self._kind)
+        kwargs.pop("height", None)
+        if isinstance(kwargs.get("width"), (int, float)) and kwargs["width"] > 40:
+            kwargs["width"] = max(8, round(kwargs["width"] / 8))
         kwargs.setdefault("background", "#151922")
         kwargs.setdefault("foreground", "#F1F3F5")
         kwargs.setdefault("insertbackground", "#F1F3F5")
