@@ -53,7 +53,7 @@ class BackupTests(unittest.TestCase):
             backup = create_backup(source, root / "source_backups")
             preserved = restore_backup(backup, target, root / "preserved")
             self.assertTrue(preserved.is_file())
-            with sqlite3.connect(target) as connection:
+            with closing(sqlite3.connect(target)) as connection:
                 value = connection.execute("SELECT valor FROM facturas").fetchone()[0]
             self.assertEqual(value, "restored")
 
