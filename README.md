@@ -11,7 +11,7 @@ Permite administrar diferentes áreas del negocio desde un mismo sistema, utiliz
 ## Tecnologías
 
 ![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
-![Tkinter + ttk](https://img.shields.io/badge/Tkinter + ttk-GUI-1f6feb?style=for-the-badge)
+![Tkinter](https://img.shields.io/badge/Tkinter-GUI-1f6feb?style=for-the-badge)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=for-the-badge\&logo=sqlite\&logoColor=white)
 ![ReportLab](https://img.shields.io/badge/ReportLab-PDF-8A2BE2?style=for-the-badge)
 ![PyInstaller](https://img.shields.io/badge/PyInstaller-Build-000000?style=for-the-badge)
