@@ -873,7 +873,7 @@ class LoginWindow:
 
                 if row and row[2] and valid:
 
-                    user_id, _, _activo, role = row
+                    user_id, _, _activo, role, _locked = row
 
                     # -------------------------------------------------
                     # Actualiza hashes antiguos si es necesario.
