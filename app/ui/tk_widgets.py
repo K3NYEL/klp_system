@@ -175,16 +175,30 @@ class ProgressBar(ttk.Progressbar):
         self.configure(value=float(value) * 100)
 
 class Scrollbar(ttk.Scrollbar):
-    def __init__(self, master=None, **kwargs):
+    """Scrollbar ttk con compatibilidad de argumentos de la API anterior."""
+
+    @staticmethod
+    def _normalize(options):
+        options = dict(options)
+        # CustomTkinter utilizaba orientation; ttk.Scrollbar utiliza orient.
+        if "orientation" in options and "orient" not in options:
+            options["orient"] = options.pop("orientation")
+        else:
+            options.pop("orientation", None)
+        # ttk.Scrollbar no admite height; el grosor se controla con width.
+        options.pop("height", None)
         for key in ("fg_color", "button_color", "button_hover_color"):
-            kwargs.pop(key, None)
-        super().__init__(master, **kwargs)
+            options.pop(key, None)
+        return options
+
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master, **self._normalize(kwargs))
+
     def configure(self, cnf=None, **kwargs):
         options = {} if cnf is None else dict(cnf)
         options.update(kwargs)
-        for key in ("fg_color", "button_color", "button_hover_color"):
-            options.pop(key, None)
-        return super().configure(options)
+        return super().configure(self._normalize(options))
+
     config = configure
 
 class Toplevel(tk.Toplevel):
