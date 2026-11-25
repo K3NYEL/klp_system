@@ -15,7 +15,7 @@ from tkinter import ttk
 
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 from app.ui import theme
 from app.ui.styles import Colors, Fonts

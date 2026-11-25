@@ -18,7 +18,7 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Any, Callable, Optional, Sequence, Tuple
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 from app.ui import theme
 from app.ui.components.buttons import AppButton

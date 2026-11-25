@@ -6,7 +6,7 @@ from pathlib import Path
 from tkinter import ttk
 from typing import Any, Dict, Optional, Tuple
 
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 
 CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"

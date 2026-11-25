@@ -4,7 +4,7 @@ import sqlite3
 import sys
 import tkinter as tk
 import webbrowser
-import customtkinter as ctk
+from app.ui import tk_compat as ctk
 import time
 
 from datetime import datetime
