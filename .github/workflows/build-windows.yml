@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - local-charges
 
 jobs:
   build-windows:
@@ -33,12 +34,7 @@ jobs:
       - name: Instalar dependencias
         shell: pwsh
         run: |
-          .\.venv\Scripts\python.exe -m pip install `
-            customtkinter `
-            pillow `
-            reportlab `
-            bcrypt `
-            pyinstaller
+          .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 
       - name: Compilar KLP SYSTEM
         shell: cmd

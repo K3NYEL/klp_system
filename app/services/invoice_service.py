@@ -35,3 +35,16 @@ def find_product_by_code(connection: sqlite3.Connection, code: str) -> tuple | N
 
 def invoice_date() -> str:
     return datetime.now().strftime("%Y-%m-%d")
+
+
+
+def get_tax_rate(connection: sqlite3.Connection) -> float:
+    row = connection.execute(
+        "SELECT impuesto_porcentaje FROM empresa ORDER BY id LIMIT 1"
+    ).fetchone()
+    if row is None or row[0] is None:
+        return TAX_RATE
+    percentage = float(row[0])
+    if not 0 <= percentage <= 100:
+        raise ValueError("El porcentaje de impuesto configurado debe estar entre 0 y 100.")
+    return percentage / 100

@@ -1473,9 +1473,10 @@ class SistemaFacturacion:
             else:
                 customer_id = customer[0]
 
-            subtotal = sum(item["subtotal"] for item in self.quick_items)
-            tax = round(subtotal * 0.18, 2)
-            total = round(subtotal + tax, 2)
+            subtotal, tax, total = invoice_service.calculate_totals(
+                self.quick_items,
+                tax_rate=invoice_service.get_tax_rate(self.conn),
+            )
 
             user_id = self.current_user.get("id")
 
@@ -4307,7 +4308,8 @@ class SistemaFacturacion:
 
             # Calcular totales.
             subtotal, itbis, total = invoice_service.calculate_totals(
-                self.items_factura
+                self.items_factura,
+                tax_rate=invoice_service.get_tax_rate(self.conn),
             )
 
             numero = self.num_factura.get()
