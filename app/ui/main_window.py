@@ -984,12 +984,10 @@ class SistemaFacturacion:
 
         try:
             tabs = self.notebook._segmented_button.cget("values")
-
             if 0 <= index < len(tabs):
                 self.notebook.set(tabs[index])
-
-        except (IndexError, TypeError, tk.TclError):
-            pass
+        except (AttributeError, IndexError, TypeError, tk.TclError):
+            return
 
     def seleccionar_seccion(self, name):
         """Activa una pestaña y refresca sus datos."""

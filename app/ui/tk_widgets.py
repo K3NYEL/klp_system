@@ -250,36 +250,103 @@ class ScrollableFrame(tk.Frame):
         return super().configure(options)
     config = configure
 
+class _SegmentedButtonCompat:
+    def __init__(self, owner):
+        self._owner = owner
+
+    def cget(self, option):
+        if option == "values":
+            return tuple(self._owner._tabs.keys())
+        raise tk.TclError(f"Opción desconocida: {option}")
+
+
 class Tabview(tk.Frame):
     def __init__(self, master=None, **kwargs):
         kwargs = _translate(kwargs, master, "frame")
         kwargs.setdefault("background", "#090B10")
+        kwargs.pop("height", None)
+        kwargs.pop("width", None)
         super().__init__(master, **kwargs)
-        self._notebook = ttk.Notebook(self)
-        self._notebook.pack(fill="both", expand=True)
+
+        self._tab_bar = tk.Frame(self, background="#11141B", highlightthickness=0)
+        self._tab_bar.pack(side="top", fill="x")
+
+        self._pages = tk.Frame(self, background="#090B10", highlightthickness=0)
+        self._pages.pack(side="top", fill="both", expand=True)
+        self._pages.grid_rowconfigure(0, weight=1)
+        self._pages.grid_columnconfigure(0, weight=1)
+
         self._tabs = {}
+        self._tab_buttons = {}
+        self._selected = None
+        self._segmented_button = _SegmentedButtonCompat(self)
+
     def configure(self, cnf=None, **kwargs):
         options = {} if cnf is None else dict(cnf)
         options.update(kwargs)
         options = _translate(options, self, "frame")
         return super().configure(options)
+
     config = configure
+
     def add(self, name):
-        frame = Frame(self._notebook, background="#090B10")
-        self._tabs[name] = frame
-        self._notebook.add(frame, text=name)
-        return frame
+        if name in self._tabs:
+            return self._tabs[name]
+
+        page = Frame(self._pages, background=self.cget("background"))
+        page.grid(row=0, column=0, sticky="nsew")
+        button = tk.Button(
+            self._tab_bar,
+            text=name,
+            command=lambda tab_name=name: self.set(tab_name),
+            background="#202631",
+            foreground="#A9B4C2",
+            activebackground="#303744",
+            activeforeground="#FFFFFF",
+            disabledforeground="#FFFFFF",
+            relief="flat",
+            borderwidth=0,
+            highlightthickness=0,
+            padx=16,
+            pady=11,
+            cursor="hand2",
+            font=("DejaVu Sans", 9, "bold"),
+        )
+        button.pack(side="left", fill="x", expand=True)
+        self._tabs[name] = page
+        self._tab_buttons[name] = button
+
+        if self._selected is None:
+            self.set(name)
+
+        return page
+
     def tab(self, name):
         return self._tabs[name]
+
     def set(self, name):
-        if name in self._tabs:
-            self._notebook.select(self._tabs[name])
+        if name not in self._tabs:
+            return
+        self._selected = name
+        self._tabs[name].tkraise()
+        for tab_name, button in self._tab_buttons.items():
+            if tab_name == name:
+                button.configure(
+                    background="#E53935",
+                    foreground="#FFFFFF",
+                    activebackground="#EF5350",
+                    activeforeground="#FFFFFF",
+                )
+            else:
+                button.configure(
+                    background="#202631",
+                    foreground="#A9B4C2",
+                    activebackground="#303744",
+                    activeforeground="#FFFFFF",
+                )
+
     def get(self):
-        selected = self._notebook.select()
-        for name, frame in self._tabs.items():
-            if str(frame) == selected:
-                return name
-        return ""
+        return self._selected or ""
 
 def set_appearance_mode(_mode):
     return None
