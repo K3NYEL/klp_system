@@ -7,7 +7,7 @@ from typing import Any
 def _color(value: Any, widget: Any) -> Any:
     if value in (None, "transparent"):
         try:
-            return widget.master.cget("background")
+            return widget.cget("background")
         except Exception:
             return "#11141B"
     return value
@@ -15,6 +15,8 @@ def _color(value: Any, widget: Any) -> Any:
 def _translate(options: dict, widget: Any, kind: str) -> dict:
     values = dict(options)
     aliases = {"fg_color": "background", "text_color": "foreground"}
+    if kind == "frame":
+        values.pop("text_color", None)
     if kind == "button":
         aliases.update({"hover_color": "activebackground", "border_color": "highlightbackground"})
     elif kind in {"entry", "frame", "label", "check"}:
@@ -28,7 +30,9 @@ def _translate(options: dict, widget: Any, kind: str) -> dict:
     for key in ("corner_radius", "border_width", "placeholder_text", "placeholder_text_color", "dropdown_fg_color",
                 "dropdown_text_color", "dropdown_hover_color", "button_color", "button_hover_color",
                 "hover_color", "checkbox_width", "checkbox_height", "progress_color",
-                "scrollbar_button_color", "scrollbar_button_hover_color"):
+                "scrollbar_button_color", "scrollbar_button_hover_color", "segmented_button_fg_color",
+                "segmented_button_selected_color", "segmented_button_selected_hover_color",
+                "segmented_button_unselected_color", "segmented_button_unselected_hover_color"):
         values.pop(key, None)
     return values
 
