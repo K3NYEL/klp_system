@@ -242,6 +242,7 @@ class SistemaFacturacion:
         self.empresa_telefono_var = ctk.StringVar()
         self.empresa_email_var = ctk.StringVar()
         self.empresa_website_var = ctk.StringVar()
+        self.empresa_impuesto_var = ctk.StringVar(value="18")
 
         fields = (
             (
@@ -280,6 +281,12 @@ class SistemaFacturacion:
                 2,
                 2,
             ),
+            (
+                "Impuesto (%)",
+                self.empresa_impuesto_var,
+                3,
+                0,
+            ),
         )
 
         for text, variable, row, column in fields:
@@ -304,7 +311,7 @@ class SistemaFacturacion:
         )
 
         actions.grid(
-            row=3,
+            row=4,
             column=0,
             columnspan=4,
             sticky="ew",
@@ -340,7 +347,8 @@ class SistemaFacturacion:
                 direccion,
                 telefono,
                 email,
-                website
+                website,
+                impuesto_porcentaje
             FROM empresa
             WHERE id = 1
             """)
@@ -354,6 +362,7 @@ class SistemaFacturacion:
             self.empresa_telefono_var.set(row[3] or "")
             self.empresa_email_var.set(row[4] or "")
             self.empresa_website_var.set(row[5] or "")
+            self.empresa_impuesto_var.set(str(row[6] if row[6] is not None else 18))
         else:
             self.empresa_nombre_var.set("")
             self.empresa_rnc_var.set("")
@@ -361,6 +370,7 @@ class SistemaFacturacion:
             self.empresa_telefono_var.set("")
             self.empresa_email_var.set("")
             self.empresa_website_var.set("")
+            self.empresa_impuesto_var.set("18")
 
     def guardar_empresa(self):
         if not self.require_permission("manage_company"):
@@ -372,6 +382,14 @@ class SistemaFacturacion:
         telefono = self.empresa_telefono_var.get().strip()
         email = self.empresa_email_var.get().strip()
         website = self.empresa_website_var.get().strip()
+        try:
+            impuesto_porcentaje = float(self.empresa_impuesto_var.get().strip() or "18")
+        except ValueError:
+            messagebox.showwarning("Impuesto no válido", "Introduce un porcentaje numérico entre 0 y 100.")
+            return
+        if not 0 <= impuesto_porcentaje <= 100:
+            messagebox.showwarning("Impuesto no válido", "El porcentaje debe estar entre 0 y 100.")
+            return
 
         self.cursor.execute("SELECT id FROM empresa WHERE id = 1")
 
@@ -385,7 +403,8 @@ class SistemaFacturacion:
                     direccion=?,
                     telefono=?,
                     email=?,
-                    website=?
+                    website=?,
+                    impuesto_porcentaje=?
                 WHERE id = 1
                 """,
                 (
@@ -395,6 +414,7 @@ class SistemaFacturacion:
                     telefono,
                     email,
                     website,
+                    impuesto_porcentaje,
                 ),
             )
         else:
@@ -407,10 +427,11 @@ class SistemaFacturacion:
                     direccion,
                     telefono,
                     email,
-                    website
+                    website,
+                    impuesto_porcentaje
                 )
                 VALUES (
-                    1, ?, ?, ?, ?, ?, ?
+                    1, ?, ?, ?, ?, ?, ?, ?
                 )
                 """,
                 (
@@ -420,6 +441,7 @@ class SistemaFacturacion:
                     telefono,
                     email,
                     website,
+                    impuesto_porcentaje,
                 ),
             )
 
@@ -1719,7 +1741,7 @@ class SistemaFacturacion:
         theme.prepare_toplevel(
             empresa_win,
             "Mi empresa",
-            (640, 470),
+            (640, 540),
             self.base_path,
             modal=True,
         )
@@ -1748,6 +1770,7 @@ class SistemaFacturacion:
             ("Teléfono", self.empresa_telefono_var),
             ("Email", self.empresa_email_var),
             ("Sitio web", self.empresa_website_var),
+            ("Impuesto (%)", self.empresa_impuesto_var),
         )
 
         entries = []
