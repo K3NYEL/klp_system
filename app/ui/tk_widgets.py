@@ -120,7 +120,7 @@ class Entry(_Compat, tk.Entry):
 
 class ComboBox(ttk.Combobox):
     def __init__(self, master=None, **kwargs):
-        for key in ("fg_color", "text_color", "border_color", "corner_radius", "height",
+        for key in ("fg_color", "text_color", "border_color", "border_width", "corner_radius", "height",
                     "button_color", "button_hover_color", "dropdown_fg_color",
                     "dropdown_hover_color", "dropdown_text_color"):
             kwargs.pop(key, None)
@@ -135,7 +135,7 @@ class ComboBox(ttk.Combobox):
         options.update(kwargs)
         if "variable" in options and "textvariable" not in options:
             options["textvariable"] = options.pop("variable")
-        for key in ("fg_color", "text_color", "border_color", "corner_radius", "height",
+        for key in ("fg_color", "text_color", "border_color", "border_width", "corner_radius", "height",
                     "button_color", "button_hover_color", "dropdown_fg_color",
                     "dropdown_hover_color", "dropdown_text_color"):
             options.pop(key, None)
