@@ -1,6 +1,6 @@
 import os
-
-import customtkinter as ctk
+import tkinter as tk
+from tkinter import ttk
 
 
 class Colors:
@@ -48,12 +48,127 @@ class Fonts:
 
 
 class ButtonSizes:
-    SMALL = {"width": 100, "height": 34, "corner_radius": 8}
-    MEDIUM = {"width": 132, "height": 40, "corner_radius": 9}
-    LARGE = {"width": 164, "height": 46, "corner_radius": 10}
-    FULL = {"height": 44, "corner_radius": 9}
+    SMALL = {"width": 100, "height": 34}
+    MEDIUM = {"width": 132, "height": 40}
+    LARGE = {"width": 164, "height": 46}
+    FULL = {"height": 44}
 
 
-def configure_app_style() -> None:
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("dark-blue")
+def configure_app_style(root=None):
+    style = ttk.Style(root)
+    try:
+        style.theme_use("clam")
+    except tk.TclError:
+        pass
+
+    style.configure(
+        ".",
+        background=Colors.BACKGROUND,
+        foreground=Colors.TEXT,
+        font=Fonts.BODY,
+    )
+    style.configure(
+        "TFrame",
+        background=Colors.BACKGROUND,
+    )
+    style.configure(
+        "Surface.TFrame",
+        background=Colors.SURFACE,
+    )
+    style.configure(
+        "Card.TFrame",
+        background=Colors.CARD,
+        borderwidth=1,
+        relief="solid",
+    )
+    style.configure(
+        "TLabel",
+        background=Colors.BACKGROUND,
+        foreground=Colors.TEXT,
+        font=Fonts.BODY,
+    )
+    style.configure(
+        "Title.TLabel",
+        background=Colors.SURFACE,
+        foreground=Colors.PRIMARY,
+        font=Fonts.TITLE,
+    )
+    style.configure(
+        "Subtitle.TLabel",
+        background=Colors.SURFACE,
+        foreground=Colors.TEXT_SECONDARY,
+        font=Fonts.BODY,
+    )
+    style.configure(
+        "Status.TLabel",
+        background=Colors.SURFACE,
+        foreground=Colors.TEXT_SECONDARY,
+        font=Fonts.SMALL,
+    )
+    style.configure(
+        "TButton",
+        background=Colors.SECONDARY,
+        foreground=Colors.TEXT,
+        padding=(12, 8),
+        borderwidth=0,
+        font=Fonts.BUTTON,
+    )
+    style.map(
+        "TButton",
+        background=[("active", Colors.SECONDARY_HOVER), ("disabled", Colors.SURFACE)],
+        foreground=[("disabled", Colors.TEXT_DISABLED)],
+    )
+    style.configure(
+        "Primary.TButton",
+        background=Colors.PRIMARY,
+        foreground="#FFFFFF",
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("active", Colors.PRIMARY_HOVER), ("disabled", Colors.PRIMARY_DARK)],
+    )
+    style.configure(
+        "TEntry",
+        fieldbackground=Colors.INPUT,
+        foreground=Colors.TEXT,
+        insertcolor=Colors.TEXT,
+        padding=8,
+    )
+    style.configure(
+        "TCombobox",
+        fieldbackground=Colors.INPUT,
+        background=Colors.INPUT,
+        foreground=Colors.TEXT,
+        arrowcolor=Colors.TEXT,
+        padding=7,
+    )
+    style.configure(
+        "TProgressbar",
+        troughcolor=Colors.BORDER,
+        background=Colors.PRIMARY,
+        bordercolor=Colors.BORDER,
+        lightcolor=Colors.PRIMARY,
+        darkcolor=Colors.PRIMARY,
+    )
+    style.configure(
+        "Treeview",
+        background=Colors.CARD,
+        fieldbackground=Colors.CARD,
+        foreground=Colors.TEXT,
+        rowheight=30,
+        borderwidth=0,
+        font=Fonts.BODY,
+    )
+    style.configure(
+        "Treeview.Heading",
+        background=Colors.SURFACE,
+        foreground=Colors.TEXT,
+        relief="flat",
+        font=Fonts.BODY_BOLD,
+    )
+    style.map(
+        "Treeview",
+        background=[("selected", Colors.PRIMARY_DARK)],
+        foreground=[("selected", "#FFFFFF")],
+    )
+    return style
