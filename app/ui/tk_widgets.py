@@ -345,8 +345,10 @@ class Tabview(tk.Frame):
                     background="#F3F2EF",
                     foreground="#6B6B66",
                     activebackground="#E8E6E1",
-                    activeforeground="#FFFFFF",
+                    activeforeground="#1C1C1A",
                 )
+        if callable(self._on_change):
+            self._on_change(name)
 
     def get(self):
         return self._selected or ""
