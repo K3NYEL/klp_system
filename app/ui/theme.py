@@ -3,34 +3,16 @@ from __future__ import annotations
 import os
 import tkinter as tk
 from pathlib import Path
+from tkinter import ttk
 from typing import Any, Dict, Optional, Tuple
 
 import customtkinter as ctk
-from tkinter import ttk
-
-
-# ============================================================
-# KLP SYSTEM
-# Sistema de tema global basado en CustomTkinter
-#
-# KLP SYSTEM utiliza exclusivamente un tema oscuro.
-# El tema de Kali/XFCE/GTK no afecta la aplicación.
-# ============================================================
-
-
-# ============================================================
-# INFORMACIÓN DE LA APLICACIÓN
-# ============================================================
 
 CREATOR_URL = "https://github.com/K3NYEL"
 APP_NAME = "KLP SYSTEM"
 APP_VERSION = "1.1"
-FONT_FAMILY = "Roboto"
+FONT_FAMILY = "Segoe UI" if os.name == "nt" else "DejaVu Sans"
 
-
-# ============================================================
-# RUTAS
-# ============================================================
 
 def resource_path(*parts: str) -> str:
     """
@@ -164,7 +146,6 @@ THEMES = {
         "border_light": "#303744",
         "header": "#0D1016",
         "header_text": "#F5F7FA",
-
         # ----------------------------------------------------
         # ROJO KLP
         # ----------------------------------------------------
@@ -172,35 +153,28 @@ THEMES = {
         "accent_dark": "#C62828",
         "accent_hover": "#EF5350",
         "accent_soft": "#321719",
-
         "text": "#F1F3F5",
         "text_muted": "#98A2B3",
         "text_disabled": "#5C6470",
         "text_on_accent": "#FFFFFF",
-
         # ----------------------------------------------------
         # ESTADOS
         # ----------------------------------------------------
         "success": "#35C779",
         "success_dark": "#249C5C",
         "success_soft": "#13281D",
-
         "danger": "#FF5C5C",
         "danger_dark": "#D63D3D",
         "danger_soft": "#321819",
-
         "warning": "#F2B84B",
         "warning_dark": "#C88B1B",
         "warning_soft": "#302511",
-
         "info": "#5AA9FF",
         "info_dark": "#337CC7",
         "info_soft": "#14263A",
-
         "neutral": "#8E99A8",
         "neutral_dark": "#697482",
         "neutral_soft": "#202631",
-
         # ----------------------------------------------------
         # TABLAS
         # ----------------------------------------------------
@@ -208,7 +182,6 @@ THEMES = {
         "row_hover": "#202632",
         "selection": "#B72D2A",
         "selection_text": "#FFFFFF",
-
         # ----------------------------------------------------
         # INPUTS
         # ----------------------------------------------------
@@ -216,7 +189,6 @@ THEMES = {
         "entry_border": "#303744",
         "entry_focus": "#E53935",
         "entry_disabled": "#10131A",
-
         # ----------------------------------------------------
         # SCROLL
         # ----------------------------------------------------
@@ -365,6 +337,7 @@ INPUT_STYLE = {
 # UTILIDADES DEL TEMA
 # ============================================================
 
+
 def theme_name() -> str:
     """Devuelve siempre el nombre del tema de KLP SYSTEM."""
     return "oscuro"
@@ -416,7 +389,7 @@ def color(name: str) -> str:
         "_hover",
     ):
         if name.endswith(suffix):
-            base = name[:-len(suffix)]
+            base = name[: -len(suffix)]
 
             if base in aliases:
                 name = aliases[base] + suffix
@@ -445,10 +418,7 @@ def role_colors(
         ROLES["plain"],
     )
 
-    return {
-        key: color(value)
-        for key, value in spec.items()
-    }
+    return {key: color(value) for key, value in spec.items()}
 
 
 def button_palette(
@@ -459,15 +429,13 @@ def button_palette(
         BUTTON_VARIANTS["primary"],
     )
 
-    return {
-        key: color(value)
-        for key, value in spec.items()
-    }
+    return {key: color(value) for key, value in spec.items()}
 
 
 # ============================================================
 # REGISTRO DE WIDGETS
 # ============================================================
+
 
 def remember(
     widget,
@@ -500,6 +468,7 @@ def forget(widget):
 # APLICAR CONFIGURACIÓN SEGURA
 # ============================================================
 
+
 def _safe_configure(
     widget,
     **kwargs,
@@ -513,9 +482,7 @@ def _safe_configure(
             continue
 
         try:
-            widget.configure(
-                **{key: value}
-            )
+            widget.configure(**{key: value})
         except (
             tk.TclError,
             AttributeError,
@@ -527,6 +494,7 @@ def _safe_configure(
 # CENTRAR VENTANAS
 # ============================================================
 
+
 def center_window(
     window,
     width: Optional[int] = None,
@@ -536,9 +504,7 @@ def center_window(
     Centra una ventana en la pantalla.
     """
     if width is not None and height is not None:
-        window.geometry(
-            f"{width}x{height}"
-        )
+        window.geometry(f"{width}x{height}")
 
     window.update_idletasks()
 
@@ -559,9 +525,7 @@ def center_window(
             (screen_height - height) // 2,
         )
 
-        window.geometry(
-            f"{width}x{height}+{x}+{y}"
-        )
+        window.geometry(f"{width}x{height}+{x}+{y}")
 
     except tk.TclError:
         pass
@@ -570,6 +534,7 @@ def center_window(
 # ============================================================
 # GEOMETRÍA
 # ============================================================
+
 
 def _normalize_geometry(
     geometry,
@@ -582,11 +547,7 @@ def _normalize_geometry(
         (tuple, list),
     ):
         if len(geometry) >= 2:
-            return (
-                f"{int(geometry[0])}"
-                f"x"
-                f"{int(geometry[1])}"
-            )
+            return f"{int(geometry[0])}" f"x" f"{int(geometry[1])}"
 
     return str(geometry)
 
@@ -594,6 +555,7 @@ def _normalize_geometry(
 # ============================================================
 # VENTANAS TOPLEVEL
 # ============================================================
+
 
 def prepare_toplevel(
     window,
@@ -609,9 +571,7 @@ def prepare_toplevel(
     if title:
         window.title(title)
 
-    normalized = _normalize_geometry(
-        geometry
-    )
+    normalized = _normalize_geometry(geometry)
 
     if normalized:
         window.geometry(normalized)
@@ -645,10 +605,13 @@ def prepare_toplevel(
     # --------------------------------------------------------
 
     try:
-        if isinstance(
-            geometry,
-            (tuple, list),
-        ) and len(geometry) >= 2:
+        if (
+            isinstance(
+                geometry,
+                (tuple, list),
+            )
+            and len(geometry) >= 2
+        ):
             center_window(
                 window,
                 int(geometry[0]),
@@ -700,6 +663,7 @@ def release_modal(window):
 # SEPARADOR
 # ============================================================
 
+
 def separator(
     parent,
     orient="horizontal",
@@ -736,11 +700,7 @@ def separator(
         False,
     )
 
-    orient_value = (
-        "horizontal"
-        if str(orient).lower().startswith("h")
-        else "vertical"
-    )
+    orient_value = "horizontal" if str(orient).lower().startswith("h") else "vertical"
 
     if orient_value == "horizontal":
         widget = ctk.CTkFrame(
@@ -784,6 +744,7 @@ def separator(
 # ============================================================
 # PINTADO DE WIDGETS
 # ============================================================
+
 
 def paint(
     widget,
@@ -842,9 +803,7 @@ def paint(
                 "primary",
             )
 
-            palette = button_palette(
-                variant
-            )
+            palette = button_palette(variant)
 
             _safe_configure(
                 widget,
@@ -883,9 +842,7 @@ def paint(
                         "text",
                     )
                 ),
-                placeholder_text_color=color(
-                    "text_muted"
-                ),
+                placeholder_text_color=color("text_muted"),
             )
 
             return
@@ -900,21 +857,11 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                fg_color=color(
-                    "entry_bg"
-                ),
-                border_color=color(
-                    "entry_border"
-                ),
-                button_color=color(
-                    "accent"
-                ),
-                button_hover_color=color(
-                    "accent_dark"
-                ),
-                text_color=color(
-                    "text"
-                ),
+                fg_color=color("entry_bg"),
+                border_color=color("entry_border"),
+                button_color=color("accent"),
+                button_hover_color=color("accent_dark"),
+                text_color=color("text"),
             )
 
             return
@@ -929,18 +876,10 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                fg_color=color(
-                    "accent"
-                ),
-                hover_color=color(
-                    "accent_hover"
-                ),
-                border_color=color(
-                    "entry_border"
-                ),
-                text_color=color(
-                    "text"
-                ),
+                fg_color=color("accent"),
+                hover_color=color("accent_hover"),
+                border_color=color("entry_border"),
+                text_color=color("text"),
             )
 
             return
@@ -955,18 +894,10 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                progress_color=color(
-                    "accent"
-                ),
-                button_color=color(
-                    "surface"
-                ),
-                button_hover_color=color(
-                    "accent_hover"
-                ),
-                text_color=color(
-                    "text"
-                ),
+                progress_color=color("accent"),
+                button_color=color("surface"),
+                button_hover_color=color("accent_hover"),
+                text_color=color("text"),
             )
 
             return
@@ -981,18 +912,10 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                progress_color=color(
-                    "accent"
-                ),
-                button_color=color(
-                    "accent"
-                ),
-                button_hover_color=color(
-                    "accent_hover"
-                ),
-                fg_color=color(
-                    "surface_alt"
-                ),
+                progress_color=color("accent"),
+                button_color=color("accent"),
+                button_hover_color=color("accent_hover"),
+                fg_color=color("surface_alt"),
             )
 
             return
@@ -1007,12 +930,8 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                progress_color=color(
-                    "accent"
-                ),
-                fg_color=color(
-                    "surface_alt"
-                ),
+                progress_color=color("accent"),
+                fg_color=color("surface_alt"),
             )
 
             return
@@ -1027,15 +946,9 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                fg_color=color(
-                    "scroll_trough"
-                ),
-                button_color=color(
-                    "scroll_thumb"
-                ),
-                button_hover_color=color(
-                    "scroll_hover"
-                ),
+                fg_color=color("scroll_trough"),
+                button_color=color("scroll_thumb"),
+                button_hover_color=color("scroll_hover"),
             )
 
             return
@@ -1053,32 +966,16 @@ def paint(
         ):
             _safe_configure(
                 widget,
-                fg_color=color(
-                    "card"
-                ),
+                fg_color=color("card"),
                 border_width=1,
-                border_color=color(
-                    "border"
-                ),
+                border_color=color("border"),
                 corner_radius=14,
-                segmented_button_fg_color=color(
-                    "card"
-                ),
-                segmented_button_selected_color=color(
-                    "accent"
-                ),
-                segmented_button_selected_hover_color=color(
-                    "accent_hover"
-                ),
-                segmented_button_unselected_color=color(
-                    "surface_alt"
-                ),
-                segmented_button_unselected_hover_color=color(
-                    "card_hover"
-                ),
-                text_color=color(
-                    "text"
-                ),
+                segmented_button_fg_color=color("card"),
+                segmented_button_selected_color=color("accent"),
+                segmented_button_selected_hover_color=color("accent_hover"),
+                segmented_button_unselected_color=color("surface_alt"),
+                segmented_button_unselected_hover_color=color("card_hover"),
+                text_color=color("text"),
             )
 
             return
@@ -1148,9 +1045,7 @@ def paint(
         if kind == "separator":
             _safe_configure(
                 widget,
-                fg_color=color(
-                    "border"
-                ),
+                fg_color=color("border"),
             )
 
             return
@@ -1197,12 +1092,8 @@ def paint(
                         "card",
                     )
                 ),
-                highlightbackground=color(
-                    "border"
-                ),
-                highlightcolor=color(
-                    "border"
-                ),
+                highlightbackground=color("border"),
+                highlightcolor=color("border"),
             )
 
             return
@@ -1236,24 +1127,18 @@ def paint(
 
             _safe_configure(
                 widget,
-                bg=color(
-                    bg_name
-                ),
+                bg=color(bg_name),
             )
 
             _safe_configure(
                 widget,
-                fg=color(
-                    fg_name
-                ),
+                fg=color(fg_name),
             )
 
             if "font" in spec:
                 _safe_configure(
                     widget,
-                    font=font(
-                        spec["font"]
-                    ),
+                    font=font(spec["font"]),
                 )
 
             return
@@ -1265,15 +1150,9 @@ def paint(
         if kind == "treeview":
             _safe_configure(
                 widget,
-                background=color(
-                    "surface"
-                ),
-                foreground=color(
-                    "text"
-                ),
-                fieldbackground=color(
-                    "surface"
-                ),
+                background=color("surface"),
+                foreground=color("text"),
+                fieldbackground=color("surface"),
             )
 
             return
@@ -1288,6 +1167,7 @@ def paint(
 # ============================================================
 # CONFIGURACIÓN TTK
 # ============================================================
+
 
 def configure_app_style():
     """
@@ -1308,15 +1188,9 @@ def configure_app_style():
 
         style.configure(
             "KLP.Treeview",
-            background=color(
-                "surface"
-            ),
-            foreground=color(
-                "text"
-            ),
-            fieldbackground=color(
-                "surface"
-            ),
+            background=color("surface"),
+            foreground=color("text"),
+            fieldbackground=color("surface"),
             borderwidth=0,
             relief="flat",
             rowheight=34,
@@ -1345,12 +1219,8 @@ def configure_app_style():
 
         style.configure(
             "KLP.Treeview.Heading",
-            background=color(
-                "surface_alt"
-            ),
-            foreground=color(
-                "text"
-            ),
+            background=color("surface_alt"),
+            foreground=color("text"),
             borderwidth=0,
             relief="flat",
             font=font("label"),
@@ -1372,9 +1242,7 @@ def configure_app_style():
 
         style.configure(
             "KLP.TSeparator",
-            background=color(
-                "border"
-            ),
+            background=color("border"),
         )
 
         # ----------------------------------------------------
@@ -1386,20 +1254,14 @@ def configure_app_style():
 
         style.configure(
             "KLP.TNotebook",
-            background=color(
-                "window"
-            ),
+            background=color("window"),
             borderwidth=0,
         )
 
         style.configure(
             "KLP.TNotebook.Tab",
-            background=color(
-                "surface_alt"
-            ),
-            foreground=color(
-                "text_muted"
-            ),
+            background=color("surface_alt"),
+            foreground=color("text_muted"),
             padding=(
                 14,
                 8,
@@ -1418,9 +1280,7 @@ def configure_app_style():
             foreground=[
                 (
                     "selected",
-                    color(
-                        "text_on_accent"
-                    ),
+                    color("text_on_accent"),
                 )
             ],
         )
@@ -1433,15 +1293,12 @@ def configure_app_style():
 # INPUT STYLE
 # ============================================================
 
+
 def _update_input_style():
     INPUT_STYLE.update(
         {
-            "fg_color": color(
-                "entry_bg"
-            ),
-            "border_color": color(
-                "entry_border"
-            ),
+            "fg_color": color("entry_bg"),
+            "border_color": color("entry_border"),
             "border_width": 1,
             "corner_radius": 8,
             "height": 38,
@@ -1453,12 +1310,11 @@ def _update_input_style():
 # REPAINT
 # ============================================================
 
+
 def repaint_all():
     dead = []
 
-    for widget, data in list(
-        _REGISTRY.items()
-    ):
+    for widget, data in list(_REGISTRY.items()):
         try:
             if not widget.winfo_exists():
                 dead.append(widget)
@@ -1489,6 +1345,7 @@ def repaint_all():
 # RESTYLE
 # ============================================================
 
+
 def restyle(
     root: Optional[tk.Misc] = None,
     **changes,
@@ -1499,17 +1356,11 @@ def restyle(
     """
     if root is not None and changes:
         try:
-            root.configure(
-                **changes
-            )
+            root.configure(**changes)
         except tk.TclError:
             for key, value in changes.items():
                 try:
-                    root.configure(
-                        **{
-                            key: value
-                        }
-                    )
+                    root.configure(**{key: value})
                 except tk.TclError:
                     pass
 
@@ -1521,6 +1372,7 @@ def restyle(
 # ============================================================
 # APLICAR TEMA
 # ============================================================
+
 
 def apply_theme(name: str = "oscuro"):
     """
@@ -1548,6 +1400,7 @@ def apply_theme(name: str = "oscuro"):
 # ============================================================
 # THEME MANAGER
 # ============================================================
+
 
 class ThemeManager:
     """
@@ -1603,6 +1456,7 @@ class ThemeManager:
 # ICONO
 # ============================================================
 
+
 def set_app_icon(
     window,
     base_path=None,
@@ -1655,9 +1509,7 @@ def set_app_icon(
             # ------------------------------------------------
 
             if path.lower().endswith(".png"):
-                image = tk.PhotoImage(
-                    file=path
-                )
+                image = tk.PhotoImage(file=path)
 
                 window_key = str(window)
 
@@ -1709,6 +1561,7 @@ def set_app_icon(
 # TOOLTIP
 # ============================================================
 
+
 class Tooltip:
     """
     Tooltip ligero para widgets Tkinter/CustomTkinter.
@@ -1749,11 +1602,9 @@ class Tooltip:
         self._hide()
 
         try:
-            self.after_id = (
-                self.widget.after(
-                    self.delay,
-                    self._show,
-                )
+            self.after_id = self.widget.after(
+                self.delay,
+                self._show,
             )
         except tk.TclError:
             pass
@@ -1765,28 +1616,15 @@ class Tooltip:
             if not self.widget.winfo_exists():
                 return
 
-            x = (
-                self.widget.winfo_rootx()
-                + 10
-            )
+            x = self.widget.winfo_rootx() + 10
 
-            y = (
-                self.widget.winfo_rooty()
-                + self.widget.winfo_height()
-                + 5
-            )
+            y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
 
-            self.tipwindow = tk.Toplevel(
-                self.widget
-            )
+            self.tipwindow = tk.Toplevel(self.widget)
 
-            self.tipwindow.wm_overrideredirect(
-                True
-            )
+            self.tipwindow.wm_overrideredirect(True)
 
-            self.tipwindow.geometry(
-                f"+{x}+{y}"
-            )
+            self.tipwindow.geometry(f"+{x}+{y}")
 
             label = tk.Label(
                 self.tipwindow,
@@ -1808,9 +1646,7 @@ class Tooltip:
     def _hide(self, _event=None):
         if self.after_id:
             try:
-                self.widget.after_cancel(
-                    self.after_id
-                )
+                self.widget.after_cancel(self.after_id)
             except tk.TclError:
                 pass
 
@@ -1855,6 +1691,7 @@ class Tooltip:
 # ============================================================
 # COMPATIBILIDAD CON CÓDIGO ANTIGUO
 # ============================================================
+
 
 def detect_system_theme() -> str:
     """
